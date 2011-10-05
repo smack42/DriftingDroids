@@ -1,0 +1,40 @@
+http://boardgamegeek.com/thread/308557/hardest-ricochet-robots-problem
+
+Here is one contender. I know there is a solution in 24 moves
+and I'm fairly certain there is no shorter one:
+http://boardgamegeek.com/image/959272
+
+For anyone interested, here's the 24 move solution. So far I haven't
+been able to come up with any problem that requires more than 24 moves.
+
+1) red right
+2) red down
+3) red left
+4) red down
+5) red right
+6) yellow down
+7) yellow left
+8) green down
+9) blue down
+10) blue left
+11) blue up
+12) blue right
+13) blue down
+14) blue left
+15) blue down
+16) yellow down
+17) red left
+18) blue up
+19) green up
+20) green left
+21) green down
+22) blue left
+23) blue down
+24) blue right
+
+-------------------------------------------------------
+
+board layout:
+ 1A 4B
+ 2B 3B
+
