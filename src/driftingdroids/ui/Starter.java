@@ -21,8 +21,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import driftingdroids.model.AbstractSolver;
 import driftingdroids.model.Board;
+import driftingdroids.model.SolverBFS;
 
 
 
@@ -30,7 +30,7 @@ import driftingdroids.model.Board;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids (work in progress 2011-10-04)");
+        new SwingGUI("DriftingDroids (work in progress 2011-10-05)");
         //runTestRandom1000();
     }
     
@@ -49,7 +49,7 @@ public class Starter {
         for (int i = 1; i <= numGames; ++i) {
             
             theBoard.setRobotsRandom();
-            final AbstractSolver theSolver = new driftingdroids.model.SolverBFS(theBoard);
+            final SolverBFS theSolver = new SolverBFS(theBoard);
             
             final int moves = theSolver.execute();
             

@@ -70,9 +70,9 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 import javax.swing.text.StyledDocument;
 
-import driftingdroids.model.AbstractSolver;
 import driftingdroids.model.Board;
 import driftingdroids.model.Move;
+import driftingdroids.model.SolverBFS;
 
 import net.java.dev.designgridlayout.DesignGridLayout;
 import net.java.dev.designgridlayout.RowGroup;
@@ -108,7 +108,7 @@ public class SwingGUI implements ActionListener {
     private int[] currentPosition;
     
     private SolverTask solverTask = null;   //only set while SolverTask is working
-    private AbstractSolver solver = null;           //result of SolverTask
+    private SolverBFS solver = null;        //result of SolverTask
     private final List<Move> moves;
     private int hintCounter = 0;
     private int placeRobot = -1;    //default: false
@@ -196,7 +196,7 @@ public class SwingGUI implements ActionListener {
         }
     }
     
-    private void setSolution(final AbstractSolver solver) {
+    private void setSolution(final SolverBFS solver) {
         this.solver = solver;
         this.hintCounter = 0;
         this.jtextSolution.setText(null);
@@ -242,13 +242,11 @@ public class SwingGUI implements ActionListener {
         this.solverTask.execute();
     }
     
-    private class SolverTask extends SwingWorker<AbstractSolver, Object> {
+    private class SolverTask extends SwingWorker<SolverBFS, Object> {
         @Override
-        protected AbstractSolver doInBackground() throws Exception {
-            final AbstractSolver solver = new driftingdroids.model.SolverBFS(board);
-            //final AbstractSolver solver = new driftingdroids.model.SolverIDDFS(board);
-            
-            solver.setOptionSolutionMode((AbstractSolver.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
+        protected SolverBFS doInBackground() throws Exception {
+            final SolverBFS solver = new SolverBFS(board);
+            solver.setOptionSolutionMode((SolverBFS.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
             appendSolutionText("(options: " + solver.getOptionsAsString() + ")\n", null);
@@ -330,9 +328,9 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.addActionListener(this);
         this.setJComboCenterAlignment(this.jcomboRobots);
         
-        final AbstractSolver.SOLUTION_MODE[] solModes = AbstractSolver.SOLUTION_MODE.values();
+        final SolverBFS.SOLUTION_MODE[] solModes = SolverBFS.SOLUTION_MODE.values();
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
-        this.jcomboOptSolutionMode.setSelectedItem(AbstractSolver.SOLUTION_MODE.MINIMUM);
+        this.jcomboOptSolutionMode.setSelectedItem(SolverBFS.SOLUTION_MODE.MINIMUM);
         this.setJComboCenterAlignment(this.jcomboOptSolutionMode);
         
         this.jcheckOptAllowRebounds.setText("allow rebound moves (reverse)");

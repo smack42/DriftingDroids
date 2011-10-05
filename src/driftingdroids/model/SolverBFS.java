@@ -18,23 +18,58 @@
 package driftingdroids.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Formatter;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.enerj.core.SparseBitSet;
 
 
 
-public class SolverBFS extends AbstractSolver {
+public class SolverBFS {
     
+    public enum SOLUTION_MODE {
+        ANY("any"), MINIMUM("minimum"), MAXIMUM("maximum");
+        private final String name;
+        private SOLUTION_MODE(String name) { this.name = name; }
+        @Override public String toString() { return this.name; }
+    }
     
-    
+    private final Board board;
+    private final byte[][] boardWalls;
+    private final int boardSizeNumBits;
+    private final int boardSizeBitMask;
+    private final int boardNumRobots;
+    private final boolean isBoardStateInt32;
+    private final boolean isBoardGoalWildcard;
+    private final boolean[] expandRobotPositions;
+    private SOLUTION_MODE optSolutionMode = SOLUTION_MODE.ANY;
+    private boolean optAllowRebounds = true;
+    private long solutionMilliSeconds = 0;
+    private int solutionStoredStates = 0;
+    private Move[] solutionMoves = null;
+    private int solutionMoveIndex = 0;
+
+
+
     public SolverBFS(final Board board) {
-        super(board);
+        this.board = board;
+        this.boardWalls = this.board.getWalls();
+        this.boardSizeNumBits = 32 - Integer.numberOfLeadingZeros(this.board.size - 1); //ceil(log2(x))
+        int bitMask = 0;
+        for (int i = 0;  i < this.boardSizeNumBits;  ++i) { bitMask += bitMask + 1; }
+        this.boardSizeBitMask = bitMask;
+        this.boardNumRobots = this.board.getRobotPositions().length;
+        this.isBoardStateInt32 = (this.boardSizeNumBits * this.boardNumRobots <= 32);
+        this.isBoardGoalWildcard = (this.board.getGoalRobot() < 0);
+        this.expandRobotPositions = new boolean[this.board.size];
+        Arrays.fill(this.expandRobotPositions, false);
     }
     
     
     
-    @Override
     public int execute() throws InterruptedException {
         final long startExecute = System.currentTimeMillis();
         this.solutionMoves = null;  //THE RESULT
@@ -381,23 +416,176 @@ public class SolverBFS extends AbstractSolver {
     
     
     
+    private String stateString(final int[] state) {
+        final Formatter formatter = new Formatter();
+        this.swapGoalLast(state);
+        for (int i = 0;  i < state.length;  i++) {
+            formatter.format("%02x", Integer.valueOf(state[i]));
+        }
+        this.swapGoalLast(state);
+        return "0x" + formatter.out().toString();
+    }
+
+
+
+    private void swapGoalLast(final int[] state) {
+        //swap goal robot and last robot (if goal is not wildcard)
+        if (false == this.isBoardGoalWildcard) {
+            final int tmp = state[state.length - 1];
+            state[state.length - 1] = state[this.board.getGoalRobot()];
+            state[this.board.getGoalRobot()] = tmp;
+        }
+    }
+
+
+
+    public void setOptionSolutionMode(SOLUTION_MODE mode) {
+        this.optSolutionMode = mode;
+    }
+
+
+
+    public void setOptionAllowRebounds(boolean allowRebounds) {
+        this.optAllowRebounds = allowRebounds;
+    }
+
+
+
+    public String getOptionsAsString() {
+        return this.optSolutionMode.toString() + " number of robots moved; "
+                + (this.optAllowRebounds ? "with" : "no") + " rebound moves";
+    }
+
+
+
+    public Move getCurrentMove() {
+        if ((null != this.solutionMoves) && (this.solutionMoveIndex >= 0) && (this.solutionMoveIndex < this.solutionMoves.length)) {
+            return this.solutionMoves[this.solutionMoveIndex];
+        } else {
+            return null;
+        }
+    }
+
+
+
+    public Move getNextMove() {
+        final Move result =  getCurrentMove();
+        if (null != result) {
+            this.solutionMoveIndex++;
+        }
+        return result;
+    }
+
+
+
+    public Move getPrevMove() {
+        if (this.solutionMoveIndex > 0) {
+            this.solutionMoveIndex--;
+        }
+        return getCurrentMove();
+    }
+
+
+
+    public boolean isMoveRebound(Move move) {
+        return this.isSolutionRebound(this.solutionMoves, move);
+    }
+
+
+
+    private boolean isSolutionRebound(final Move[] moves, final Move queryMove) {
+        boolean result = false;
+        int[] directions = this.board.getRobotPositions().clone();
+        Arrays.fill(directions, -1);
+        for (Move move : moves) {
+            if ((-1 == directions[move.robotNumber]) || (move.direction != (3 & (directions[move.robotNumber] + 2)))) {
+                directions[move.robotNumber] = move.direction;
+            } else {
+                if ((queryMove == null) || (queryMove == move)) {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+
+
+    public int getSolutionSize() {
+        return (this.solutionMoves == null ? 0 : this.solutionMoves.length);
+    }
+
+
+
+    public long getSolutionMilliSeconds() {
+        return this.solutionMilliSeconds;
+    }
+
+
+
+    public int getSolutionStoredStates() {
+        return this.solutionStoredStates;
+    }
+
+
+
+    public Set<Integer> getSolutionRobotsMoved() {
+        return this.getSolutionRobotsMoved(this.solutionMoves);
+    }
+
+
+
+    private Set<Integer> getSolutionRobotsMoved(final Move[] moves) {
+        final TreeSet<Integer> result = new TreeSet<Integer>(); //sorted set
+        for (Move mov : moves) {
+            result.add(Integer.valueOf(mov.robotNumber));
+        }
+        return result;
+    }
+
+
+
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append("solution: size=").append(this.getSolutionSize()).append(" *****");
+        if (this.getSolutionSize() > 0) {
+            for (Move mov : this.solutionMoves) {
+                s.append(' ');
+                s.append(mov.strRobotDirection());
+            }
+        }
+        s.append(" *****  (storedStates=").append(this.solutionStoredStates);
+        s.append(", time=").append(this.solutionMilliSeconds / 1000d).append(" seconds)");
+        return s.toString();
+    }
+
+
+
+
+
+
+
+
+
     private class KnownStates {
-        private final AllStateKeys allStateKeys;
+        private final AllKeys allKeys;
         private final AllStates allStates;
         private final AllDirections allDirections;
         private int currentDepth = -1;
         
         public KnownStates() {
-            this.allStateKeys = ((true == isBoardStateInt32) ? new KnownStateKeysInt() : new KnownStateKeysLong());
+            this.allKeys = ((true == isBoardStateInt32) ? new AllKeysInt() : new AllKeysLong());
             this.allStates = new AllStatesByte();   //TODO add AllStatesShort to support board sizes > 16*16
             this.allDirections = new AllDirectionsShort();
         }
         
         //store the unique keys of all known states
-        private abstract class AllStateKeys {
+        private abstract class AllKeys {
             protected final SparseBitSet stateKeys;
             public abstract boolean add(final int[] state);
-            public AllStateKeys() {
+            public AllKeys() {
                 long maxNumStates = boardSizeBitMask;
                 for (int i = 1;  i < boardNumRobots;  ++i) {
                     maxNumStates = (maxNumStates << boardSizeNumBits) | boardSizeBitMask;
@@ -405,18 +593,12 @@ public class SolverBFS extends AbstractSolver {
                 final int nodeSize = (int)Math.ceil(Math.pow(maxNumStates / 64.0d, 1.0d/3.0d));
                 this.stateKeys = new SparseBitSet(nodeSize);
             }
-            public int size() {
-                return 0;
-            }
-            public int size2() {
-                return 0;
-            }
         }
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
-        private final class KnownStateKeysInt extends AllStateKeys {
+        private final class AllKeysInt extends AllKeys {
             private final KeyMakerInt keyMaker = createKeyMakerInt();
-            public KnownStateKeysInt() {
+            public AllKeysInt() {
                 super();
             }
             @Override
@@ -427,36 +609,36 @@ public class SolverBFS extends AbstractSolver {
         }
         //store the unique keys of all known states in 32-bit ints
         //fastest version = uses full 4 gigabits array.
-        private final class KnownStateKeysIntBitArray extends AllStateKeys {
-            private final int[] BIT_POS = {
-                    0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080,
-                    0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000,
-                    0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
-                    0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
-            };
-            private final KeyMakerInt keyMaker = createKeyMakerInt();
-            private final int[] allBits = new int[(4096 / 32) * 1024 * 1024];   // 512 megabytes = 4 gigabits (2**32)
-            public KnownStateKeysIntBitArray() {
-                super();
-            }
-            @Override
-            public final boolean add(final int[] state) {
-                final int key = this.keyMaker.run(state);
-                final int index = key >>> 5;
-                final int oldBits = this.allBits[index];
-                final int newBits = oldBits | (this.BIT_POS[key & 31]);
-                final boolean keyHasBeenAdded = (oldBits != newBits);
-                if (true == keyHasBeenAdded) {
-                    this.allBits[index] = newBits;
-                }
-                return keyHasBeenAdded;
-            }
-        }
+//        private final class AllKeysIntBitArray extends AllKeys {
+//            private final int[] BIT_POS = {
+//                    0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080,
+//                    0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000,
+//                    0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
+//                    0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
+//            };
+//            private final KeyMakerInt keyMaker = createKeyMakerInt();
+//            private final int[] allBits = new int[(4096 / 32) * 1024 * 1024];   // 512 megabytes = 4 gigabits (2**32)
+//            public AllKeysIntBitArray() {
+//                super();
+//            }
+//            @Override
+//            public final boolean add(final int[] state) {
+//                final int key = this.keyMaker.run(state);
+//                final int index = key >>> 5;
+//                final int oldBits = this.allBits[index];
+//                final int newBits = oldBits | (this.BIT_POS[key & 31]);
+//                final boolean keyHasBeenAdded = (oldBits != newBits);
+//                if (true == keyHasBeenAdded) {
+//                    this.allBits[index] = newBits;
+//                }
+//                return keyHasBeenAdded;
+//            }
+//        }
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
-        private final class KnownStateKeysLong extends AllStateKeys {
+        private final class AllKeysLong extends AllKeys {
             private final KeyMakerLong keyMaker = createKeyMakerLong();
-            public KnownStateKeysLong() {
+            public AllKeysLong() {
                 super();
             }
             @Override
@@ -465,6 +647,7 @@ public class SolverBFS extends AbstractSolver {
                 return this.stateKeys.add(key);
             }
         }
+        
         //store all known states in a way that allows them to be retrieved later
         private abstract class AllStates {
             protected final int ARRAY_SIZE = 60 * 100 * 100; //size of each array in the list of arrays. lcm(1,2,3,4,5) = 60
@@ -544,6 +727,7 @@ public class SolverBFS extends AbstractSolver {
                 return new AllStatesByteIterator(depth);
             }
         }
+        
         //store all directions belonging to the known states
         //(implementation is copy/paste from AllStates with some adaptions)
         private abstract class AllDirections {
@@ -655,7 +839,7 @@ public class SolverBFS extends AbstractSolver {
         
         public final boolean add(final int[] state) {
             assert state.length == boardNumRobots : state.length;
-            final boolean stateHasBeenAdded = this.allStateKeys.add(state);
+            final boolean stateHasBeenAdded = this.allKeys.add(state);
             if (true == stateHasBeenAdded) {
                 this.allStates.add(state);
             }
@@ -664,7 +848,7 @@ public class SolverBFS extends AbstractSolver {
         public final boolean add(final int[] state, final int[] dirs) {
             assert state.length == boardNumRobots : state.length;
             assert dirs.length == boardNumRobots : dirs.length;
-            final boolean stateHasBeenAdded = this.allStateKeys.add(state);
+            final boolean stateHasBeenAdded = this.allKeys.add(state);
             if (true == stateHasBeenAdded) {
                 this.allStates.add(state);
                 this.allDirections.add(dirs);
@@ -675,20 +859,233 @@ public class SolverBFS extends AbstractSolver {
         public Iterator iterator(final int depth) {
             return new Iterator(depth);
         }
-        
         public final int size() {
             return this.allStates.size();
         }
-        
         public final int depth() {
             return this.currentDepth;
         }
-        
         public final String infoString() {
-            return "size=" + this.allStates.size() + " depth=" + this.currentDepth
-                + " keys1=" + this.allStateKeys.size() + " keys2=" + this.allStateKeys.size2();
+            return "size=" + this.allStates.size() + " depth=" + this.currentDepth;
         }
     }
+    
+    
+    
+    private final KeyMakerInt createKeyMakerInt() {
+        final KeyMakerInt keyMaker;
+        switch (boardNumRobots) {
+        case 1:  keyMaker = new KeyMakerInt1(); break;
+        case 2:  keyMaker = new KeyMakerInt2(); break;
+        case 3:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt3nosort() : new KeyMakerInt3sort()); break;
+        case 4:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt4nosort() : new KeyMakerInt4sort()); break;
+        default: keyMaker = new KeyMakerIntAll();
+        }
+        return keyMaker;
+    }
+    private abstract class KeyMakerInt {
+        protected final int s1 = boardSizeNumBits,  s2 = s1 * 2;
+        public abstract int run(final int[] state);
+    }
+    private final class KeyMakerIntAll extends KeyMakerInt {
+        private final int[] tmpState = new int[boardNumRobots];
+        @Override
+        public final int run(final int[] state) {
+            //copy and sort state
+            System.arraycopy(state, 0, this.tmpState, 0, state.length);
+            if (false == isBoardGoalWildcard) {
+                Arrays.sort(this.tmpState, 0, this.tmpState.length - 1);    //don't sort the last element
+//                //calculate deltas - it doesn't reduce memory usage in SparseBitSet ?!
+//                for (int i = 1, prev = this.tmpState[0];  i < this.tmpState.length - 1;  ++i) {
+//                    final int tmp = this.tmpState[i];
+//                    this.tmpState[i] = tmp - prev;
+//                    prev = tmp;
+//                }
+            }
+            //pack state into a single int value
+            int result = this.tmpState[0];
+            for (int i = 1;  i < boardNumRobots;  ++i) {
+                result = (result << s1) | this.tmpState[i];
+            }
+            return result;
+        }
+    }
+    private final class KeyMakerInt1 extends KeyMakerInt {
+        @Override
+        public final int run(final int[] state) {
+            assert 1 == state.length : state.length;
+            return state[0];
+        }
+    }
+    private final class KeyMakerInt2 extends KeyMakerInt {
+        @Override
+        public final int run(final int[] state) {
+            assert 2 == state.length : state.length;
+            return (state[0] << s1) | state[1];
+        }
+    }
+    private final class KeyMakerInt3sort extends KeyMakerInt {
+        @Override
+        public final int run(final int[] state) {
+            assert 3 == state.length : state.length;
+            int result = state[0];
+            if (result < state[1]) {
+                result = (result << s1) | state[1];
+            } else {
+                result = (state[1] << s1) | result;
+            }
+            return (result << s1) | state[2];
+        }
+    }
+    private final class KeyMakerInt3nosort extends KeyMakerInt {
+        @Override
+        public final int run(final int[] state) {
+            assert 3 == state.length : state.length;
+            int result = state[0] << s1;
+            return (result << s1) | (state[1] << s1) | state[2];
+        }
+    }
+    private final class KeyMakerInt4sort extends KeyMakerInt {
+        @Override
+        public final int run(final int[] state) {
+            assert 4 == state.length : state.length;
+            final int a = state[0],  b = state[1],  c = state[2];
+            final int result;
+            if (a < b) {
+                if (a < c) {
+                    if (b < c) { result = (a << s2) | (b << s1) | c;
+                    } else {     result = (a << s2) | (c << s1) | b; }
+                } else {         result = (c << s2) | (a << s1) | b; }
+            } else {
+                if (b < c) {
+                    if (a < c) { result = (b << s2) | (a << s1) | c;
+                    } else {     result = (b << s2) | (c << s1) | a; }
+                } else {         result = (c << s2) | (b << s1) | a; }
+            }
+            return (result << s1) | state[3];
+        }
+    }
+    private final class KeyMakerInt4nosort extends KeyMakerInt {
+        @Override
+        public final int run(final int[] state) {
+            assert 4 == state.length : state.length;
+            final int result = (state[0] << s2) | (state[1] << s1) | state[2];
+            return (result << s1) | state[3];
+        }
+    }
+    
+    
+    
+    private final KeyMakerLong createKeyMakerLong() {
+        final KeyMakerLong keyMaker;
+        switch (boardNumRobots) {
+        case 5:  keyMaker = (isBoardGoalWildcard ? new KeyMakerLong5nosort() : new KeyMakerLong5sort()); break;
+        default: keyMaker = new KeyMakerLongAll();
+        }
+        return keyMaker;
+    }
+    private abstract class KeyMakerLong {
+        protected final int s1 = boardSizeNumBits,  s2 = s1 * 2,  s3 = s1 * 3;
+        public abstract long run(final int[] state);
+    }
+    private class KeyMakerLongAll extends KeyMakerLong {
+        private final int[] tmpState = new int[boardNumRobots];
+        @Override
+        public final long run(final int[] state) {
+            //copy and sort state
+            System.arraycopy(state, 0, this.tmpState, 0, state.length);
+            if (false == isBoardGoalWildcard) {
+                Arrays.sort(this.tmpState, 0, this.tmpState.length - 1);    //don't sort the last element
+//                //calculate deltas - it doesn't reduce memory usage in SparseBitSet ?!
+//                for (int i = 1, prev = this.tmpState[0];  i < this.tmpState.length - 1;  ++i) {
+//                    final int tmp = this.tmpState[i];
+//                    this.tmpState[i] = tmp - prev;
+//                    prev = tmp;
+//                }
+            }
+            //pack state into a single long value
+            long result = this.tmpState[0];
+            for (int i = 1;  i < boardNumRobots;  ++i) {
+                result = (result << s1) | this.tmpState[i];
+            }
+            return result;
+        }
+    }
+    private class KeyMakerLong5sort extends KeyMakerLong {
+        @Override
+        public final long run(final int[] state) {
+            assert 5 == state.length : state.length;
+            final long a = state[0],  b = state[1],  c = state[2],  d = state[3];
+            final long result;
+            if (a <= b) {
+                if (c <= d) {
+                    if (a <= c) {
+                        if (b <= d) {
+                            if (b <= c) { result = (a << s3) | (b << s2) | (c << s1) | d;
+                            } else {      result = (a << s3) | (c << s2) | (b << s1) | d; }
+                        } else {          result = (a << s3) | (c << s2) | (d << s1) | b; }
+                    } else {
+                        if (b <= d) {     result = (c << s3) | (a << s2) | (b << s1) | d;
+                        } else {
+                            if (a <= d) { result = (c << s3) | (a << s2) | (d << s1) | b;
+                            } else {      result = (c << s3) | (d << s2) | (a << s1) | b; }
+                        }
+                    }
+                } else {
+                    if (a <= d) {
+                        if (b <= c) {
+                            if (b <= d) { result = (a << s3) | (b << s2) | (d << s1) | c;
+                            } else {      result = (a << s3) | (d << s2) | (b << s1) | c; }
+                        } else {          result = (a << s3) | (d << s2) | (c << s1) | b; }
+                    } else {
+                        if (b <= c) {     result = (d << s3) | (a << s2) | (b << s1) | c;
+                        } else {
+                            if (a <= c) { result = (d << s3) | (a << s2) | (c << s1) | b;
+                            } else {      result = (d << s3) | (c << s2) | (a << s1) | b; }
+                        }
+                    }
+                }
+            } else {
+                if (c <= d) {
+                    if (b <= c) {
+                        if (a <= d) {
+                            if (a <= c) { result = (b << s3) | (a << s2) | (c << s1) | d;
+                            } else {      result = (b << s3) | (c << s2) | (a << s1) | d; }
+                        } else {          result = (b << s3) | (c << s2) | (d << s1) | a; }
+                    } else {
+                        if (a <= d) {     result = (c << s3) | (b << s2) | (a << s1) | d;
+                        } else {
+                            if (b <= d) { result = (c << s3) | (b << s2) | (d << s1) | a;
+                            } else {      result = (c << s3) | (d << s2) | (b << s1) | a; }
+                        }
+                    }
+                } else {
+                    if (b <= d) {
+                        if (a <= c) {
+                            if (a <= d) { result = (b << s3) | (a << s2) | (d << s1) | c;
+                            } else {      result = (b << s3) | (d << s2) | (a << s1) | c; }
+                        } else {          result = (b << s3) | (d << s2) | (c << s1) | a; }
+                    } else {
+                        if (a <= c) {     result = (d << s3) | (b << s2) | (a << s1) | c;
+                        } else {
+                            if (b <= c) { result = (d << s3) | (b << s2) | (c << s1) | a;
+                            } else {      result = (d << s3) | (c << s2) | (b << s1) | a; }
+                        }
+                    }
+                }
+            }
+            return (result << s1) | state[4];
+        }
+    }
+    private class KeyMakerLong5nosort extends KeyMakerLong {
+        @Override
+        public final long run(final int[] state) {
+            assert 5 == state.length : state.length;
+            final long result = (state[0] << s3) | (state[1] << s2) | (state[2] << s1) | state[3];
+            return (result << s1) | state[4];
+        }
+    }
+    
     
 }
 
