@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.enerj.core.SparseBitSet;
 
@@ -45,15 +43,16 @@ public class SolverBFS {
     private final boolean isBoardStateInt32;
     private final boolean isBoardGoalWildcard;
     private final boolean[] expandRobotPositions;
+    
     private SOLUTION_MODE optSolutionMode = SOLUTION_MODE.ANY;
     private boolean optAllowRebounds = true;
+    
+    private Solution lastResultSolution = null;
     private long solutionMilliSeconds = 0;
     private int solutionStoredStates = 0;
-    private Move[] solutionMoves = null;
-    private int solutionMoveIndex = 0;
-
-
-
+    
+    
+    
     public SolverBFS(final Board board) {
         this.board = board;
         this.boardWalls = this.board.getWalls();
@@ -70,10 +69,15 @@ public class SolverBFS {
     
     
     
-    public int execute() throws InterruptedException {
+    public Solution get() {
+        return this.lastResultSolution;
+    }
+    
+    
+    
+    public Solution execute() throws InterruptedException {
         final long startExecute = System.currentTimeMillis();
-        this.solutionMoves = null;  //THE RESULT
-        this.solutionMoveIndex = 0;
+        this.lastResultSolution = new Solution(this.board);
         
         final KnownStates knownStates = new KnownStates();
         final List<int[]> finalStates = new ArrayList<int[]>();
@@ -109,18 +113,18 @@ public class SolverBFS {
         for (int[] finalState : finalStates) {
             final List<int[]> statesPath = this.getStatesPath(finalState, knownStates);
             if (1 < statesPath.size()) {
-                Move[] moves = new Move[statesPath.size() - 1];
+                Solution tmpSolution = new Solution(this.board);
                 swapGoalLast(statesPath.get(0));
                 for (int i = 0;  i < statesPath.size() - 1;  ++i) {
                     swapGoalLast(statesPath.get(i+1));
-                    moves[i] = new Move(this.board, statesPath.get(i), statesPath.get(i+1), i);
+                    tmpSolution.add(new Move(this.board, statesPath.get(i), statesPath.get(i+1), i));
                 }
-                final int thisRobots = this.getSolutionRobotsMoved(moves).size();
+                final int thisRobots = tmpSolution.getRobotsMoved().size();
                 System.out.printf("finalState=%s  robotsMoved=%d", this.stateString(finalState), Integer.valueOf(thisRobots));
-                if (true == this.isSolutionRebound(moves, null)) {
+                if (true == tmpSolution.isRebound()) {
                     System.out.print("  <- rebound");
                 }
-                if ((SOLUTION_MODE.ANY == this.optSolutionMode) && (null == this.solutionMoves)) {
+                if ((SOLUTION_MODE.ANY == this.optSolutionMode) && (0 == this.lastResultSolution.size())) {
                     System.out.print("  <- any");
                 } else if ((SOLUTION_MODE.MINIMUM == this.optSolutionMode) && (thisRobots < minRobots)) {
                     minRobots = thisRobots;
@@ -129,10 +133,10 @@ public class SolverBFS {
                     maxRobots = thisRobots;
                     System.out.print("  <- max");
                 } else {
-                    moves = null;   //don't accept this solution
+                    tmpSolution = null;   //don't accept this solution
                 }
-                if (null != moves) {
-                    this.solutionMoves = moves;
+                if (null != tmpSolution) {
+                    this.lastResultSolution = tmpSolution;
                     System.out.print("  !!!");
                 }
                 System.out.println();
@@ -142,7 +146,7 @@ public class SolverBFS {
         System.out.println("time (Depth-First-Search   for statePaths ) : " + (durationPath / 1000d) + " seconds");
         
         this.solutionMilliSeconds = System.currentTimeMillis() - startExecute;
-        return this.getSolutionSize();
+        return this.lastResultSolution;
     }
     
     
@@ -425,9 +429,7 @@ public class SolverBFS {
         this.swapGoalLast(state);
         return "0x" + formatter.out().toString();
     }
-
-
-
+    
     private void swapGoalLast(final int[] state) {
         //swap goal robot and last robot (if goal is not wildcard)
         if (false == this.isBoardGoalWildcard) {
@@ -436,139 +438,40 @@ public class SolverBFS {
             state[this.board.getGoalRobot()] = tmp;
         }
     }
-
-
-
+    
+    
+    
     public void setOptionSolutionMode(SOLUTION_MODE mode) {
         this.optSolutionMode = mode;
     }
-
-
-
+    
     public void setOptionAllowRebounds(boolean allowRebounds) {
         this.optAllowRebounds = allowRebounds;
     }
-
-
-
+    
     public String getOptionsAsString() {
         return this.optSolutionMode.toString() + " number of robots moved; "
                 + (this.optAllowRebounds ? "with" : "no") + " rebound moves";
     }
-
-
-
-    public Move getCurrentMove() {
-        if ((null != this.solutionMoves) && (this.solutionMoveIndex >= 0) && (this.solutionMoveIndex < this.solutionMoves.length)) {
-            return this.solutionMoves[this.solutionMoveIndex];
-        } else {
-            return null;
-        }
-    }
-
-
-
-    public Move getNextMove() {
-        final Move result =  getCurrentMove();
-        if (null != result) {
-            this.solutionMoveIndex++;
-        }
-        return result;
-    }
-
-
-
-    public Move getPrevMove() {
-        if (this.solutionMoveIndex > 0) {
-            this.solutionMoveIndex--;
-        }
-        return getCurrentMove();
-    }
-
-
-
-    public boolean isMoveRebound(Move move) {
-        return this.isSolutionRebound(this.solutionMoves, move);
-    }
-
-
-
-    private boolean isSolutionRebound(final Move[] moves, final Move queryMove) {
-        boolean result = false;
-        int[] directions = this.board.getRobotPositions().clone();
-        Arrays.fill(directions, -1);
-        for (Move move : moves) {
-            if ((-1 == directions[move.robotNumber]) || (move.direction != (3 & (directions[move.robotNumber] + 2)))) {
-                directions[move.robotNumber] = move.direction;
-            } else {
-                if ((queryMove == null) || (queryMove == move)) {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
-
-
-    public int getSolutionSize() {
-        return (this.solutionMoves == null ? 0 : this.solutionMoves.length);
-    }
-
-
-
+    
     public long getSolutionMilliSeconds() {
         return this.solutionMilliSeconds;
     }
-
-
-
+    
     public int getSolutionStoredStates() {
         return this.solutionStoredStates;
     }
-
-
-
-    public Set<Integer> getSolutionRobotsMoved() {
-        return this.getSolutionRobotsMoved(this.solutionMoves);
-    }
-
-
-
-    private Set<Integer> getSolutionRobotsMoved(final Move[] moves) {
-        final TreeSet<Integer> result = new TreeSet<Integer>(); //sorted set
-        for (Move mov : moves) {
-            result.add(Integer.valueOf(mov.robotNumber));
-        }
-        return result;
-    }
-
-
-
+    
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
-        s.append("solution: size=").append(this.getSolutionSize()).append(" *****");
-        if (this.getSolutionSize() > 0) {
-            for (Move mov : this.solutionMoves) {
-                s.append(' ');
-                s.append(mov.strRobotDirection());
-            }
-        }
-        s.append(" *****  (storedStates=").append(this.solutionStoredStates);
-        s.append(", time=").append(this.solutionMilliSeconds / 1000d).append(" seconds)");
+        s.append("storedStates=").append(this.solutionStoredStates);
+        s.append(", time=").append(this.solutionMilliSeconds / 1000d).append(" seconds");
         return s.toString();
     }
-
-
-
-
-
-
-
-
-
+    
+    
+    
     private class KnownStates {
         private final AllKeys allKeys;
         private final AllStates allStates;

@@ -72,6 +72,7 @@ import javax.swing.text.StyledDocument;
 
 import driftingdroids.model.Board;
 import driftingdroids.model.Move;
+import driftingdroids.model.Solution;
 import driftingdroids.model.SolverBFS;
 
 import net.java.dev.designgridlayout.DesignGridLayout;
@@ -108,7 +109,7 @@ public class SwingGUI implements ActionListener {
     private int[] currentPosition;
     
     private SolverTask solverTask = null;   //only set while SolverTask is working
-    private SolverBFS solver = null;        //result of SolverTask
+    private Solution solution = null;       //result of SolverTask -> solver.execute()
     private final List<Move> moves;
     private int hintCounter = 0;
     private int placeRobot = -1;    //default: false
@@ -176,7 +177,7 @@ public class SwingGUI implements ActionListener {
         if (null != this.solverTask) {
             this.solverTask.cancel(true);
         }
-        this.solver = null;
+        this.solution = null;
         this.moves.clear();
         this.refreshButtons();
     }
@@ -197,26 +198,24 @@ public class SwingGUI implements ActionListener {
     }
     
     private void setSolution(final SolverBFS solver) {
-        this.solver = solver;
+        this.solution = solver.get();
         this.hintCounter = 0;
         this.jtextSolution.setText(null);
-        this.appendSolutionText("(options: " + this.solver.getOptionsAsString() + ")\n", null);
-        if (this.solver.getSolutionSize() > 0) {
-            final long seconds = (this.solver.getSolutionMilliSeconds() + 999) / 1000;
+        this.appendSolutionText("(options: " + solver.getOptionsAsString() + ")\n", null);
+        if (this.solution.size() > 0) {
+            final long seconds = (solver.getSolutionMilliSeconds() + 999) / 1000;
             this.appendSolutionText("found solution in " + seconds + " second" + (1==seconds ? "" : "s") + ".\n", null);
         } else {
             this.appendSolutionText("no solution found!\n", null);
         }
-        //System.out.println();
-        //System.out.println(this.board.toString());
-        System.out.println(this.solver.toString());
+        System.out.println(this.solution.toString() + "  (" + solver.toString() + ")");
         this.refreshButtons();
     }
     
     private void showHint() {
-        final int moves = this.solver.getSolutionSize();
+        final int moves = this.solution.size();
         final String movesStr = Integer.toString(moves) + " move" + (1==moves ? "" : "s");
-        final Set<Integer> robotsMoved = this.solver.getSolutionRobotsMoved();
+        final Set<Integer> robotsMoved = this.solution.getRobotsMoved();
         final String robotsMovedStr = Integer.toString(robotsMoved.size()) + " robot" + (1==robotsMoved.size() ? "" : "s");
         if (0 == this.hintCounter) {
             //first hint: number of moves
@@ -462,14 +461,14 @@ public class SwingGUI implements ActionListener {
     }
     
     private void refreshButtons() {
-        if (null == this.solver) {
+        if (null == this.solution) {
             this.jbutSolutionHint.setEnabled(false);
             this.jbutNextMove.setEnabled(false);
             this.jbutPrevMove.setEnabled(false);
             this.jbutAllMoves.setEnabled(false);
             this.jbutNoMoves.setEnabled(false);
         } else {
-            if (this.solver.getSolutionSize() > 0) { this.jbutSolutionHint.setEnabled(true); }
+            if (this.solution.size() > 0) { this.jbutSolutionHint.setEnabled(true); }
             this.jbutNextMove.setEnabled(true);
             this.jbutPrevMove.setEnabled(true);
             this.jbutAllMoves.setEnabled(true);
@@ -483,7 +482,7 @@ public class SwingGUI implements ActionListener {
                     }
                 }
             } else if ((this.currentPosition[this.board.getGoalRobot()] == this.board.getGoalPosition())
-                    || (this.solver.getSolutionSize() < 1)){
+                    || (this.solution.size() < 1)){
                 this.jbutNextMove.setEnabled(false);
                 this.jbutAllMoves.setEnabled(false);
             }
@@ -495,7 +494,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private void showNextMove() {
-        final Move step = this.solver.getNextMove();
+        final Move step = this.solution.getNextMove();
         if (null != step) {
             this.moves.add(step);
             this.currentPosition[step.robotNumber] = step.newPosition;
@@ -503,7 +502,7 @@ public class SwingGUI implements ActionListener {
         }
     }
     private void showPrevMove() {
-        final Move step = this.solver.getPrevMove();
+        final Move step = this.solution.getPrevMove();
         if (null != step) {
             this.moves.remove(step);
             this.currentPosition[step.robotNumber] = step.oldPosition;
@@ -513,7 +512,7 @@ public class SwingGUI implements ActionListener {
     private void showMove(final Move step) {
         this.appendSolutionText((step.stepNumber + 1) + ": ", null);
         this.appendSolutionText(step.strRobotDirection(), COL_ROBOT[step.robotNumber]);
-        this.appendSolutionText(" " + step.strOldNewPosition() + (this.solver.isMoveRebound(step) ? " rebound" : "") + "\n", null);
+        this.appendSolutionText(" " + step.strOldNewPosition() + (this.solution.isRebound(step) ? " rebound" : "") + "\n", null);
         //System.out.println(step.toString());
         this.refreshButtons();
         this.refreshBoard(step);
