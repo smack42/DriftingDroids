@@ -1,6 +1,6 @@
 DriftingDroids - yet another Ricochet Robots solver program.
 
-version: (work in progress 2011-09-17)
+version: (work in progress 2011-10-07)
 
 
 
@@ -22,20 +22,18 @@ Java SE Runtime Environment (JRE version 6 or later) is required to this program
 Download here:
 http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
-Windows users please rename the file "start_cmd.txt" to "start.cmd" and
-doubleclick "start.cmd" to run it.
+Windows users can doubleclick "start.cmd" to run DriftingDroids.
 
 
 
 // acknowledgements
 
 this program uses the following Java libraries:
-- fastutil  http://fastutil.dsi.unimi.it/
 - DesignGridLayout  http://designgridlayout.java.net/
 
 tools used to create this program:
-- Eclipse  http://www.eclipse.org/
-- Autojar  http://autojar.sourceforge.net/
+- Eclipse   http://www.eclipse.org/
+- ProGuard  http://proguard.sourceforge.net/
 
 thanks for ideas and inspiration go to:
 - my sister who introduced the original board game to me.

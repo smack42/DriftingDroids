@@ -13,7 +13,6 @@ gui:
 
 solver:
 -implement a more efficient search algorithm (use less time and less memory! see David Hansel's RRTrainer.exe! how does it work?)
--compute solutions without any rebound moves (optionally; impossible in SolverBFS; may be possible in SolverIDDFS)
 
 code:
 -refactoring (reorganise some classes, clean up SwingGUI, ...)
@@ -28,4 +27,5 @@ DONE
 -find all shortest solutions and choose the one with the minimum robots moved (this is a stronger definition of "optimal solution").
 -user option for solution with any / minimum / maximum number of robots moved. (used in SolverBFS)
 -detect solutions containing rebound moves (reverse).
+-compute solutions without any rebound moves (optionally)
 
