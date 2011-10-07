@@ -1,8 +1,0 @@
-REM   please rename this file
-REM   from start_cmd.txt
-REM   to   start.cmd
-
-java.exe -Dswing.defaultlaf=com.sun.java.swing.plaf.windows.WindowsLookAndFeel -Xmx300M  -jar driftingdroids.jar
-
-pause
-
