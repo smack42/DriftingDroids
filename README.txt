@@ -1,6 +1,6 @@
 DriftingDroids - yet another Ricochet Robots solver program.
 
-version: (work in progress 2011-10-07)
+version: (work in progress 2011-10-09)
 
 
 
@@ -18,8 +18,8 @@ http://boardgamegeek.com/boardgame/51/ricochet-robots
 this program is still work in progress. (see TODO.txt)
 and this documentation is incomplete, too...
 
-Java SE Runtime Environment (JRE version 6 or later) is required to this program.
-Download here:
+Java SE Runtime Environment (JRE version 6 or later) is required to run
+this program.   Download Java here:
 http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
 Windows users can doubleclick "start.cmd" to run DriftingDroids.

@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
 
-import org.enerj.core.SparseBitSet;
 
 
 
@@ -89,7 +88,7 @@ public class SolverBFS {
         swapGoalLast(startState);
         System.out.printf("startState=" + this.stateString(startState) + "\n");
         
-        //find the "finalStates" and save all intermediate states "knownStates"
+        //find the "finalStates" and save all intermediate states in "knownStates"
         final long startGetStates = System.currentTimeMillis();
         final int goalRobot = ((true == this.isBoardGoalWildcard) ? -1 : this.boardNumRobots - 1);
         if (true == this.optAllowRebounds) {
@@ -105,9 +104,9 @@ public class SolverBFS {
         
         
         //find the paths from "startState" to the "finalStates".
-        //build the arrays of moves for all paths.
-        //dpending on the options, store the appropriate array of moves
-        //in "this.solutionMoves" (THE RESULT).
+        //build the Solutions.
+        //dpending on the options, store the appropriate Solution
+        //in "this.lastResultSolution" (THE RESULT).
         final long startGetPath = System.currentTimeMillis();
         int minRobots = Integer.MAX_VALUE, maxRobots = 0;
         for (int[] finalState : finalStates) {
@@ -506,7 +505,7 @@ public class SolverBFS {
             }
             @Override
             public final boolean add(final int[] state) {
-                final long key = 0x00000000ffffffffL & this.keyMaker.run(state);
+                final int key = this.keyMaker.run(state);
                 return this.stateKeys.add(key);
             }
         }
@@ -514,25 +513,22 @@ public class SolverBFS {
         //fastest version = uses full 4 gigabits array.
 //        private final class AllKeysIntBitArray extends AllKeys {
 //            private final int[] BIT_POS = {
-//                    0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080,
-//                    0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000,
-//                    0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
-//                    0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
+//                    0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080
 //            };
 //            private final KeyMakerInt keyMaker = createKeyMakerInt();
-//            private final int[] allBits = new int[(4096 / 32) * 1024 * 1024];   // 512 megabytes = 4 gigabits (2**32)
+//            private final byte[] allBits = new byte[(4096 / 8) * 1024 * 1024];  // 512 megabytes = 4 gigabits (2**32)
 //            public AllKeysIntBitArray() {
 //                super();
 //            }
 //            @Override
 //            public final boolean add(final int[] state) {
 //                final int key = this.keyMaker.run(state);
-//                final int index = key >>> 5;
-//                final int oldBits = this.allBits[index];
-//                final int newBits = oldBits | (this.BIT_POS[key & 31]);
+//                final int index = key >>> 3;
+//                final byte oldBits = this.allBits[index];
+//                final int newBits = oldBits | this.BIT_POS[key & 7];
 //                final boolean keyHasBeenAdded = (oldBits != newBits);
 //                if (true == keyHasBeenAdded) {
-//                    this.allBits[index] = newBits;
+//                    this.allBits[index] = (byte)newBits;
 //                }
 //                return keyHasBeenAdded;
 //            }
