@@ -485,28 +485,17 @@ public class SolverBFS {
         
         //store the unique keys of all known states
         private abstract class AllKeys {
-            protected final SparseBitSet stateKeys;
             public abstract boolean add(final int[] state);
-            public AllKeys() {
-                long maxNumStates = boardSizeBitMask;
-                for (int i = 1;  i < boardNumRobots;  ++i) {
-                    maxNumStates = (maxNumStates << boardSizeNumBits) | boardSizeBitMask;
-                }
-                final int nodeSize = (int)Math.ceil(Math.pow(maxNumStates / 64.0d, 1.0d/3.0d));
-                this.stateKeys = new SparseBitSet(nodeSize);
-            }
         }
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
         private final class AllKeysInt extends AllKeys {
+            private final TrieSet theSet = new TrieSet(32);
             private final KeyMakerInt keyMaker = createKeyMakerInt();
-            public AllKeysInt() {
-                super();
-            }
             @Override
             public final boolean add(final int[] state) {
                 final int key = this.keyMaker.run(state);
-                return this.stateKeys.add(key);
+                return this.theSet.add(key);
             }
         }
         //store the unique keys of all known states in 32-bit ints
@@ -536,14 +525,12 @@ public class SolverBFS {
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
         private final class AllKeysLong extends AllKeys {
+            private final TrieSet theSet = new TrieSet(40);
             private final KeyMakerLong keyMaker = createKeyMakerLong();
-            public AllKeysLong() {
-                super();
-            }
             @Override
             public final boolean add(final int[] state) {
                 final long key = this.keyMaker.run(state);
-                return this.stateKeys.add(key);
+                return this.theSet.add(key);
             }
         }
         
@@ -581,18 +568,20 @@ public class SolverBFS {
         //store all known states in a list of byte arrays
         //supports board sizes up to 256 (16*16)
         private final class AllStatesByte extends AllStates {
-            private final List<byte[]> allStatesListOfByteArrays = new ArrayList<byte[]>();
+            private byte[][] allStatesArrays = new byte[32][];
             @Override
             public final void add(final int[] state) {
                 assert 8 >= boardSizeNumBits : boardSizeNumBits;
                 //if necessary, allocate an additional array and append it to the list
                 if (this.addOffset >= this.ARRAY_SIZE) {
-                    this.addArray++;
-                    this.allStatesListOfByteArrays.add(new byte[this.ARRAY_SIZE]);
+                    if (this.allStatesArrays.length <= this.addArray + 1) {
+                        this.allStatesArrays = Arrays.copyOf(this.allStatesArrays, (this.allStatesArrays.length * 3) >> 1);
+                    }
+                    this.allStatesArrays[++this.addArray] = new byte[this.ARRAY_SIZE];
                     this.addOffset = 0;
                 }
                 //append state to the current array in list
-                final byte[] allStatesArray = this.allStatesListOfByteArrays.get(this.addArray);
+                final byte[] allStatesArray = this.allStatesArrays[this.addArray];
                 for (int pos : state) {
                     allStatesArray[this.addOffset++] = (byte)pos;
                 }
@@ -612,7 +601,7 @@ public class SolverBFS {
                           this.iterOffset = 0;
                       }
                       //retrieve the next state
-                      final byte[] allStatesArray = allStatesListOfByteArrays.get(this.iterArray);
+                      final byte[] allStatesArray = allStatesArrays[this.iterArray];
                       for (int i = 0;  i < resultState.length;  i++) {
                           resultState[i] = (boardSizeBitMask & allStatesArray[this.iterOffset++]);
                       }
@@ -773,78 +762,102 @@ public class SolverBFS {
     
     private final KeyMakerInt createKeyMakerInt() {
         final KeyMakerInt keyMaker;
-        switch (boardNumRobots) {
-        case 1:  keyMaker = new KeyMakerInt1(); break;
-        case 2:  keyMaker = new KeyMakerInt2(); break;
-        case 3:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt3nosort() : new KeyMakerInt3sort()); break;
-        case 4:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt4nosort() : new KeyMakerInt4sort()); break;
+        switch (this.boardNumRobots) {
+        case 1:  keyMaker = new KeyMakerInt11(); break;
+        case 2:  keyMaker = (this.isBoardGoalWildcard ? new KeyMakerInt22() : new KeyMakerInt21()); break;
+        case 3:  keyMaker = (this.isBoardGoalWildcard ? new KeyMakerInt33() : new KeyMakerInt32()); break;
+        case 4:  keyMaker = (this.isBoardGoalWildcard ? new KeyMakerInt44() : new KeyMakerInt43()); break;
         default: keyMaker = new KeyMakerIntAll();
         }
         return keyMaker;
     }
     private abstract class KeyMakerInt {
-        protected final int s1 = boardSizeNumBits,  s2 = s1 * 2;
+        protected final int s1 = boardSizeNumBits,  s2 = s1 * 2,  s3 = s1 * 3;
         public abstract int run(final int[] state);
     }
     private final class KeyMakerIntAll extends KeyMakerInt {
         private final int[] tmpState = new int[boardNumRobots];
+        private final int idxSort, idxLen1, idxLen2;
+        public KeyMakerIntAll() {
+            this.idxSort = this.tmpState.length - (isBoardGoalWildcard ? 0 : 1);
+            this.idxLen1 = this.tmpState.length - 1;
+            this.idxLen2 = this.tmpState.length - 2;
+        }
         @Override
         public final int run(final int[] state) {
+            assert this.tmpState.length == state.length : state.length;
             //copy and sort state
             System.arraycopy(state, 0, this.tmpState, 0, state.length);
-            if (false == isBoardGoalWildcard) {
-                Arrays.sort(this.tmpState, 0, this.tmpState.length - 1);    //don't sort the last element
-//                //calculate deltas - it doesn't reduce memory usage in SparseBitSet ?!
-//                for (int i = 1, prev = this.tmpState[0];  i < this.tmpState.length - 1;  ++i) {
-//                    final int tmp = this.tmpState[i];
-//                    this.tmpState[i] = tmp - prev;
-//                    prev = tmp;
-//                }
-            }
+            Arrays.sort(this.tmpState, 0, this.idxSort);
             //pack state into a single int value
-            int result = this.tmpState[0];
-            for (int i = 1;  i < boardNumRobots;  ++i) {
+            int result = this.tmpState[this.idxLen1];
+            for (int i = this.idxLen2;  i >= 0;  --i) {
                 result = (result << s1) | this.tmpState[i];
             }
             return result;
         }
     }
-    private final class KeyMakerInt1 extends KeyMakerInt {
+    private final class KeyMakerInt11 extends KeyMakerInt {     //sort 1 of 1 elements
         @Override
         public final int run(final int[] state) {
             assert 1 == state.length : state.length;
             return state[0];
         }
     }
-    private final class KeyMakerInt2 extends KeyMakerInt {
+    private final class KeyMakerInt21 extends KeyMakerInt {     //sort 1 of 2 elements
         @Override
         public final int run(final int[] state) {
             assert 2 == state.length : state.length;
-            return (state[0] << s1) | state[1];
+            return state[0] | (state[1] << s1);
         }
     }
-    private final class KeyMakerInt3sort extends KeyMakerInt {
+    private final class KeyMakerInt22 extends KeyMakerInt {     //sort 2 of 2 elements
         @Override
         public final int run(final int[] state) {
-            assert 3 == state.length : state.length;
-            int result = state[0];
-            if (result < state[1]) {
-                result = (result << s1) | state[1];
+            assert 2 == state.length : state.length;
+            final int result;
+            if (state[0] < state[1]) {
+                result = state[0] | (state[1] << s1);
             } else {
-                result = (state[1] << s1) | result;
+                result = state[1] | (state[0] << s1);
             }
-            return (result << s1) | state[2];
+            return result;
         }
     }
-    private final class KeyMakerInt3nosort extends KeyMakerInt {
+    private final class KeyMakerInt32 extends KeyMakerInt {     //sort 2 of 3 elements
         @Override
         public final int run(final int[] state) {
             assert 3 == state.length : state.length;
-            int result = state[0] << s1;
-            return (result << s1) | (state[1] << s1) | state[2];
+            final int result;
+            if (state[0] < state[1]) {
+                result = state[0] | (state[1]  << s1);
+            } else {
+                result = state[1] | (state[0] << s1);
+            }
+            return result | (state[2] << s2);
         }
     }
-    private final class KeyMakerInt4sort extends KeyMakerInt {
+    private final class KeyMakerInt33 extends KeyMakerInt {     //sort 3 of 3 elements
+        @Override
+        public final int run(final int[] state) {
+            assert 3 == state.length : state.length;
+            final int a = state[0],  b = state[1],  c = state[2];
+            final int result;
+            if (a < b) {
+                if (a < c) {
+                    if (b < c) { result = a | (b << s1) | (c << s2);
+                    } else {     result = a | (c << s1) | (b << s2); }
+                } else {         result = c | (a << s1) | (b << s2); }
+            } else {
+                if (b < c) {
+                    if (a < c) { result = b | (a << s1) | (c << s2);
+                    } else {     result = b | (c << s1) | (a << s2); }
+                } else {         result = c | (b << s1) | (a << s2); }
+            }
+            return result;
+        }
+    }
+    private final class KeyMakerInt43 extends KeyMakerInt {     //sort 3 of 4 elements
         @Override
         public final int run(final int[] state) {
             assert 4 == state.length : state.length;
@@ -852,24 +865,82 @@ public class SolverBFS {
             final int result;
             if (a < b) {
                 if (a < c) {
-                    if (b < c) { result = (a << s2) | (b << s1) | c;
-                    } else {     result = (a << s2) | (c << s1) | b; }
-                } else {         result = (c << s2) | (a << s1) | b; }
+                    if (b < c) { result = a | (b << s1) | (c << s2);
+                    } else {     result = a | (c << s1) | (b << s2); }
+                } else {         result = c | (a << s1) | (b << s2); }
             } else {
                 if (b < c) {
-                    if (a < c) { result = (b << s2) | (a << s1) | c;
-                    } else {     result = (b << s2) | (c << s1) | a; }
-                } else {         result = (c << s2) | (b << s1) | a; }
+                    if (a < c) { result = b | (a << s1) | (c << s2);
+                    } else {     result = b | (c << s1) | (a << s2); }
+                } else {         result = c | (b << s1) | (a << s2); }
             }
-            return (result << s1) | state[3];
+            return result | (state[3] << s3);
         }
     }
-    private final class KeyMakerInt4nosort extends KeyMakerInt {
+    private final class KeyMakerInt44 extends KeyMakerInt {     //sort 4 of 4 elements
         @Override
         public final int run(final int[] state) {
             assert 4 == state.length : state.length;
-            final int result = (state[0] << s2) | (state[1] << s1) | state[2];
-            return (result << s1) | state[3];
+            final int a = state[0],  b = state[1],  c = state[2],  d = state[3];
+            final int result;
+            if (a <= b) {
+                if (c <= d) {
+                    if (a <= c) {
+                        if (b <= d) {
+                            if (b <= c) { result = a | (b << s1) | (c << s2) | (d << s3);
+                            } else {      result = a | (c << s1) | (b << s2) | (d << s3); }
+                        } else {          result = a | (c << s1) | (d << s2) | (b << s3); }
+                    } else {
+                        if (b <= d) {     result = c | (a << s1) | (b << s2) | (d << s3);
+                        } else {
+                            if (a <= d) { result = c | (a << s1) | (d << s2) | (b << s3);
+                            } else {      result = c | (d << s1) | (a << s2) | (b << s3); }
+                        }
+                    }
+                } else {
+                    if (a <= d) {
+                        if (b <= c) {
+                            if (b <= d) { result = a | (b << s1) | (d << s2) | (c << s3);
+                            } else {      result = a | (d << s1) | (b << s2) | (c << s3); }
+                        } else {          result = a | (d << s1) | (c << s2) | (b << s3); }
+                    } else {
+                        if (b <= c) {     result = d | (a << s1) | (b << s2) | (c << s3);
+                        } else {
+                            if (a <= c) { result = d | (a << s1) | (c << s2) | (b << s3);
+                            } else {      result = d | (c << s1) | (a << s2) | (b << s3); }
+                        }
+                    }
+                }
+            } else {
+                if (c <= d) {
+                    if (b <= c) {
+                        if (a <= d) {
+                            if (a <= c) { result = b | (a << s1) | (c << s2) | (d << s3);
+                            } else {      result = b | (c << s1) | (a << s2) | (d << s3); }
+                        } else {          result = b | (c << s1) | (d << s2) | (a << s3); }
+                    } else {
+                        if (a <= d) {     result = c | (b << s1) | (a << s2) | (d << s3);
+                        } else {
+                            if (b <= d) { result = c | (b << s1) | (d << s2) | (a << s3);
+                            } else {      result = c | (d << s1) | (b << s2) | (a << s3); }
+                        }
+                    }
+                } else {
+                    if (b <= d) {
+                        if (a <= c) {
+                            if (a <= d) { result = b | (a << s1) | (d << s2) | (c << s3);
+                            } else {      result = b | (d << s1) | (a << s2) | (c << s3); }
+                        } else {          result = b | (d << s1) | (c << s2) | (a << s3); }
+                    } else {
+                        if (a <= c) {     result = d | (b << s1) | (a << s2) | (c << s3);
+                        } else {
+                            if (b <= c) { result = d | (b << s1) | (c << s2) | (a << s3);
+                            } else {      result = d | (c << s1) | (b << s2) | (a << s3); }
+                        }
+                    }
+                }
+            }
+            return result;
         }
     }
     
@@ -878,69 +949,68 @@ public class SolverBFS {
     private final KeyMakerLong createKeyMakerLong() {
         final KeyMakerLong keyMaker;
         switch (boardNumRobots) {
-        case 5:  keyMaker = (isBoardGoalWildcard ? new KeyMakerLong5nosort() : new KeyMakerLong5sort()); break;
+        case 5:  keyMaker = (isBoardGoalWildcard ? new KeyMakerLongAll() : new KeyMakerLong54()); break;
         default: keyMaker = new KeyMakerLongAll();
         }
         return keyMaker;
     }
     private abstract class KeyMakerLong {
-        protected final int s1 = boardSizeNumBits,  s2 = s1 * 2,  s3 = s1 * 3;
+        protected final int s1 = boardSizeNumBits,  s2 = s1 * 2,  s3 = s1 * 3,  s4 = s1 * 4;
         public abstract long run(final int[] state);
     }
-    private class KeyMakerLongAll extends KeyMakerLong {
+    private final class KeyMakerLongAll extends KeyMakerLong {
         private final int[] tmpState = new int[boardNumRobots];
+        private final int idxSort, idxLen1, idxLen2;
+        public KeyMakerLongAll() {
+            this.idxSort = this.tmpState.length - (isBoardGoalWildcard ? 0 : 1);
+            this.idxLen1 = this.tmpState.length - 1;
+            this.idxLen2 = this.tmpState.length - 2;
+        }
         @Override
         public final long run(final int[] state) {
+            assert this.tmpState.length == state.length : state.length;
             //copy and sort state
             System.arraycopy(state, 0, this.tmpState, 0, state.length);
-            if (false == isBoardGoalWildcard) {
-                Arrays.sort(this.tmpState, 0, this.tmpState.length - 1);    //don't sort the last element
-//                //calculate deltas - it doesn't reduce memory usage in SparseBitSet ?!
-//                for (int i = 1, prev = this.tmpState[0];  i < this.tmpState.length - 1;  ++i) {
-//                    final int tmp = this.tmpState[i];
-//                    this.tmpState[i] = tmp - prev;
-//                    prev = tmp;
-//                }
-            }
-            //pack state into a single long value
-            long result = this.tmpState[0];
-            for (int i = 1;  i < boardNumRobots;  ++i) {
+            Arrays.sort(this.tmpState, 0, this.idxSort);
+            //pack state into a single int value
+            long result = this.tmpState[this.idxLen1];
+            for (int i = this.idxLen2;  i >= 0;  --i) {
                 result = (result << s1) | this.tmpState[i];
             }
             return result;
         }
     }
-    private class KeyMakerLong5sort extends KeyMakerLong {
+    private final class KeyMakerLong54 extends KeyMakerLong {     //sort 4 of 5 elements
         @Override
         public final long run(final int[] state) {
             assert 5 == state.length : state.length;
-            final long a = state[0],  b = state[1],  c = state[2],  d = state[3];
+            final int a = state[0],  b = state[1],  c = state[2],  d = state[3];
             final long result;
             if (a <= b) {
                 if (c <= d) {
                     if (a <= c) {
                         if (b <= d) {
-                            if (b <= c) { result = (a << s3) | (b << s2) | (c << s1) | d;
-                            } else {      result = (a << s3) | (c << s2) | (b << s1) | d; }
-                        } else {          result = (a << s3) | (c << s2) | (d << s1) | b; }
+                            if (b <= c) { result = (a | (b << s1) | (c << s2)) | ((long)d << s3);
+                            } else {      result = (a | (c << s1) | (b << s2)) | ((long)d << s3); }
+                        } else {          result = (a | (c << s1) | (d << s2)) | ((long)b << s3); }
                     } else {
-                        if (b <= d) {     result = (c << s3) | (a << s2) | (b << s1) | d;
+                        if (b <= d) {     result = (c | (a << s1) | (b << s2)) | ((long)d << s3);
                         } else {
-                            if (a <= d) { result = (c << s3) | (a << s2) | (d << s1) | b;
-                            } else {      result = (c << s3) | (d << s2) | (a << s1) | b; }
+                            if (a <= d) { result = (c | (a << s1) | (d << s2)) | ((long)b << s3);
+                            } else {      result = (c | (d << s1) | (a << s2)) | ((long)b << s3); }
                         }
                     }
                 } else {
                     if (a <= d) {
                         if (b <= c) {
-                            if (b <= d) { result = (a << s3) | (b << s2) | (d << s1) | c;
-                            } else {      result = (a << s3) | (d << s2) | (b << s1) | c; }
-                        } else {          result = (a << s3) | (d << s2) | (c << s1) | b; }
+                            if (b <= d) { result = (a | (b << s1) | (d << s2)) | ((long)c << s3);
+                            } else {      result = (a | (d << s1) | (b << s2)) | ((long)c << s3); }
+                        } else {          result = (a | (d << s1) | (c << s2)) | ((long)b << s3); }
                     } else {
-                        if (b <= c) {     result = (d << s3) | (a << s2) | (b << s1) | c;
+                        if (b <= c) {     result = (d | (a << s1) | (b << s2)) | ((long)c << s3);
                         } else {
-                            if (a <= c) { result = (d << s3) | (a << s2) | (c << s1) | b;
-                            } else {      result = (d << s3) | (c << s2) | (a << s1) | b; }
+                            if (a <= c) { result = (d | (a << s1) | (c << s2)) | ((long)b << s3);
+                            } else {      result = (d | (c << s1) | (a << s2)) | ((long)b << s3); }
                         }
                     }
                 }
@@ -948,43 +1018,33 @@ public class SolverBFS {
                 if (c <= d) {
                     if (b <= c) {
                         if (a <= d) {
-                            if (a <= c) { result = (b << s3) | (a << s2) | (c << s1) | d;
-                            } else {      result = (b << s3) | (c << s2) | (a << s1) | d; }
-                        } else {          result = (b << s3) | (c << s2) | (d << s1) | a; }
+                            if (a <= c) { result = (b | (a << s1) | (c << s2)) | ((long)d << s3);
+                            } else {      result = (b | (c << s1) | (a << s2)) | ((long)d << s3); }
+                        } else {          result = (b | (c << s1) | (d << s2)) | ((long)a << s3); }
                     } else {
-                        if (a <= d) {     result = (c << s3) | (b << s2) | (a << s1) | d;
+                        if (a <= d) {     result = (c | (b << s1) | (a << s2)) | ((long)d << s3);
                         } else {
-                            if (b <= d) { result = (c << s3) | (b << s2) | (d << s1) | a;
-                            } else {      result = (c << s3) | (d << s2) | (b << s1) | a; }
+                            if (b <= d) { result = (c | (b << s1) | (d << s2)) | ((long)a << s3);
+                            } else {      result = (c | (d << s1) | (b << s2)) | ((long)a << s3); }
                         }
                     }
                 } else {
                     if (b <= d) {
                         if (a <= c) {
-                            if (a <= d) { result = (b << s3) | (a << s2) | (d << s1) | c;
-                            } else {      result = (b << s3) | (d << s2) | (a << s1) | c; }
-                        } else {          result = (b << s3) | (d << s2) | (c << s1) | a; }
+                            if (a <= d) { result = (b | (a << s1) | (d << s2)) | ((long)c << s3);
+                            } else {      result = (b | (d << s1) | (a << s2)) | ((long)c << s3); }
+                        } else {          result = (b | (d << s1) | (c << s2)) | ((long)a << s3); }
                     } else {
-                        if (a <= c) {     result = (d << s3) | (b << s2) | (a << s1) | c;
+                        if (a <= c) {     result = (d | (b << s1) | (a << s2)) | ((long)c << s3);
                         } else {
-                            if (b <= c) { result = (d << s3) | (b << s2) | (c << s1) | a;
-                            } else {      result = (d << s3) | (c << s2) | (b << s1) | a; }
+                            if (b <= c) { result = (d | (b << s1) | (c << s2)) | ((long)a << s3);
+                            } else {      result = (d | (c << s1) | (b << s2)) | ((long)a << s3); }
                         }
                     }
                 }
             }
-            return (result << s1) | state[4];
+            return result | ((long)state[4] << s4);
         }
     }
-    private class KeyMakerLong5nosort extends KeyMakerLong {
-        @Override
-        public final long run(final int[] state) {
-            assert 5 == state.length : state.length;
-            final long result = (state[0] << s3) | (state[1] << s2) | (state[2] << s1) | state[3];
-            return (result << s1) | state[4];
-        }
-    }
-    
-    
 }
 
