@@ -22,11 +22,14 @@ import java.util.Arrays;
 
 
 /**
- * This class is a minimal <tt>Set</tt> implementation for primitive
- * <tt>long</tt> values, based on a trie (prefix tree) data structure.
+ * This class is a minimal <tt>Set</tt> implementation for primitive <tt>int</tt>
+ * or <tt>long</tt> values, based on a trie (prefix tree) data structure.
  * <p>
- * The aim is to provide balance of a fast recognition of duplicate values
- * and a compact storage of data in the set.
+ * The aim is to balance a fast recognition of duplicate values and a
+ * compact storage of data.
+ * <p>
+ * Thanks go to David Hansel for the idea and for sending his C implementation
+ * that served as the template of this class.
  */
 public final class TrieSet {
     private static final int[] BIT_POS = {
@@ -39,6 +42,7 @@ public final class TrieSet {
     private static final int NODE_ARRAY_SHIFT = 16;
     private static final int NODE_ARRAY_SIZE = 1 << NODE_ARRAY_SHIFT;
     private static final int NODE_ARRAY_MASK = NODE_ARRAY_SIZE - 1;
+    private final int[] rootNode;
     private int[][] nodeArrays;
     private int numNodeArrays, nextNode, nextNodeArray;
     
@@ -73,7 +77,8 @@ public final class TrieSet {
         this.leafMask = this.leafSize - 1;
         
         this.nodeArrays = new int[32][];
-        this.nodeArrays[0] =  new int[NODE_ARRAY_SIZE];
+        this.rootNode = new int[NODE_ARRAY_SIZE];
+        this.nodeArrays[0] = this.rootNode;
         this.numNodeArrays = 1;
         this.nextNode = this.nodeSize;          //root node already exists
         this.nextNodeArray = NODE_ARRAY_SIZE;   //first array already exists
@@ -94,11 +99,11 @@ public final class TrieSet {
      */
     public final boolean add(int value) {
         //root node
-        int nodeIndex = 0;
-        int[] nodeArray = this.nodeArrays[0];
+        int nodeIndex = 0,  nidx;
+        int[] nodeArray = this.rootNode;
         //go through nodes
         for (int i = 1;  i < this.nodeNumber;  ++i) {
-            final int nidx = (nodeIndex + (value & this.nodeMask)) & NODE_ARRAY_MASK;
+            nidx = (nodeIndex + (value & this.nodeMask)) & NODE_ARRAY_MASK;
             value >>>= this.nodeBits;
             nodeIndex = nodeArray[nidx];
             if (0 == nodeIndex) {
@@ -109,7 +114,7 @@ public final class TrieSet {
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
         }
         //get leaf
-        final int nidx = (nodeIndex + (value & this.nodeMask)) & NODE_ARRAY_MASK;
+        nidx = (nodeIndex + (value & this.nodeMask)) & NODE_ARRAY_MASK;
         value >>>= this.nodeBits;
         int leafIndex = nodeArray[nidx];
         if (0 == leafIndex) {
@@ -139,11 +144,11 @@ public final class TrieSet {
      */
     public final boolean add(long value) {
         //root node
-        int nodeIndex = 0;
-        int[] nodeArray = this.nodeArrays[0];
+        int nodeIndex = 0,  nidx;
+        int[] nodeArray = this.rootNode;
         //go through nodes
         for (int i = 1;  i < this.nodeNumber;  ++i) {
-            final int nidx = (nodeIndex + ((int)value & this.nodeMask)) & NODE_ARRAY_MASK;
+            nidx = (nodeIndex + ((int)value & this.nodeMask)) & NODE_ARRAY_MASK;
             value >>>= this.nodeBits;
             nodeIndex = nodeArray[nidx];
             if (0 == nodeIndex) {
@@ -154,7 +159,7 @@ public final class TrieSet {
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
         }
         //get leaf
-        final int nidx = (nodeIndex + ((int)value & this.nodeMask)) & NODE_ARRAY_MASK;
+        nidx = (nodeIndex + ((int)value & this.nodeMask)) & NODE_ARRAY_MASK;
         value >>>= this.nodeBits;
         int leafIndex = nodeArray[nidx];
         if (0 == leafIndex) {
