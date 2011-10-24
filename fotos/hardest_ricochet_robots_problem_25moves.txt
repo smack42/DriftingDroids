@@ -1,0 +1,25 @@
+http://boardgamegeek.com/thread/308557/hardest-ricochet-robots-problem
+http://boardgamegeek.com/article/7710837#7710837
+
+We have strongly solved Ricochet Robots by finding an solution with the fewest moves for every possible starting position, and we have verified that the 24-move solution to the above problem is optimal.
+
+Here is one of the hardest Ricochet Robots problems (sorry for the poor quality image; the active robot is the blue one furthest to the right, and the target is the triangle):
+http://boardgamegeek.com/image/1125781
+
+I'll post the solution for this puzzle at a later date. Have fun!
+
+The number of moves for this puzzle is also the answer to the OP's question: "How many moves does it take to solve the hardest possible Ricochet Robots problem?"
+The maximum number of moves for any Ricochet Robots problem is 25.
+
+-------------------------------------------------------
+
+board layout in DriftingDroids:
+ 4B 3B
+ 1A 2B
+
+"minimum number of robots moved" solution:
+
+first letter = robot (green, blue)
+second letter = direction (North, East, South, West)
+1) gS 2) gE 3) gN 4) gE 5) gS 6) gE 7) bN 8) bW 9) bS 10) bW 11) bS 12) bW 13) bS 14) bE 15) gS 16) gW 17) gS 18) gW 19) gN 20) bW 21) gS 22) gE 23) bS 24) bE 25) bN
+

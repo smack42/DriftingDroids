@@ -34,7 +34,7 @@ been able to come up with any problem that requires more than 24 moves.
 
 -------------------------------------------------------
 
-board layout:
+board layout in DriftingDroids:
  1A 4B
  2B 3B
 
