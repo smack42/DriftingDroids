@@ -1,5 +1,5 @@
 -injars bin(**.class)
--injars designgridlayout-1.8.jar(**.class)
+-injars designgridlayout-1.9.jar(**.class)
 #-injars fastutil-6.4.jar(**.class)
 -injars resource
 # specify this on the command line: -outjars driftingdroids.jar
