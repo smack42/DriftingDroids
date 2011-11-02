@@ -93,6 +93,7 @@ public class SwingGUI implements ActionListener {
         Color.WHITE
     };
     
+    private static final String AC_RANDOM_LAYOUT  = "randlay";
     private static final String AC_BOARD_QUADRANTS= "quadrants";
     private static final String AC_RANDOM_ROBOTS  = "randrob";
     private static final String AC_RANDOM_GOAL    = "randgoal";
@@ -115,6 +116,7 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean placeGoal = false;
     
+    private final JButton jbutRandomLayout = new JButton("Random layout");
     private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
     private final JComboBox jcomboRobots = new JComboBox();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
@@ -154,6 +156,18 @@ public class SwingGUI implements ActionListener {
                 this.jcomboQuadrants[2].getSelectedIndex(),
                 this.jcomboQuadrants[3].getSelectedIndex(),
                 this.jcomboRobots.getSelectedIndex() + 1 );
+        this.refreshBoard();
+    }
+    
+    private void makeRandomBoardQuadrants() {
+        final Board newBoard = Board.createRandomBoard(this.jcomboRobots.getSelectedIndex() + 1);
+        for (int i = 0;  i < 4;  ++i) {
+            final String tmp = this.jcomboQuadrants[i].getActionCommand();
+            this.jcomboQuadrants[i].setActionCommand("");
+            this.jcomboQuadrants[i].setSelectedIndex(newBoard.getQuadrantNum(i));
+            this.jcomboQuadrants[i].setActionCommand(tmp);
+        }
+        this.board = newBoard;
         this.refreshBoard();
     }
     
@@ -311,6 +325,8 @@ public class SwingGUI implements ActionListener {
         final JFrame frame = new JFrame(windowTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
+        this.jbutRandomLayout.setActionCommand(AC_RANDOM_LAYOUT);
+        this.jbutRandomLayout.addActionListener(this);
         for (int i = 0;  i < 4;  ++i) {
             this.jcomboQuadrants[i].setModel(new DefaultComboBoxModel(Board.QUADRANT_NAMES));
             this.jcomboQuadrants[i].setEditable(false);
@@ -332,13 +348,13 @@ public class SwingGUI implements ActionListener {
         this.jcomboOptSolutionMode.setSelectedItem(SolverBFS.SOLUTION_MODE.MINIMUM);
         this.setJComboCenterAlignment(this.jcomboOptSolutionMode);
         
-        this.jcheckOptAllowRebounds.setText("allow rebound moves (reverse)");
+        this.jcheckOptAllowRebounds.setText("allow rebound moves");
         this.jcheckOptAllowRebounds.setSelected(true);
         
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel("choose board pieces"));
+        prepareLayout.row().grid().add(new JLabel("board pieces")).add(this.jbutRandomLayout);
         prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
         prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
         prepareLayout.row().grid().add(new JLabel(" "));
@@ -349,7 +365,7 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JLabel("solver algorithm options"));
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(new JLabel("choose solution with")).add(this.jcomboOptSolutionMode);
-        prepareLayout.row().grid().add(new JLabel("number of robots moved."));
+        prepareLayout.row().grid().add(new JLabel("number of robots moved"));
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);
         prepareLayout.row().grid().add(new JLabel(" "));
@@ -525,6 +541,9 @@ public class SwingGUI implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if (AC_BOARD_QUADRANTS.equals(e.getActionCommand())) {
             this.makeBoardQuadrants();
+            this.refreshJComboPlaceRobot();
+        } else if (AC_RANDOM_LAYOUT.equals(e.getActionCommand())) {
+            this.makeRandomBoardQuadrants();
             this.refreshJComboPlaceRobot();
         } else if (AC_RANDOM_ROBOTS.equals(e.getActionCommand())) {
             this.placeRobot = -1;

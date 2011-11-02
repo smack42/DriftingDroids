@@ -19,6 +19,7 @@ package driftingdroids.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -129,6 +130,8 @@ public class Board {
     
     public final int[] directionIncrement;
     
+    private static final Random RANDOM = new Random();
+    
     private final int[] quadrants;      // quadrants used for this board (indexes in QUADRANTS) 
     private final byte[][] walls;       // [width*height][4] directions
     private final int[] robots;         // index=robot, value=position
@@ -190,6 +193,19 @@ public class Board {
     }
     
     
+    public static Board createRandomBoard(int numRobots) {
+        final ArrayList<Integer> indexList = new ArrayList<Integer>();
+        for (int i = 0;  i < 4;  ++i) { indexList.add(Integer.valueOf(i)); }
+        Collections.shuffle(indexList, RANDOM);
+        return createBoard(
+                indexList.get(0).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
+                indexList.get(1).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
+                indexList.get(2).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
+                indexList.get(3).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
+                numRobots);
+    }
+    
+    
     private int transformQuadrantX(final int qX, final int qY, final int qPos) {
         //qPos (quadrant target position): 0==NW, 1==NE, 2==SE, 3==SW
         final int resultX;
@@ -246,12 +262,11 @@ public class Board {
     
     
     public void setRobotsRandom() {
-        Random random = new Random();
         Arrays.fill(this.robots, -1);
         for (int i = 0; i < this.robots.length; ++i) {
             int position;
             do {
-                position = random.nextInt(this.size);
+                position = RANDOM.nextInt(this.size);
             } while (! this.setRobot(i, position));
         }
     }
@@ -288,10 +303,9 @@ public class Board {
     }
     
     public void setGoalRandom() {
-        Random random = new Random();
         int x, y, robot;
         do {
-            int i = random.nextInt(this.goals.size());
+            int i = RANDOM.nextInt(this.goals.size());
             x = this.goals.get(i).x;
             y = this.goals.get(i).y;
             robot = this.goals.get(i).robotNumber;
