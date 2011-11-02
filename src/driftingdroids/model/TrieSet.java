@@ -99,11 +99,10 @@ public final class TrieSet {
      */
     public final boolean add(int value) {
         //root node
-        int nodeIndex = 0,  nidx;
         int[] nodeArray = this.rootNode;
+        int nidx = value & this.nodeMask;
         //go through nodes
-        for (int i = 1;  i < this.nodeNumber;  ++i) {
-            nidx = (nodeIndex + (value & this.nodeMask)) & NODE_ARRAY_MASK;
+        for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
             value >>>= this.nodeBits;
             nodeIndex = nodeArray[nidx];
             if (0 == nodeIndex) {
@@ -112,9 +111,9 @@ public final class TrieSet {
                 nodeArray[nidx] = nodeIndex;
             }
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + (value & this.nodeMask);
         }
         //get leaf
-        nidx = (nodeIndex + (value & this.nodeMask)) & NODE_ARRAY_MASK;
         value >>>= this.nodeBits;
         int leafIndex = nodeArray[nidx];
         if (0 == leafIndex) {
@@ -123,8 +122,8 @@ public final class TrieSet {
             nodeArray[nidx] = leafIndex;
         }
         final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (value & this.leafMask);
         //set bit in leaf
-        final int lidx = (leafIndex + (value & this.leafMask)) & LEAF_ARRAY_MASK;
         final int oldBits = leafArray[lidx];
         final int newBits = oldBits | BIT_POS[(value >>> this.leafShift) & 31];
         final boolean bitHasBeenAdded = (oldBits != newBits);
@@ -144,11 +143,10 @@ public final class TrieSet {
      */
     public final boolean add(long value) {
         //root node
-        int nodeIndex = 0,  nidx;
         int[] nodeArray = this.rootNode;
+        int nidx = (int)value & this.nodeMask;
         //go through nodes
-        for (int i = 1;  i < this.nodeNumber;  ++i) {
-            nidx = (nodeIndex + ((int)value & this.nodeMask)) & NODE_ARRAY_MASK;
+        for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
             value >>>= this.nodeBits;
             nodeIndex = nodeArray[nidx];
             if (0 == nodeIndex) {
@@ -157,9 +155,9 @@ public final class TrieSet {
                 nodeArray[nidx] = nodeIndex;
             }
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);
         }
         //get leaf
-        nidx = (nodeIndex + ((int)value & this.nodeMask)) & NODE_ARRAY_MASK;
         value >>>= this.nodeBits;
         int leafIndex = nodeArray[nidx];
         if (0 == leafIndex) {
@@ -168,8 +166,8 @@ public final class TrieSet {
             nodeArray[nidx] = leafIndex;
         }
         final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)value & this.leafMask);
         //set bit in leaf
-        final int lidx = (leafIndex + ((int)value & this.leafMask)) & LEAF_ARRAY_MASK;
         final int oldBits = leafArray[lidx];
         final int newBits = oldBits | BIT_POS[((int)value >>> this.leafShift) & 31];
         final boolean bitHasBeenAdded = (oldBits != newBits);
