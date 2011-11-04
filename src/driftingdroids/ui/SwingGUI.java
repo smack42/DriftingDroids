@@ -99,6 +99,7 @@ public class SwingGUI implements ActionListener {
     private static final String AC_RANDOM_GOAL    = "randgoal";
     private static final String AC_PLACE_ROBOT    = "placerobot";
     private static final String AC_PLACE_GOAL     = "placegoal";
+    private static final String AC_SELECT_SOLUTION= "selectsolution";
     private static final String AC_SHOW_HINT      = "hint";
     private static final String AC_SHOW_NEXT_MOVE = "nextmove";
     private static final String AC_SHOW_PREV_MOVE = "prevmove";
@@ -110,7 +111,8 @@ public class SwingGUI implements ActionListener {
     private int[] currentPosition;
     
     private SolverTask solverTask = null;   //only set while SolverTask is working
-    private Solution solution = null;       //result of SolverTask -> solver.execute()
+    private List<Solution> computedSolutionList = null;       //result of SolverTask -> solver.execute()
+    private int computedSolutionIndex = 0;
     private final List<Move> moves;
     private int hintCounter = 0;
     private int placeRobot = -1;    //default: false
@@ -126,6 +128,7 @@ public class SwingGUI implements ActionListener {
     private final JButton jbutRandomGoal = new JButton("Random goal");
     private final JComboBox jcomboPlaceRobot = new JComboBox();
     private final JButton jbutPlaceGoal = new JButton("Place goal");
+    private final JComboBox jcomboSelectSolution = new JComboBox();
     private final JButton jbutSolutionHint = new JButton("Hint");
     private final JButton jbutNextMove = new JButton("+ Next move");
     private final JButton jbutAllMoves = new JButton("All moves");
@@ -191,8 +194,13 @@ public class SwingGUI implements ActionListener {
         if (null != this.solverTask) {
             this.solverTask.cancel(true);
         }
-        this.solution = null;
+        this.computedSolutionList = null;
+        this.computedSolutionIndex = 0;
         this.moves.clear();
+        this.jcomboSelectSolution.setSelectedIndex(0);
+        while (this.jcomboSelectSolution.getItemCount() > 1) {
+            this.jcomboSelectSolution.removeItemAt(1);
+        }
         this.refreshButtons();
     }
     
@@ -212,24 +220,51 @@ public class SwingGUI implements ActionListener {
     }
     
     private void setSolution(final SolverBFS solver) {
-        this.solution = solver.get();
+        this.computedSolutionList = solver.get();
+        this.computedSolutionIndex = 0;
+        for (int i = 0;  i < this.computedSolutionList.size();  ++i) {
+            this.jcomboSelectSolution.addItem((i+1) + ")  " + this.computedSolutionList.get(i).toString());
+        }
         this.hintCounter = 0;
         this.jtextSolution.setText(null);
         this.appendSolutionText("(options: " + solver.getOptionsAsString() + ")\n", null);
-        if (this.solution.size() > 0) {
+        if (this.computedSolutionList.get(this.computedSolutionIndex).size() > 0) {
             final long seconds = (solver.getSolutionMilliSeconds() + 999) / 1000;
-            this.appendSolutionText("found solution in " + seconds + " second" + (1==seconds ? "" : "s") + ".\n", null);
+            final int solutions = this.computedSolutionList.size();
+            this.appendSolutionText("found " + solutions + " solution" + (1==solutions ? "" : "s") +
+                    " in " + seconds + " second" + (1==seconds ? "" : "s") + ".\n", null);
         } else {
             this.appendSolutionText("no solution found!\n", null);
         }
-        System.out.println(this.solution.toString() + "  (" + solver.toString() + ")");
+        System.out.println(this.computedSolutionList.get(this.computedSolutionIndex).toMovelistString() + "  (" + solver.toString() + ")");
         this.refreshButtons();
     }
     
+    private void selectSolution(final int solutionIndex, final String solutionString) {
+        if ( (null != this.computedSolutionList) &&
+                (solutionIndex > 0) &&
+                (solutionIndex <= this.computedSolutionList.size()) ) {
+            //reset moves
+            final int oldMovesSize = this.moves.size();
+            while (this.jbutPrevMove.isEnabled()) {
+                this.showPrevMove(false);
+            }
+            //set new solution
+            this.computedSolutionIndex = solutionIndex - 1;
+            this.appendSolutionText("\nselected solution " + solutionString + "\n", null);
+            this.computedSolutionList.get(this.computedSolutionIndex).resetMoves();
+            this.hintCounter = 3;
+            //show moves
+            for (int i = 0;  i < oldMovesSize;  ++i) {
+                this.showNextMove(true);
+            }
+        }
+    }
+    
     private void showHint() {
-        final int moves = this.solution.size();
+        final int moves = this.computedSolutionList.get(this.computedSolutionIndex).size();
         final String movesStr = Integer.toString(moves) + " move" + (1==moves ? "" : "s");
-        final Set<Integer> robotsMoved = this.solution.getRobotsMoved();
+        final Set<Integer> robotsMoved = this.computedSolutionList.get(this.computedSolutionIndex).getRobotsMoved();
         final String robotsMovedStr = Integer.toString(robotsMoved.size()) + " robot" + (1==robotsMoved.size() ? "" : "s");
         if (0 == this.hintCounter) {
             //first hint: number of moves
@@ -263,7 +298,7 @@ public class SwingGUI implements ActionListener {
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
             appendSolutionText("(options: " + solver.getOptionsAsString() + ")\n", null);
-            appendSolutionText("computing solution...\n", null);
+            appendSolutionText("computing solutions...\n", null);
             solver.execute();
             return solver;
         }
@@ -384,6 +419,12 @@ public class SwingGUI implements ActionListener {
         this.setJComboCenterAlignment(this.jcomboPlaceRobot);
         this.jbutPlaceGoal.setActionCommand(AC_PLACE_GOAL);
         this.jbutPlaceGoal.addActionListener(this);
+        this.jcomboSelectSolution.setModel(new DefaultComboBoxModel());
+        this.jcomboSelectSolution.addItem("select solution");
+        this.jcomboSelectSolution.setEditable(false);
+        this.jcomboSelectSolution.setActionCommand(AC_SELECT_SOLUTION);
+        this.jcomboSelectSolution.addActionListener(this);
+        this.setJComboCenterAlignment(this.jcomboSelectSolution);
         this.jbutSolutionHint.setMnemonic(KeyEvent.VK_H);
         this.jbutSolutionHint.setActionCommand(AC_SHOW_HINT);
         this.jbutSolutionHint.addActionListener(this);
@@ -406,7 +447,7 @@ public class SwingGUI implements ActionListener {
         final JScrollPane scrollSolutionText = new JScrollPane(this.jtextSolution, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollSolutionText.setPreferredSize(new Dimension(100, 100));   //dummy?!
         final RowGroup playSolutionGroup = new RowGroup();
-        final JCheckBox groupBox = new JCheckBox("show computed solution");
+        final JCheckBox groupBox = new JCheckBox("show computed solutions");
         groupBox.addItemListener(new ShowHideAction(playSolutionGroup));
         
         final JPanel playPanel = new JPanel();
@@ -418,7 +459,7 @@ public class SwingGUI implements ActionListener {
         playLayout.row().grid().add(new JLabel(" "));
         playLayout.row().grid().add(new JSeparator());
         playLayout.row().grid().add(groupBox);
-        playLayout.row().group(playSolutionGroup).grid().add(this.jbutSolutionHint).empty();
+        playLayout.row().group(playSolutionGroup).grid().add(this.jcomboSelectSolution).add(this.jbutSolutionHint);
         playLayout.row().group(playSolutionGroup).grid().add(this.jbutNextMove).add(this.jbutAllMoves);
         playLayout.row().group(playSolutionGroup).grid().add(this.jbutPrevMove).add(this.jbutNoMoves);
         playLayout.row().group(playSolutionGroup).grid().add(scrollSolutionText);
@@ -477,14 +518,18 @@ public class SwingGUI implements ActionListener {
     }
     
     private void refreshButtons() {
-        if (null == this.solution) {
+        if (null == this.computedSolutionList) {
+            this.jcomboSelectSolution.setEnabled(false);
             this.jbutSolutionHint.setEnabled(false);
             this.jbutNextMove.setEnabled(false);
             this.jbutPrevMove.setEnabled(false);
             this.jbutAllMoves.setEnabled(false);
             this.jbutNoMoves.setEnabled(false);
         } else {
-            if (this.solution.size() > 0) { this.jbutSolutionHint.setEnabled(true); }
+            if (this.computedSolutionList.get(this.computedSolutionIndex).size() > 0) {
+                this.jcomboSelectSolution.setEnabled(true);
+                this.jbutSolutionHint.setEnabled(true);
+            }
             this.jbutNextMove.setEnabled(true);
             this.jbutPrevMove.setEnabled(true);
             this.jbutAllMoves.setEnabled(true);
@@ -498,7 +543,7 @@ public class SwingGUI implements ActionListener {
                     }
                 }
             } else if ((this.currentPosition[this.board.getGoalRobot()] == this.board.getGoalPosition())
-                    || (this.solution.size() < 1)){
+                    || (this.computedSolutionList.get(this.computedSolutionIndex).size() < 1)){
                 this.jbutNextMove.setEnabled(false);
                 this.jbutAllMoves.setEnabled(false);
             }
@@ -509,27 +554,29 @@ public class SwingGUI implements ActionListener {
         }
     }
     
-    private void showNextMove() {
-        final Move step = this.solution.getNextMove();
+    private void showNextMove(final boolean doPrint) {
+        final Move step = this.computedSolutionList.get(this.computedSolutionIndex).getNextMove();
         if (null != step) {
             this.moves.add(step);
             this.currentPosition[step.robotNumber] = step.newPosition;
-            this.showMove(step);
+            this.showMove(step, doPrint);
         }
     }
-    private void showPrevMove() {
-        final Move step = this.solution.getPrevMove();
+    private void showPrevMove(final boolean doPrint) {
+        final Move step = this.computedSolutionList.get(this.computedSolutionIndex).getPrevMove();
         if (null != step) {
             this.moves.remove(step);
             this.currentPosition[step.robotNumber] = step.oldPosition;
-            this.showMove(step);
+            this.showMove(step, doPrint);
         }
     }
-    private void showMove(final Move step) {
-        this.appendSolutionText((step.stepNumber + 1) + ": ", null);
-        this.appendSolutionText(step.strRobotDirection(), COL_ROBOT[step.robotNumber]);
-        this.appendSolutionText(" " + step.strOldNewPosition() + (this.solution.isRebound(step) ? " rebound" : "") + "\n", null);
-        //System.out.println(step.toString());
+    private void showMove(final Move step, final boolean doPrint) {
+        if (doPrint) {
+            this.appendSolutionText((step.stepNumber + 1) + ": ", null);
+            this.appendSolutionText(step.strRobotDirection(), COL_ROBOT[step.robotNumber]);
+            this.appendSolutionText(" " + step.strOldNewPosition() + (this.computedSolutionList.get(this.computedSolutionIndex).isRebound(step) ? " rebound" : "") + "\n", null);
+            //System.out.println(step.toString());
+        }
         this.refreshButtons();
         this.refreshBoard(step);
     }
@@ -553,17 +600,19 @@ public class SwingGUI implements ActionListener {
             this.placeGoal = false;
             this.updateBoardRandomGoal();
         } else if (AC_SHOW_NEXT_MOVE.equals(e.getActionCommand())) {
-            this.showNextMove();
+            this.showNextMove(true);
         } else if (AC_SHOW_PREV_MOVE.equals(e.getActionCommand())) {
-            this.showPrevMove();
+            this.showPrevMove(true);
         } else if (AC_SHOW_ALL_MOVES.equals(e.getActionCommand())) {
             while (this.jbutNextMove.isEnabled()) {
-                this.showNextMove();
+                this.showNextMove(true);
             }
         } else if (AC_SHOW_NO_MOVES.equals(e.getActionCommand())) {
             while (this.jbutPrevMove.isEnabled()) {
-                this.showPrevMove();
+                this.showPrevMove(true);
             }
+        } else if (AC_SELECT_SOLUTION.equals(e.getActionCommand())) {
+            this.selectSolution(this.jcomboSelectSolution.getSelectedIndex(), this.jcomboSelectSolution.getSelectedItem().toString());
         } else if (AC_SHOW_HINT.equals(e.getActionCommand())) {
             this.showHint();
         } else if (AC_PLACE_ROBOT.equals(e.getActionCommand())) {

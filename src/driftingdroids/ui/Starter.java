@@ -31,7 +31,7 @@ import driftingdroids.model.SolverBFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids (work in progress 2011-10-25)");
+        new SwingGUI("DriftingDroids (work in progress 2011-11-04)");
         //runTestRandom1000();
     }
     
@@ -51,7 +51,7 @@ public class Starter {
             
             theBoard.setRobotsRandom();
             final SolverBFS theSolver = new SolverBFS(theBoard);
-            final Solution theSolution = theSolver.execute();
+            final Solution theSolution = theSolver.execute().get(0);
             final int moves = theSolution.size();
             
             //System.err.println(i + " usedMem=" + (getBytesUsed() >> 20) + " MiB  " + theSolver.getKnownStatesNumber());

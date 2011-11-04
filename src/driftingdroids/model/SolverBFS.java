@@ -19,6 +19,7 @@ package driftingdroids.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Formatter;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class SolverBFS {
     private SOLUTION_MODE optSolutionMode = SOLUTION_MODE.ANY;
     private boolean optAllowRebounds = true;
     
-    private Solution lastResultSolution = null;
+    private List<Solution> lastResultSolutions = null;
     private long solutionMilliSeconds = 0;
     private int solutionStoredStates = 0;
     
@@ -68,15 +69,15 @@ public class SolverBFS {
     
     
     
-    public Solution get() {
-        return this.lastResultSolution;
+    public List<Solution> get() {
+        return this.lastResultSolutions;
     }
     
     
     
-    public Solution execute() throws InterruptedException {
+    public List<Solution> execute() throws InterruptedException {
         final long startExecute = System.currentTimeMillis();
-        this.lastResultSolution = new Solution(this.board);
+        this.lastResultSolutions = new ArrayList<Solution>();
         
         final KnownStates knownStates = new KnownStates();
         final List<int[]> finalStates = new ArrayList<int[]>();
@@ -104,11 +105,11 @@ public class SolverBFS {
         
         
         //find the paths from "startState" to the "finalStates".
-        //build the Solutions.
-        //dpending on the options, store the appropriate Solution
-        //in "this.lastResultSolution" (THE RESULT).
+        //build the Solutions and store them in list "this.lastResultSolutions" (THE RESULT).
+        //depending on the options, this list is then sorted in natural order (MINIMUM)
+        //or reverse natural order (MAXIMUM), so that the preferred solution is always
+        //placed at list index 0.
         final long startGetPath = System.currentTimeMillis();
-        int minRobots = Integer.MAX_VALUE, maxRobots = 0;
         for (int[] finalState : finalStates) {
             final List<int[]> statesPath = this.getStatesPath(finalState, knownStates);
             if (1 < statesPath.size()) {
@@ -118,34 +119,27 @@ public class SolverBFS {
                     swapGoalLast(statesPath.get(i+1));
                     tmpSolution.add(new Move(this.board, statesPath.get(i), statesPath.get(i+1), i));
                 }
-                final int thisRobots = tmpSolution.getRobotsMoved().size();
-                System.out.printf("finalState=%s  robotsMoved=%d", this.stateString(finalState), Integer.valueOf(thisRobots));
+                System.out.printf("finalState=%s  solution=%s", this.stateString(finalState), tmpSolution.toString());
                 if (true == tmpSolution.isRebound()) {
                     System.out.print("  <- rebound");
                 }
-                if ((SOLUTION_MODE.ANY == this.optSolutionMode) && (0 == this.lastResultSolution.size())) {
-                    System.out.print("  <- any");
-                } else if ((SOLUTION_MODE.MINIMUM == this.optSolutionMode) && (thisRobots < minRobots)) {
-                    minRobots = thisRobots;
-                    System.out.print("  <- min");
-                } else if ((SOLUTION_MODE.MAXIMUM == this.optSolutionMode) && (thisRobots > maxRobots)) {
-                    maxRobots = thisRobots;
-                    System.out.print("  <- max");
-                } else {
-                    tmpSolution = null;   //don't accept this solution
-                }
-                if (null != tmpSolution) {
-                    this.lastResultSolution = tmpSolution;
-                    System.out.print("  !!!");
-                }
+                this.lastResultSolutions.add(tmpSolution);
                 System.out.println();
             }
+        }
+        if (0 == this.lastResultSolutions.size()) {
+            this.lastResultSolutions.add(new Solution(this.board));
+        }
+        if (SOLUTION_MODE.MINIMUM == this.optSolutionMode) {
+            Collections.sort(this.lastResultSolutions);
+        } else if (SOLUTION_MODE.MAXIMUM == this.optSolutionMode) {
+            Collections.sort(this.lastResultSolutions, Collections.reverseOrder());
         }
         final long durationPath = System.currentTimeMillis() - startGetPath;
         System.out.println("time (Depth-First-Search   for statePaths ) : " + (durationPath / 1000d) + " seconds");
         
         this.solutionMilliSeconds = System.currentTimeMillis() - startExecute;
-        return this.lastResultSolution;
+        return this.lastResultSolutions;
     }
     
     
@@ -490,7 +484,7 @@ public class SolverBFS {
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
         private final class AllKeysInt extends AllKeys {
-            private final TrieSet theSet = new TrieSet(32);
+            private final TrieSet theSet = new TrieSet(Math.max(12, boardNumRobots * boardSizeNumBits));
             private final KeyMakerInt keyMaker = createKeyMakerInt();
             @Override
             public final boolean add(final int[] state) {
@@ -525,7 +519,7 @@ public class SolverBFS {
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
         private final class AllKeysLong extends AllKeys {
-            private final TrieSet theSet = new TrieSet(40);
+            private final TrieSet theSet = new TrieSet(boardNumRobots * boardSizeNumBits);
             private final KeyMakerLong keyMaker = createKeyMakerLong();
             @Override
             public final boolean add(final int[] state) {

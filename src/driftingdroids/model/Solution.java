@@ -19,13 +19,14 @@ package driftingdroids.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Formatter;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 
 
-public class Solution {
+public class Solution implements Comparable<Solution> {
     private final Board board;
     private final List<Move> movesList;
     private int moveIndex;
@@ -74,6 +75,10 @@ public class Solution {
         return result;
     }
     
+    public void resetMoves() {
+        this.moveIndex = 0;
+    }
+    
     public Move getCurrentMove() {
         if ((this.moveIndex >= 0) && (this.moveIndex < this.movesList.size())) {
             return this.movesList.get(this.moveIndex);
@@ -97,8 +102,7 @@ public class Solution {
         return getCurrentMove();
     }
     
-    @Override
-    public String toString() {
+    public String toMovelistString() {
         StringBuilder s = new StringBuilder();
         s.append("solution: size=").append(this.movesList.size()).append(" *****");
         if (this.movesList.size() > 0) {
@@ -109,6 +113,61 @@ public class Solution {
         }
         s.append(" *****");
         return s.toString();
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        // 1. number of moves
+        final Formatter f = new Formatter(s);
+        f.format("%02d", Integer.valueOf(this.size()));
+        // 2. number of robots moved
+        final Set<Integer> thisRobotsMoved = this.getRobotsMoved();
+        s.append('/').append(thisRobotsMoved.size()).append('/');
+        // 3. list of robots moved
+        for (int i = 0;  i < this.board.getRobotPositions().length;  ++i) {
+            if (thisRobotsMoved.contains(Integer.valueOf(i))) {
+                s.append(Board.ROBOT_COLOR_NAMES_SHORT[i]);
+            } else {
+                s.append('#');
+            }
+        }
+        return s.toString();
+    }
+    
+    @Override
+    public int compareTo(Solution other) {
+        // 1. compare number of moves
+        if (this.size() < other.size()) {
+            return -1;
+        } else if (this.size() > other.size()) {
+            return 1;
+        } else {    //equal number of moves
+            // 2. compare number of robots moved
+            final Set<Integer> thisRobotsMoved = this.getRobotsMoved();
+            final Set<Integer> otherRobotsMoved = other.getRobotsMoved();
+            if (thisRobotsMoved.size() < otherRobotsMoved.size()) {
+                return -1;
+            } else if (thisRobotsMoved.size() > otherRobotsMoved.size()) {
+                return 1;
+            } else {    //equal number of robots moved
+                // 3. compare the moved robots
+                int thisRobotsMovedSum = 0,  otherRobotsMovedSum = 0;
+                for (Integer robot : thisRobotsMoved) {
+                    thisRobotsMovedSum = (thisRobotsMovedSum << 3) + robot.intValue();
+                }
+                for (Integer robot : otherRobotsMoved) {
+                    otherRobotsMovedSum = (otherRobotsMovedSum << 3) + robot.intValue();
+                }
+                if (thisRobotsMovedSum < otherRobotsMovedSum) {
+                    return -1;
+                } else if (thisRobotsMovedSum > otherRobotsMovedSum) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
     }
 
 }
