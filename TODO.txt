@@ -2,17 +2,15 @@ TODO
 
 board layout:
 -user can build boards from scratch = put each individual wall and goal.
--user can load and save boards.
 
 gameplay:
 -user can move robots while searching for the solution (with undo/redo).
--user can load and save games (board layout, starting positions, user solution).
 
 gui:
 -better graphics (robots, goals, board, ...)
 
 solver:
--implement a more efficient search algorithm (use less time and less memory! see David Hansel's RRTrainer.exe! how does it work?)
+-implement a better solver algorithm (use less time and less memory)
 
 code:
 -refactoring (reorganise some classes, clean up SwingGUI, ...)
@@ -28,4 +26,7 @@ DONE
 -user option for solution with any / minimum / maximum number of robots moved. (used in SolverBFS)
 -detect solutions containing rebound moves (reverse).
 -compute solutions without any rebound moves (optionally)
+
+-user can load and save boards. = replaced by game ID.
+-user can load and save games (board layout, starting positions, user solution). = replaced by game ID.
 
