@@ -99,6 +99,7 @@ public class SwingGUI implements ActionListener {
     private static final String AC_RANDOM_GOAL    = "randgoal";
     private static final String AC_PLACE_ROBOT    = "placerobot";
     private static final String AC_PLACE_GOAL     = "placegoal";
+    private static final String AC_GAME_ID        = "gameid";
     private static final String AC_SELECT_SOLUTION= "selectsolution";
     private static final String AC_SHOW_HINT      = "hint";
     private static final String AC_SHOW_NEXT_MOVE = "nextmove";
@@ -128,16 +129,17 @@ public class SwingGUI implements ActionListener {
     private final JButton jbutRandomGoal = new JButton("Random goal");
     private final JComboBox jcomboPlaceRobot = new JComboBox();
     private final JButton jbutPlaceGoal = new JButton("Place goal");
+    private final JComboBox jcomboGameIDs = new JComboBox();
     private final JComboBox jcomboSelectSolution = new JComboBox();
     private final JButton jbutSolutionHint = new JButton("Hint");
-    private final JButton jbutNextMove = new JButton("+ Next move");
-    private final JButton jbutAllMoves = new JButton("All moves");
-    private final JButton jbutPrevMove = new JButton("- Prev. move");
-    private final JButton jbutNoMoves = new JButton("Reset moves");
+    private final JButton jbutNextMove = new JButton(">");
+    private final JButton jbutAllMoves = new JButton(">>|");
+    private final JButton jbutPrevMove = new JButton("<");
+    private final JButton jbutNoMoves = new JButton("|<<");
     private final JTextPane jtextSolution = new JTextPane();
     
     public SwingGUI(final String windowTitle) throws InterruptedException, InvocationTargetException {
-        this.board = Board.createBoard(0, 7, 6, 5, 4);  //1A 4B 3B 2B
+        this.board = Board.createBoardGameID("0765+41+2E21BD0F+1C");   //1A 4B 3B 2B
         this.moves = new ArrayList<Move>();
         
         this.boardCells = new BoardCell[this.board.size];
@@ -153,7 +155,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private void makeBoardQuadrants() {
-        this.board = Board.createBoard(
+        this.board = Board.createBoardQuadrants(
                 this.jcomboQuadrants[0].getSelectedIndex(),
                 this.jcomboQuadrants[1].getSelectedIndex(),
                 this.jcomboQuadrants[2].getSelectedIndex(),
@@ -163,7 +165,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private void makeRandomBoardQuadrants() {
-        final Board newBoard = Board.createRandomBoard(this.jcomboRobots.getSelectedIndex() + 1);
+        final Board newBoard = Board.createBoardRandom(this.jcomboRobots.getSelectedIndex() + 1);
         for (int i = 0;  i < 4;  ++i) {
             final String tmp = this.jcomboQuadrants[i].getActionCommand();
             this.jcomboQuadrants[i].setActionCommand("");
@@ -227,12 +229,12 @@ public class SwingGUI implements ActionListener {
         }
         this.hintCounter = 0;
         this.jtextSolution.setText(null);
-        this.appendSolutionText("(options: " + solver.getOptionsAsString() + ")\n", null);
+        this.appendSolutionText("options:\n" + solver.getOptionsAsString2() + "\n", null);
         if (this.computedSolutionList.get(this.computedSolutionIndex).size() > 0) {
             final long seconds = (solver.getSolutionMilliSeconds() + 999) / 1000;
             final int solutions = this.computedSolutionList.size();
             this.appendSolutionText("found " + solutions + " solution" + (1==solutions ? "" : "s") +
-                    " in " + seconds + " second" + (1==seconds ? "" : "s") + ".\n", null);
+                    " in " + seconds + " second" + (1==seconds ? "" : "s") + ".\n\n", null);
         } else {
             this.appendSolutionText("no solution found!\n", null);
         }
@@ -242,6 +244,7 @@ public class SwingGUI implements ActionListener {
     
     private void selectSolution(final int solutionIndex, final String solutionString) {
         if ( (null != this.computedSolutionList) &&
+                (solutionIndex -1 != this.computedSolutionIndex) &&
                 (solutionIndex > 0) &&
                 (solutionIndex <= this.computedSolutionList.size()) ) {
             //reset moves
@@ -297,8 +300,8 @@ public class SwingGUI implements ActionListener {
             solver.setOptionSolutionMode((SolverBFS.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
-            appendSolutionText("(options: " + solver.getOptionsAsString() + ")\n", null);
-            appendSolutionText("computing solutions...\n", null);
+            appendSolutionText("options:\n" + solver.getOptionsAsString2() + "\n", null);
+            appendSolutionText("computing solutions...\n\n", null);
             solver.execute();
             return solver;
         }
@@ -416,36 +419,48 @@ public class SwingGUI implements ActionListener {
         this.jcomboPlaceRobot.setEditable(false);
         this.jcomboPlaceRobot.setActionCommand(AC_PLACE_ROBOT);
         this.jcomboPlaceRobot.addActionListener(this);
+        this.jcomboPlaceRobot.setToolTipText("first select a robot here and then click on its new board position");
         this.setJComboCenterAlignment(this.jcomboPlaceRobot);
         this.jbutPlaceGoal.setActionCommand(AC_PLACE_GOAL);
         this.jbutPlaceGoal.addActionListener(this);
+        this.jbutPlaceGoal.setToolTipText("first click here and then select a goal on the board");
+        this.jcomboGameIDs.setModel(new DefaultComboBoxModel());
+        this.jcomboGameIDs.setEditable(true);
+        this.jcomboGameIDs.setActionCommand(AC_GAME_ID);
+        this.jcomboGameIDs.addActionListener(this);
         this.jcomboSelectSolution.setModel(new DefaultComboBoxModel());
+        this.jcomboSelectSolution.setPrototypeDisplayValue("99)  99/9/#####");  //longest string possible here
         this.jcomboSelectSolution.addItem("select solution");
         this.jcomboSelectSolution.setEditable(false);
         this.jcomboSelectSolution.setActionCommand(AC_SELECT_SOLUTION);
         this.jcomboSelectSolution.addActionListener(this);
+        this.jcomboSelectSolution.setToolTipText("SPOILER WARNING. clicking this reveals hints about the solutions");
         this.setJComboCenterAlignment(this.jcomboSelectSolution);
         this.jbutSolutionHint.setMnemonic(KeyEvent.VK_H);
         this.jbutSolutionHint.setActionCommand(AC_SHOW_HINT);
         this.jbutSolutionHint.addActionListener(this);
+        this.jbutSolutionHint.setToolTipText("click 3 times to get more detailed hints");
         this.jbutNextMove.setMnemonic(KeyEvent.VK_PLUS);
         this.jbutNextMove.setActionCommand(AC_SHOW_NEXT_MOVE);
         this.jbutNextMove.addActionListener(this);
+        this.jbutNextMove.setToolTipText("show next move");
         this.jbutAllMoves.setMnemonic(KeyEvent.VK_A);
         this.jbutAllMoves.setActionCommand(AC_SHOW_ALL_MOVES);
         this.jbutAllMoves.addActionListener(this);
+        this.jbutAllMoves.setToolTipText("show all moves");
         this.jbutPrevMove.setMnemonic(KeyEvent.VK_MINUS);
         this.jbutPrevMove.setActionCommand(AC_SHOW_PREV_MOVE);
         this.jbutPrevMove.addActionListener(this);
-        this.jbutNoMoves.setMnemonic(KeyEvent.VK_S);
+        this.jbutPrevMove.setToolTipText("undo last move");
         this.jbutNoMoves.setActionCommand(AC_SHOW_NO_MOVES);
         this.jbutNoMoves.addActionListener(this);
+        this.jbutNoMoves.setToolTipText("undo all moves");
         this.jtextSolution.setEditable(false);
-        this.jtextSolution.setPreferredSize(new Dimension(100, 100));   //dummy?!
         final JPanel panelSolutionText = new JPanel(new BorderLayout());
         panelSolutionText.add(this.jtextSolution, BorderLayout.CENTER);
-        final JScrollPane scrollSolutionText = new JScrollPane(this.jtextSolution, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollSolutionText.setPreferredSize(new Dimension(100, 100));   //dummy?!
+        final JScrollPane scrollSolutionText = new JScrollPane(this.jtextSolution, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollSolutionText.setPreferredSize(new Dimension(10, 10)); //workaround for layout problem ?!?!
+        scrollSolutionText.setMinimumSize(new Dimension(10, 10));   //workaround for layout problem ?!?!
         final RowGroup playSolutionGroup = new RowGroup();
         final JCheckBox groupBox = new JCheckBox("show computed solutions");
         groupBox.addItemListener(new ShowHideAction(playSolutionGroup));
@@ -456,12 +471,12 @@ public class SwingGUI implements ActionListener {
         playLayout.row().grid().add(new JLabel("set starting position"));
         playLayout.row().grid().add(this.jbutRandomRobots).add(this.jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(this.jbutPlaceGoal);
+        playLayout.row().grid().add(new JLabel("game ID")).add(this.jcomboGameIDs, 3);
         playLayout.row().grid().add(new JLabel(" "));
         playLayout.row().grid().add(new JSeparator());
         playLayout.row().grid().add(groupBox);
         playLayout.row().group(playSolutionGroup).grid().add(this.jcomboSelectSolution).add(this.jbutSolutionHint);
-        playLayout.row().group(playSolutionGroup).grid().add(this.jbutNextMove).add(this.jbutAllMoves);
-        playLayout.row().group(playSolutionGroup).grid().add(this.jbutPrevMove).add(this.jbutNoMoves);
+        playLayout.row().group(playSolutionGroup).grid().add(this.jbutNoMoves).add(this.jbutPrevMove).add(this.jbutNextMove).add(this.jbutAllMoves);
         playLayout.row().group(playSolutionGroup).grid().add(scrollSolutionText);
         groupBox.setSelected(true); //false
         //playSolutionGroup.hide();
@@ -505,11 +520,41 @@ public class SwingGUI implements ActionListener {
         return (this.jtabPreparePlay.getSelectedIndex() == 1);
     }
     
+    
     private void refreshBoard() {
+        //repaint board
         for (JComponent comp : this.boardCells) {
             comp.repaint();
         }
+        //manipulate combobox of game IDs
+        final String ac = this.jcomboGameIDs.getActionCommand();
+        this.jcomboGameIDs.setActionCommand("");
+        String newGameID = this.board.getGameID();
+            //System.out.println("refreshBoard " + newGameID);
+        if (this.jcomboGameIDs.getSelectedIndex() < 0) {    //not a list item
+            Object item = this.jcomboGameIDs.getSelectedItem();
+            if (null != item) {
+                if (null != Board.createBoardGameID(item.toString())) {
+                    newGameID = item.toString();
+                }
+            }
+        }
+        final int itemCount = this.jcomboGameIDs.getItemCount();
+        boolean itemInList = false;
+        for (int i = 0;  i < itemCount;  ++i) {
+            final String itemStr =  this.jcomboGameIDs.getItemAt(i).toString();
+            if (itemStr.equals(newGameID)) {
+                itemInList = true;
+                break;
+            }
+        }
+        if (false == itemInList) {
+            this.jcomboGameIDs.addItem(newGameID);
+            this.jcomboGameIDs.setSelectedItem(newGameID);
+        }
+        this.jcomboGameIDs.setActionCommand(ac);
     }
+    
     
     private void refreshBoard(final Move step) {
         for (int pos : step.pathMap.keySet()) {
@@ -581,6 +626,26 @@ public class SwingGUI implements ActionListener {
         this.refreshBoard(step);
     }
     
+    
+    private void handleGameID() {
+        //System.out.println("handleGameID()  selectedIndex=" + this.jcomboGameIDs.getSelectedIndex() + 
+        //      "  selectedItem=" + this.jcomboGameIDs.getSelectedItem().toString() + 
+        //      "  editedItem=" +this.jcomboGameIDs.getEditor().getItem().toString());
+        final String myGameID = this.board.getGameID();
+        final String newGameID = this.jcomboGameIDs.getSelectedItem().toString();
+        if (!newGameID.equals(myGameID)) {
+            final Board newBoard = Board.createBoardGameID(newGameID);
+            if (null != newBoard) {
+                //System.out.println("new board successful for " + newGameID);
+                this.board = newBoard;
+                this.updateBoardGetRobots();
+            } else {
+                appendSolutionText("error: this game ID '" + newGameID + "' is not valid.\n", null);
+            }
+        }
+    }
+    
+    
     /* (non-Javadoc)
      * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
      */
@@ -620,6 +685,8 @@ public class SwingGUI implements ActionListener {
         } else if (AC_PLACE_GOAL.equals(e.getActionCommand())) {
             this.placeGoal = !this.placeGoal;
             this.refreshBoard();
+        } else if (AC_GAME_ID.equals(e.getActionCommand())) {
+            this.handleGameID();
         }
     }
     

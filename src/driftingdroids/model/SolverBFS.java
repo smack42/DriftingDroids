@@ -446,6 +446,10 @@ public class SolverBFS {
         return this.optSolutionMode.toString() + " number of robots moved; "
                 + (this.optAllowRebounds ? "with" : "no") + " rebound moves";
     }
+    public String getOptionsAsString2() {
+        return "-" + this.optSolutionMode.toString() + " number of robots moved\n-"
+                + (this.optAllowRebounds ? "with" : "no") + " rebound moves\n";
+    }
     
     public long getSolutionMilliSeconds() {
         return this.solutionMilliSeconds;

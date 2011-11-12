@@ -20,6 +20,7 @@ package driftingdroids.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Formatter;
 import java.util.List;
 import java.util.Random;
 
@@ -173,7 +174,7 @@ public class Board {
     }
 
     
-    public static Board createBoard(int quadrantNW, int quadrantNE, int quadrantSE, int quadrantSW, int numRobots) {
+    public static Board createBoardQuadrants(int quadrantNW, int quadrantNE, int quadrantSE, int quadrantSW, int numRobots) {
         Board b = new Board(WIDTH_STANDARD, HEIGHT_STANDARD, numRobots);
         //add walls and goals
         b.addQuadrant(quadrantNW, 0);
@@ -193,16 +194,90 @@ public class Board {
     }
     
     
-    public static Board createRandomBoard(int numRobots) {
+    public static Board createBoardRandom(int numRobots) {
         final ArrayList<Integer> indexList = new ArrayList<Integer>();
         for (int i = 0;  i < 4;  ++i) { indexList.add(Integer.valueOf(i)); }
         Collections.shuffle(indexList, RANDOM);
-        return createBoard(
+        return createBoardQuadrants(
                 indexList.get(0).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
                 indexList.get(1).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
                 indexList.get(2).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
                 indexList.get(3).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
                 numRobots);
+    }
+    
+    
+    public static Board createBoardGameID(final String idStr) {
+        Board result = null;
+        int index = 0;
+        try {
+            //example game ID: 0765+41+2E21BD0F+1C
+            final int q0 = Integer.parseInt(String.valueOf(idStr.charAt(index++)), 16);
+            final int q1 = Integer.parseInt(String.valueOf(idStr.charAt(index++)), 16);
+            final int q2 = Integer.parseInt(String.valueOf(idStr.charAt(index++)), 16);
+            final int q3 = Integer.parseInt(String.valueOf(idStr.charAt(index++)), 16);
+            if ((q0 > 7) || (q1 > 7) || (q2 > 7) || (q3 > 7)) {
+                throw new IllegalArgumentException("quadrant numbers out of range");
+            }
+            if (idStr.charAt(index++) != '+') {
+                throw new IllegalArgumentException("missing '+' at index=" + (index-1));
+            }
+            final int numRobots = Integer.parseInt(String.valueOf(idStr.charAt(index++)), 16);
+            int goalRobot = Integer.parseInt(String.valueOf(idStr.charAt(index++)), 16);
+            if (goalRobot == 0x0f) { goalRobot = -1; }
+            if ((numRobots > ROBOT_COLOR_NAMES_SHORT.length) || (goalRobot >= numRobots)) {
+                throw new IllegalArgumentException("robot numbers out of range");
+            }
+            if (idStr.charAt(index++) != '+') {
+                throw new IllegalArgumentException("missing '+' at index=" + (index-1));
+            }
+            final int[] robotPositions = new int[numRobots];
+            for (int i = 0;  i < numRobots;  ++i) {
+                String str = String.valueOf(idStr.charAt(index++));
+                str += String.valueOf(idStr.charAt(index++));
+                robotPositions[i] = Integer.parseInt(str, 16);
+            }
+            if (idStr.charAt(index++) != '+') {
+                throw new IllegalArgumentException("missing '+' at index=" + (index-1));
+            }
+            String str = String.valueOf(idStr.charAt(index++));
+            str += String.valueOf(idStr.charAt(index++));
+            final int goalPosition = Integer.parseInt(str, 16);
+            result = createBoardQuadrants(q0, q1, q2, q3, numRobots);
+            final boolean successRobots = result.setRobots(robotPositions);
+            final boolean successGoal = result.setGoal(goalPosition);
+            if (!successRobots || !successGoal || (result.goal.robotNumber != goalRobot)) {
+                throw new IllegalArgumentException("robots or goal position are not valid");
+            }
+        } catch (Exception e) {
+            System.out.println("error while parsing fingerprint(" + idStr +") :  " + e.toString());
+            result = null;
+        }
+        return result;
+    }
+    
+    
+    /**
+     * The game ID string consists of this info:
+     * - the 4 board quadrants (4 board pieces, front or back)
+     * - how many robots are on board
+     * - which one is the active robot (goalRobot)
+     * - positions of all robots
+     * - position of goal
+     * @return ID string of this board configuration
+     */
+    public String getGameID() {
+        final Formatter fmt = new Formatter();
+        final int quad01 = (this.getQuadrantNum(0) << 4) | this.getQuadrantNum(1);
+        final int quad23 = (this.getQuadrantNum(2) << 4) | this.getQuadrantNum(3);
+        fmt.format("%02X%02X+", Integer.valueOf(quad01), Integer.valueOf(quad23));
+        final int robos = (this.robots.length << 4) | (this.goal.robotNumber >= 0 ? this.goal.robotNumber : 0x0f);
+        fmt.format("%02X+", Integer.valueOf(robos));
+        for (int robot : this.robots) {
+            fmt.format("%02X", Integer.valueOf(robot));
+        }
+        fmt.format("+%02X", Integer.valueOf(this.goal.position));
+        return fmt.toString();
     }
     
     
