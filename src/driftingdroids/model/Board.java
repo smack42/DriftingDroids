@@ -137,6 +137,7 @@ public class Board {
     private final byte[][] walls;       // [width*height][4] directions
     private final int[] robots;         // index=robot, value=position
     private final List<Goal> goals;     // all possible goals on the board
+    private final List<Goal> randomGoals;
     private Goal goal;                  // the current goal
 
     private class Goal {
@@ -170,6 +171,7 @@ public class Board {
         this.walls = new byte[width * height][4];
         this.robots = new int[numRobots];
         this.goals = new ArrayList<Goal>();
+        this.randomGoals = new ArrayList<Goal>();
         this.goal = new Goal(0, 0, 0); //dummy
     }
 
@@ -378,13 +380,11 @@ public class Board {
     }
     
     public void setGoalRandom() {
-        int x, y, robot;
-        do {
-            int i = RANDOM.nextInt(this.goals.size());
-            x = this.goals.get(i).x;
-            y = this.goals.get(i).y;
-            robot = this.goals.get(i).robotNumber;
-        } while (! this.setGoal(x, y, robot));
+        if (this.randomGoals.size() == 0) {
+            this.randomGoals.addAll(this.goals);
+            Collections.shuffle(this.randomGoals, RANDOM);
+        }
+        this.goal = this.randomGoals.remove(0);
     }
     
     public boolean setGoal(int x, int y, int robot) {
