@@ -119,7 +119,7 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean placeGoal = false;
     
-    private final JButton jbutRandomLayout = new JButton("Random layout");
+    private final JButton jbutRandomLayout = new JButton("Random tiles");
     private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
     private final JComboBox jcomboRobots = new JComboBox();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
@@ -392,7 +392,7 @@ public class SwingGUI implements ActionListener {
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel("board pieces")).add(this.jbutRandomLayout);
+        prepareLayout.row().grid().add(new JLabel("board tiles")).add(this.jbutRandomLayout);
         prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
         prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
         prepareLayout.row().grid().add(new JLabel(" "));
@@ -400,7 +400,7 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JLabel("number of robots")).add(this.jcomboRobots);
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel("solver algorithm options"));
+        prepareLayout.row().grid().add(new JLabel("solver options"));
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(new JLabel("choose solution with")).add(this.jcomboOptSolutionMode);
         prepareLayout.row().grid().add(new JLabel("number of robots moved"));
@@ -550,8 +550,8 @@ public class SwingGUI implements ActionListener {
         }
         if (false == itemInList) {
             this.jcomboGameIDs.addItem(newGameID);
-            this.jcomboGameIDs.setSelectedItem(newGameID);
         }
+        this.jcomboGameIDs.setSelectedItem(newGameID);
         this.jcomboGameIDs.setActionCommand(ac);
     }
     
