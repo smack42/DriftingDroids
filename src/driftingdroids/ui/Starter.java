@@ -31,7 +31,7 @@ import driftingdroids.model.SolverBFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids (work in progress 2011-11-15)");
+        new SwingGUI("DriftingDroids (work in progress 2011-11-20)");
         //runTestRandom1000();
     }
     
@@ -42,8 +42,7 @@ public class Starter {
         
         final int numGames = 1000;
         
-        final Board theBoard = Board.createBoardQuadrants(0, 7, 6, 5, 4);  //1A 4B 3B 2B
-        theBoard.setGoal(3, 9, 3);  //blue
+        final Board theBoard = Board.createBoardGameID("0765+42+2E21BD0F+93");
         
         int maxMoves = -1;
         String maxSolution = "";

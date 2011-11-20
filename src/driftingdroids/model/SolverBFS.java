@@ -62,7 +62,7 @@ public class SolverBFS {
         this.boardSizeBitMask = bitMask;
         this.boardNumRobots = this.board.getRobotPositions().length;
         this.isBoardStateInt32 = (this.boardSizeNumBits * this.boardNumRobots <= 32);
-        this.isBoardGoalWildcard = (this.board.getGoalRobot() < 0);
+        this.isBoardGoalWildcard = (this.board.getGoal().robotNumber < 0);
         this.expandRobotPositions = new boolean[this.board.size];
         Arrays.fill(this.expandRobotPositions, false);
     }
@@ -93,9 +93,9 @@ public class SolverBFS {
         final long startGetStates = System.currentTimeMillis();
         final int goalRobot = ((true == this.isBoardGoalWildcard) ? -1 : this.boardNumRobots - 1);
         if (true == this.optAllowRebounds) {
-            this.getFinalStates(startState, this.board.getGoalPosition(), goalRobot, returnFirstSolution, knownStates, finalStates);
+            this.getFinalStates(startState, this.board.getGoal().position, goalRobot, returnFirstSolution, knownStates, finalStates);
         } else {
-            this.getFinalStatesNoRebound(startState, this.board.getGoalPosition(), goalRobot, returnFirstSolution, knownStates, finalStates);
+            this.getFinalStatesNoRebound(startState, this.board.getGoal().position, goalRobot, returnFirstSolution, knownStates, finalStates);
         }
         this.solutionStoredStates = knownStates.size();
         System.out.println("knownStates: " + knownStates.infoString());
@@ -427,8 +427,8 @@ public class SolverBFS {
         //swap goal robot and last robot (if goal is not wildcard)
         if (false == this.isBoardGoalWildcard) {
             final int tmp = state[state.length - 1];
-            state[state.length - 1] = state[this.board.getGoalRobot()];
-            state[this.board.getGoalRobot()] = tmp;
+            state[state.length - 1] = state[this.board.getGoal().robotNumber];
+            state[this.board.getGoal().robotNumber] = tmp;
         }
     }
     
