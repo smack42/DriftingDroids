@@ -38,3 +38,5 @@ board layout in DriftingDroids:
  1A 4B
  2B 3B
 
+game ID: 0765+42+2E21BD0F+93
+

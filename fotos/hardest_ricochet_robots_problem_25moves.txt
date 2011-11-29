@@ -17,6 +17,8 @@ board layout in DriftingDroids:
  4B 3B
  1A 2B
 
+game ID: 7650+42+E2302B12+C9
+
 "minimum number of robots moved" solution:
 
 first letter = robot (green, blue)
