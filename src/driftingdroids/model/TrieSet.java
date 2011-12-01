@@ -32,12 +32,6 @@ import java.util.Arrays;
  * that served as the template of this class.
  */
 public final class TrieSet {
-    private static final int[] BIT_POS = {
-        0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080,
-        0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000,
-        0x00010000, 0x00020000, 0x00040000, 0x00080000, 0x00100000, 0x00200000, 0x00400000, 0x00800000,
-        0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
-    };
     
     private static final int NODE_ARRAY_SHIFT = 16;
     private static final int NODE_ARRAY_SIZE = 1 << NODE_ARRAY_SHIFT;
@@ -107,7 +101,15 @@ public final class TrieSet {
             nodeIndex = nodeArray[nidx];
             if (0 == nodeIndex) {
                 //create a new node
-                nodeIndex = this.newNode();
+                if (this.nextNode >= this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.nodeSize;
                 nodeArray[nidx] = nodeIndex;
             }
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
@@ -118,14 +120,22 @@ public final class TrieSet {
         int leafIndex = nodeArray[nidx];
         if (0 == leafIndex) {
             //create a new leaf
-            leafIndex = this.newLeaf();
+            if (this.nextLeaf >= this.nextLeafArray) {
+                if (this.leafArrays.length <= this.numLeafArrays) {
+                    this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                }
+                this.leafArrays[this.numLeafArrays++] = new int[LEAF_ARRAY_SIZE];
+                this.nextLeafArray += LEAF_ARRAY_SIZE;
+            }
+            leafIndex = this.nextLeaf;
+            this.nextLeaf += this.leafSize;
             nodeArray[nidx] = leafIndex;
         }
         final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
         final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (value & this.leafMask);
         //set bit in leaf
         final int oldBits = leafArray[lidx];
-        final int newBits = oldBits | BIT_POS[(value >>> this.leafShift) & 31];
+        final int newBits = oldBits | (1 << (value >>> this.leafShift));
         final boolean bitHasBeenAdded = (oldBits != newBits);
         if (true == bitHasBeenAdded) {
             leafArray[lidx] = newBits;
@@ -142,34 +152,52 @@ public final class TrieSet {
      * @return <code>true</code> if this set did not already contain the specified value
      */
     public final boolean add(long value) {
+        //this method is copy&paste from the one above.
+        //only the lines marked with //(int) differ: cast value from long to int.
         //root node
         int[] nodeArray = this.rootNode;
-        int nidx = (int)value & this.nodeMask;
+        int nidx = (int)value & this.nodeMask;  //(int)
         //go through nodes
         for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
             value >>>= this.nodeBits;
             nodeIndex = nodeArray[nidx];
             if (0 == nodeIndex) {
                 //create a new node
-                nodeIndex = this.newNode();
+                if (this.nextNode >= this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.nodeSize;
                 nodeArray[nidx] = nodeIndex;
             }
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);    //(int)
         }
         //get leaf
         value >>>= this.nodeBits;
         int leafIndex = nodeArray[nidx];
         if (0 == leafIndex) {
             //create a new leaf
-            leafIndex = this.newLeaf();
+            if (this.nextLeaf >= this.nextLeafArray) {
+                if (this.leafArrays.length <= this.numLeafArrays) {
+                    this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                }
+                this.leafArrays[this.numLeafArrays++] = new int[LEAF_ARRAY_SIZE];
+                this.nextLeafArray += LEAF_ARRAY_SIZE;
+            }
+            leafIndex = this.nextLeaf;
+            this.nextLeaf += this.leafSize;
             nodeArray[nidx] = leafIndex;
         }
         final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
-        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)value & this.leafMask);
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)value & this.leafMask);  //(int)
         //set bit in leaf
         final int oldBits = leafArray[lidx];
-        final int newBits = oldBits | BIT_POS[((int)value >>> this.leafShift) & 31];
+        final int newBits = oldBits | (1 << ((int)value >>> this.leafShift));   //(int)
         final boolean bitHasBeenAdded = (oldBits != newBits);
         if (true == bitHasBeenAdded) {
             leafArray[lidx] = newBits;
@@ -179,34 +207,16 @@ public final class TrieSet {
     
     
     
-    private final int newNode() {
-        if (this.nextNode >= this.nextNodeArray) {
-            if (this.nodeArrays.length <= this.numNodeArrays) {
-                this.nodeArrays = Arrays.copyOf(this.nodeArrays, (this.nodeArrays.length * 3) >> 1);
-            }
-            this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
-            this.nextNodeArray += NODE_ARRAY_SIZE;
+    public final long getBytesAllocated() {
+        long result = 0;
+        for (int i = 0;  i < this.numNodeArrays;  ++i) {
+            result += this.nodeArrays[i].length << 2;
         }
-        final int result = this.nextNode;
-        this.nextNode += this.nodeSize;
+        for (int i = 0;  i < this.numLeafArrays;  ++i) {
+            result += this.leafArrays[i].length << 2;
+        }
         return result;
     }
-    
-    
-    
-    private final int newLeaf() {
-        if (this.nextLeaf >= this.nextLeafArray) {
-            if (this.leafArrays.length <= this.numLeafArrays) {
-                this.leafArrays = Arrays.copyOf(this.leafArrays, (this.leafArrays.length * 3) >> 1);
-            }
-            this.leafArrays[this.numLeafArrays++] = new int[LEAF_ARRAY_SIZE];
-            this.nextLeafArray += LEAF_ARRAY_SIZE;
-        }
-        final int result = this.nextLeaf;
-        this.nextLeaf += this.leafSize;
-        return result;
-    }
-    
     
     
 //    /**

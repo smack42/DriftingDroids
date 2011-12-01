@@ -102,6 +102,7 @@ public class SolverBFS {
         final long durationStates = System.currentTimeMillis() - startGetStates;
         System.out.println("time (Breadth-First-Search for finalStates) : " + (durationStates / 1000d) + " seconds");
         System.out.println("number of finalStates: " + finalStates.size());
+        System.out.println(knownStates.megaBytesAllocated());
         
         
         //find the paths from "startState" to the "finalStates".
@@ -484,6 +485,7 @@ public class SolverBFS {
         //store the unique keys of all known states
         private abstract class AllKeys {
             public abstract boolean add(final int[] state);
+            public abstract long getBytesAllocated();
         }
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
@@ -494,6 +496,10 @@ public class SolverBFS {
             public final boolean add(final int[] state) {
                 final int key = this.keyMaker.run(state);
                 return this.theSet.add(key);
+            }
+            @Override
+            public final long getBytesAllocated() {
+                return this.theSet.getBytesAllocated();
             }
         }
         //store the unique keys of all known states in 32-bit ints
@@ -530,6 +536,10 @@ public class SolverBFS {
                 final long key = this.keyMaker.run(state);
                 return this.theSet.add(key);
             }
+            @Override
+            public final long getBytesAllocated() {
+                return this.theSet.getBytesAllocated();
+            }
         }
         
         //store all known states in a way that allows them to be retrieved later
@@ -542,7 +552,7 @@ public class SolverBFS {
             public int size() {
                 return this.numStates;
             }
-            public final void incrementDepth() {
+            public void incrementDepth() {
                 this.depthBegin.add(Integer.valueOf(this.numStates));
             }
             public abstract void add(final int[] state);
@@ -562,6 +572,7 @@ public class SolverBFS {
                 }
                 public abstract boolean next(final int[] resultState);
             }
+            public abstract long getBytesAllocated();
         }
         //store all known states in a list of byte arrays
         //supports board sizes up to 256 (16*16)
@@ -573,7 +584,7 @@ public class SolverBFS {
                 //if necessary, allocate an additional array and append it to the list
                 if (this.addOffset >= this.ARRAY_SIZE) {
                     if (this.allStatesArrays.length <= this.addArray + 1) {
-                        this.allStatesArrays = Arrays.copyOf(this.allStatesArrays, (this.allStatesArrays.length * 3) >> 1);
+                        this.allStatesArrays = Arrays.copyOf(this.allStatesArrays, this.allStatesArrays.length << 1);
                     }
                     this.allStatesArrays[++this.addArray] = new byte[this.ARRAY_SIZE];
                     this.addOffset = 0;
@@ -612,7 +623,133 @@ public class SolverBFS {
             public AllStates.Iterator iterator(final int depth) {
                 return new AllStatesByteIterator(depth);
             }
+            @Override
+            public final long getBytesAllocated() {
+                long result = 0;
+                for (int i = 0;  i <= this.addArray;  ++i) {
+                    result += this.allStatesArrays[i].length;
+                }
+                return result;
+            }
         }
+        
+        
+        
+        //TODO start -------------------------------------------------------------------------------
+        //store all known states in a list of byte arrays
+        //supports board sizes up to 256 (16*16)
+//        private final class AllStatesByteCompressed extends AllStates {
+//            private byte[][] allStatesArrays = new byte[32][];
+//            private int[][] prevStates = new int[4][boardNumRobots];
+//            private int prevStateIdx = 0;
+//            private int[] diffCount1 = new int[boardNumRobots + 1];
+//            private int[] diffCount3 = new int[3];
+//            @Override
+//            public final void incrementDepth() {
+//                super.incrementDepth();
+//                this.prevStateIdx = 0;
+//                Arrays.fill(this.prevStates[0], 0);
+//                Arrays.fill(this.prevStates[1], 0);
+//                Arrays.fill(this.prevStates[2], 0);
+//                Arrays.fill(this.prevStates[3], 0);
+//            }
+//            private final void countDifferences(final int[] state) {
+//                //compare against the previous state.
+//                //count number of positions that differ.
+//                int diffs = 0;
+//                final int[] prev0 = this.prevStates[this.prevStateIdx];
+//                for (int i = 0;  i < state.length;  ++i) {
+//                    if (prev0[i] != state[i]) { ++diffs; }
+//                }
+//                ++this.diffCount1[diffs];
+//                //compare against the previous 3 states.
+//                //count the single-position differences.
+//                if (1 == diffs) {
+//                    ++this.diffCount3[0];
+//                } else {
+//                    diffs = 0;
+//                    final int[] prev1 = this.prevStates[(this.prevStateIdx - 1) & 3];
+//                    for (int i = 0;  i < state.length;  ++i) {
+//                        if (prev1[i] != state[i]) { ++diffs; }
+//                    }
+//                    if (1 == diffs) {
+//                        ++this.diffCount3[1];
+//                    } else {
+//                        diffs = 0;
+//                        final int[] prev2 = this.prevStates[(this.prevStateIdx - 2) & 3];
+//                        for (int i = 0;  i < state.length;  ++i) {
+//                            if (prev2[i] != state[i]) { ++diffs; }
+//                        }
+//                        if (1 == diffs) {
+//                            ++this.diffCount3[2];
+//                        }
+//                    }
+//                }
+//                //update the previous state.
+//                this.prevStateIdx = (this.prevStateIdx + 1) & 3;
+//                final int[] next = this.prevStates[this.prevStateIdx];
+//                for (int i = 0;  i < state.length;  ++i) {
+//                    next[i] = state[i];
+//                }
+//            }
+//            @Override
+//            public final void add(final int[] state) {
+//                assert 8 >= boardSizeNumBits : boardSizeNumBits;
+//                countDifferences(state);
+//                //if necessary, allocate an additional array and append it to the list
+//                if (this.addOffset >= this.ARRAY_SIZE) {
+//                    if (this.allStatesArrays.length <= this.addArray + 1) {
+//                        this.allStatesArrays = Arrays.copyOf(this.allStatesArrays, this.allStatesArrays.length << 1);
+//                    }
+//                    this.allStatesArrays[++this.addArray] = new byte[this.ARRAY_SIZE];
+//                    this.addOffset = 0;
+//                }
+//                //append state to the current array in list
+//                final byte[] allStatesArray = this.allStatesArrays[this.addArray];
+//                for (int pos : state) {
+//                    allStatesArray[this.addOffset++] = (byte)pos;
+//                }
+//                this.numStates++;
+//            }
+//            private final class AllStatesByteIterator extends AllStates.Iterator {
+//                public AllStatesByteIterator(final int depth) {
+//                    super(depth);
+//                }
+//                @Override
+//                public boolean next(final int[] resultState) {
+//                  final boolean hasNext = (this.iterEnd > this.iterCurrent);
+//                  if (true == hasNext) {
+//                      //if necessary, switch to next array in the list
+//                      if (this.iterOffset >= ARRAY_SIZE) {
+//                          this.iterArray++;
+//                          this.iterOffset = 0;
+//                      }
+//                      //retrieve the next state
+//                      final byte[] allStatesArray = allStatesArrays[this.iterArray];
+//                      for (int i = 0;  i < resultState.length;  i++) {
+//                          resultState[i] = (boardSizeBitMask & allStatesArray[this.iterOffset++]);
+//                      }
+//                      this.iterCurrent++;
+//                  }
+//                  return hasNext;
+//                }
+//            }
+//            @Override
+//            public AllStates.Iterator iterator(final int depth) {
+//                return new AllStatesByteIterator(depth);
+//            }
+//            @Override
+//            public final long getBytesAllocated() {
+//                long result = 0;
+//                for (int i = 0;  i <= this.addArray;  ++i) {
+//                    result += this.allStatesArrays[i].length;
+//                }
+//                return result;
+//            }
+//        }
+        //TODO end ------------------------------------------------------------------------------
+        
+        
         
         //store all directions belonging to the known states
         //(implementation is copy/paste from AllStates with some adaptions)
@@ -641,6 +778,7 @@ public class SolverBFS {
                 }
                 public abstract boolean next(final int[] resultState);
             }
+            public abstract long getBytesAllocated();
         }
         //store all directions belonging to the known states in a list of short arrays
         //supports up to 5 robots (with 3 bits per direction)
@@ -690,6 +828,14 @@ public class SolverBFS {
             @Override
             public Iterator iterator(final int depth) {
                 return new AllDirectionsShortIterator(depth);
+            }
+            @Override
+            public final long getBytesAllocated() {
+                long result = 0;
+                for (short[] dirArray : this.allDirsListOfShortArrays) {
+                    result += dirArray.length;
+                }
+                return result;
             }
         }
         
@@ -753,6 +899,13 @@ public class SolverBFS {
         }
         public final String infoString() {
             return "size=" + this.allStates.size() + " depth=" + this.currentDepth;
+        }
+        public final String megaBytesAllocated() {
+            final int keysMB = (int)((this.allKeys.getBytesAllocated() + (1 << 20) - 1) >> 20);
+            final int statesMB = (int)((this.allStates.getBytesAllocated() + (1 << 20) - 1) >> 20);
+            final int dirsMB = (int)((this.allDirections.getBytesAllocated() + (1 << 20) - 1) >> 20);
+            return "megabytes allocated: keys=" + keysMB + " states=" + statesMB + " directions=" + dirsMB +
+                    " total=" + (keysMB + statesMB + dirsMB);
         }
     }
     
