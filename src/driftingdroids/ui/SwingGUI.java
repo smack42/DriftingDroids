@@ -169,14 +169,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private void makeRandomBoardQuadrants() {
-        final Board newBoard = Board.createBoardRandom(this.jcomboRobots.getSelectedIndex() + 1);
-        for (int i = 0;  i < 4;  ++i) {
-            final String tmp = this.jcomboQuadrants[i].getActionCommand();
-            this.jcomboQuadrants[i].setActionCommand("");
-            this.jcomboQuadrants[i].setSelectedIndex(newBoard.getQuadrantNum(i));
-            this.jcomboQuadrants[i].setActionCommand(tmp);
-        }
-        this.board = newBoard;
+        this.board = Board.createBoardRandom(this.jcomboRobots.getSelectedIndex() + 1);
         this.refreshBoard();
     }
     
@@ -380,10 +373,10 @@ public class SwingGUI implements ActionListener {
         final String[] strRobots = { "1", "2", "3", "4", "5" };
         this.jcomboRobots.setModel(new DefaultComboBoxModel(strRobots));
         this.jcomboRobots.setEditable(false);
-        this.jcomboRobots.setSelectedIndex(this.board.getRobotPositions().length - 1);
         this.jcomboRobots.setActionCommand(AC_BOARD_QUADRANTS);
         this.jcomboRobots.addActionListener(this);
         this.setJComboCenterAlignment(this.jcomboRobots);
+        this.refreshJcomboRobots();
         
         final SolverBFS.SOLUTION_MODE[] solModes = SolverBFS.SOLUTION_MODE.values();
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
@@ -434,7 +427,7 @@ public class SwingGUI implements ActionListener {
         this.jcomboGameIDs.addActionListener(this);
         this.jcomboSelectSolution.setModel(new DefaultComboBoxModel());
         this.jcomboSelectSolution.setPrototypeDisplayValue("99)  99/9/#####");  //longest string possible here
-        this.jcomboSelectSolution.addItem("select solution");
+        this.jcomboSelectSolution.addItem("Select solution");
         this.jcomboSelectSolution.setEditable(false);
         this.jcomboSelectSolution.setActionCommand(AC_SELECT_SOLUTION);
         this.jcomboSelectSolution.addActionListener(this);
@@ -524,6 +517,22 @@ public class SwingGUI implements ActionListener {
         return (this.jtabPreparePlay.getSelectedIndex() == 1);
     }
     
+    private void refreshJcomboRobots() {
+        final String tmp = this.jcomboRobots.getActionCommand();
+        this.jcomboRobots.setActionCommand("");
+        this.jcomboRobots.setSelectedIndex(this.board.getRobotPositions().length - 1);
+        this.jcomboRobots.setActionCommand(tmp);
+    }
+
+    private void refreshJcomboQuadrants() {
+        for (int i = 0;  i < 4;  ++i) {
+            final String tmp = this.jcomboQuadrants[i].getActionCommand();
+            this.jcomboQuadrants[i].setActionCommand("");
+            this.jcomboQuadrants[i].setSelectedIndex(this.board.getQuadrantNum(i));
+            this.jcomboQuadrants[i].setActionCommand(tmp);
+        }
+    }
+
     
     private void refreshBoard() {
         //repaint board
@@ -534,7 +543,6 @@ public class SwingGUI implements ActionListener {
         final String ac = this.jcomboGameIDs.getActionCommand();
         this.jcomboGameIDs.setActionCommand("");
         String newGameID = this.board.getGameID();
-            //System.out.println("refreshBoard " + newGameID);
         if (this.jcomboGameIDs.getSelectedIndex() < 0) {    //not a list item
             Object item = this.jcomboGameIDs.getSelectedItem();
             if (null != item) {
@@ -632,16 +640,15 @@ public class SwingGUI implements ActionListener {
     
     
     private void handleGameID() {
-        //System.out.println("handleGameID()  selectedIndex=" + this.jcomboGameIDs.getSelectedIndex() + 
-        //      "  selectedItem=" + this.jcomboGameIDs.getSelectedItem().toString() + 
-        //      "  editedItem=" +this.jcomboGameIDs.getEditor().getItem().toString());
         final String myGameID = this.board.getGameID();
         final String newGameID = this.jcomboGameIDs.getSelectedItem().toString();
         if (!newGameID.equals(myGameID)) {
             final Board newBoard = Board.createBoardGameID(newGameID);
             if (null != newBoard) {
-                //System.out.println("new board successful for " + newGameID);
                 this.board = newBoard;
+                this.refreshJComboPlaceRobot();
+                this.refreshJcomboRobots();
+                this.refreshJcomboQuadrants();
                 this.updateBoardGetRobots();
             } else {
                 appendSolutionText("error: this game ID '" + newGameID + "' is not valid.\n", null);
@@ -661,6 +668,7 @@ public class SwingGUI implements ActionListener {
         } else if (AC_RANDOM_LAYOUT.equals(e.getActionCommand())) {
             this.makeRandomBoardQuadrants();
             this.refreshJComboPlaceRobot();
+            this.refreshJcomboQuadrants();
         } else if (AC_RANDOM_ROBOTS.equals(e.getActionCommand())) {
             this.placeRobot = -1;
             refreshJComboPlaceRobot();
