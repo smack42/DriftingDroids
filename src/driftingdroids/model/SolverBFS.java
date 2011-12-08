@@ -86,16 +86,15 @@ public class SolverBFS {
         System.out.println("options: " + this.getOptionsAsString());
         
         final int[] startState = this.board.getRobotPositions().clone();
-        swapGoalLast(startState);
+        swapGoalLast(startState);   //goal robot is always the last one.
         System.out.printf("startState=" + this.stateString(startState) + "\n");
         
         //find the "finalStates" and save all intermediate states in "knownStates"
         final long startGetStates = System.currentTimeMillis();
-        final int goalRobot = ((true == this.isBoardGoalWildcard) ? -1 : this.boardNumRobots - 1);
         if (true == this.optAllowRebounds) {
-            this.getFinalStates(startState, this.board.getGoal().position, goalRobot, returnFirstSolution, knownStates, finalStates);
+            this.getFinalStates(startState, this.board.getGoal().position, this.isBoardGoalWildcard, returnFirstSolution, knownStates, finalStates);
         } else {
-            this.getFinalStatesNoRebound(startState, this.board.getGoal().position, goalRobot, returnFirstSolution, knownStates, finalStates);
+            this.getFinalStatesNoRebound(startState, this.board.getGoal().position, this.isBoardGoalWildcard, returnFirstSolution, knownStates, finalStates);
         }
         this.solutionStoredStates = knownStates.size();
         System.out.println("knownStates: " + knownStates.infoString());
@@ -148,7 +147,7 @@ public class SolverBFS {
     private void getFinalStates(
             final int[] startState,             //IN: initial state (positions of all robots)
             final int goalPosition,             //IN: position of goal
-            final int goalRobot,                //IN: number of goal robot (-1 for wildcard)
+            final boolean isWildcardGoal,       //IN: is it the wildcard goal (any robot)
             final boolean returnFirstSolution,  //IN: find only the first shortest solution (false = find all shortest solutions)
             final KnownStates knownStates,      //OUT: all known states
             final List<int[]> finalStates       //OUT: final states (goal robot has reached goal position)
@@ -157,51 +156,75 @@ public class SolverBFS {
         assert 0 == depth : depth;
         knownStates.add(startState);
         final int[] tmpState = new int[startState.length];
+        final int robo1 = tmpState.length - 1;  //goal robot is always the last one.
         //is the starting position already on goal?
-        if (-1 == goalRobot) {
+        if (true == isWildcardGoal) {
             for (int pos : startState) { if (goalPosition == pos) { finalStates.add(startState.clone()); } }
-        } else if (goalPosition == startState[goalRobot]) { finalStates.add(startState.clone()); }
+        } else if (goalPosition == startState[robo1]) { finalStates.add(startState.clone()); }
         //breadth-first search
         while(true) {
             if (0 < finalStates.size()) { return; } //goal has been reached!
             depth = knownStates.incrementDepth();
-            final KnownStates.Iterator iter = knownStates.iterator(depth - 1);
+            KnownStates.Iterator iter = knownStates.iterator(depth - 1);
             System.out.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size());
             if (0 == iter.size()) { return; }       //goal NOT reachable!
+            //first pass: move goal robot, only.
             while (true == iter.next(tmpState)) {
                 if (Thread.interrupted()) { throw new InterruptedException(); }
-                //expand the current state: evaluate and store the successor states.
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = true; }
-                for (int robo = 0;  robo < tmpState.length;  ++robo) {
-                    final int oldRoboPos = tmpState[robo];
-                    for (int dir = 0;  dir < 4;  ++dir) {
+                final int oldRoboPos = tmpState[robo1];
+                int dir = -1;
+                for (int dirIncr : this.board.directionIncrement) {
+                    ++dir;
+                    int newRoboPos = oldRoboPos;
+                    while (0 == this.boardWalls[newRoboPos][dir]) {     //move the robot until it reaches a wall or another robot.
+                        newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
+                        if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
+                            newRoboPos -= dirIncr;                      //some additional boundary checking here.
+                            break;
+                        }
+                    }
+                    if (oldRoboPos != newRoboPos) {
+                        tmpState[robo1] = newRoboPos;
+                        if ((true == knownStates.add(tmpState)) && (goalPosition == newRoboPos)) {
+                            finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                        }
+                    }
+                }
+                tmpState[robo1] = oldRoboPos;
+                for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
+                if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
+            }
+            if ((0 < finalStates.size()) && (false == isWildcardGoal)) { return; }  //goal has been reached!
+            //second pass: move the other (non-goal) robots.
+            iter = knownStates.iterator(depth - 1);
+            while (true == iter.next(tmpState)) {
+                if (Thread.interrupted()) { throw new InterruptedException(); }
+                for (int pos : tmpState) { this.expandRobotPositions[pos] = true; }
+                for (int robo2 = 0;  robo2 < robo1;  ++robo2) {
+                    final int oldRoboPos = tmpState[robo2];
+                    int dir = -1;
+                    for (int dirIncr : this.board.directionIncrement) {
+                        ++dir;
                         int newRoboPos = oldRoboPos;
-                        //move the robot until it reaches a wall or another robot.
-                        //NOTE: we rely on the fact that all boards are surrounded
-                        //by outer walls. without the outer walls we would need
-                        //some additional boundary checking here.
-                        final int dirIncr = this.board.directionIncrement[dir];
-                        while (0 == this.boardWalls[newRoboPos][dir]) {
-                            newRoboPos += dirIncr;
-                            if (this.expandRobotPositions[newRoboPos]) {
-                                newRoboPos -= dirIncr;
+                        while (0 == this.boardWalls[newRoboPos][dir]) {     //move the robot until it reaches a wall or another robot.
+                            newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
+                            if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
+                                newRoboPos -= dirIncr;                      //some additional boundary checking here.
                                 break;
                             }
                         }
                         if (oldRoboPos != newRoboPos) {
-                            //add the new state to the set of known states
-                            //only if it's not already known.
-                            tmpState[robo] = newRoboPos;   //temporarily!
-                            final boolean stateHasBeenAdded = knownStates.add(tmpState);
-                            if (true == stateHasBeenAdded) {
-                                //check if the goal robot has reached the goal position.
-                                if ((goalPosition == newRoboPos) && ((goalRobot == robo) || (-1 == goalRobot))) {
-                                    finalStates.add(tmpState.clone());
+                            tmpState[robo2] = newRoboPos;
+                            if (true == knownStates.add(tmpState)) {
+                                //in this second pass, we can reach a wildcard goal, only.
+                                if ((goalPosition == newRoboPos) && (true == isWildcardGoal)) {
+                                    finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
                                 }
                             }
                         }
                     }
-                    tmpState[robo] = oldRoboPos;   //temporarily! reverted!
+                    tmpState[robo2] = oldRoboPos;
                 }
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
                 if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
@@ -214,7 +237,7 @@ public class SolverBFS {
     private void getFinalStatesNoRebound(
             final int[] startState,             //IN: initial state (positions of all robots)
             final int goalPosition,             //IN: position of goal
-            final int goalRobot,                //IN: number of goal robot (-1 for wildcard)
+            final boolean isWildcardGoal,       //IN: is it the wildcard goal (any robot)
             final boolean returnFirstSolution,  //IN: find only the first shortest solution (false = find all shortest solutions)
             final KnownStates knownStates,      //OUT: all known states
             final List<int[]> finalStates       //OUT: final states (goal robot has reached goal position)
@@ -225,57 +248,84 @@ public class SolverBFS {
         for (int i = 0;  i < tmpDirs.length;  ++i) { tmpDirs[i] = 7; }  // 7 == not_yet_moved
         knownStates.add(startState, tmpDirs);
         final int[] tmpState = new int[startState.length];
+        final int robo1 = tmpState.length - 1;
         //is the starting position already on goal?
-        if (-1 == goalRobot) {
+        if (true == isWildcardGoal) {
             for (int pos : startState) { if (goalPosition == pos) { finalStates.add(startState.clone()); } }
-        } else if (goalPosition == startState[goalRobot]) { finalStates.add(startState.clone()); }
+        } else if (goalPosition == startState[robo1]) { finalStates.add(startState.clone()); }
         //breadth-first search
         while(true) {
             if (0 < finalStates.size()) { return; } //goal has been reached!
             depth = knownStates.incrementDepth();
-            final KnownStates.Iterator iter = knownStates.iterator(depth - 1);
+            KnownStates.Iterator iter = knownStates.iterator(depth - 1);
             System.out.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size());
             if (0 == iter.size()) { return; }       //goal NOT reachable!
+            //first pass: move goal robot, only.
             while (true == iter.next(tmpState, tmpDirs)) {
                 if (Thread.interrupted()) { throw new InterruptedException(); }
-                //expand the current state: evaluate and store the successor states.
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = true; }
-                for (int robo = 0;  robo < tmpState.length;  ++robo) {
-                    final int oldRoboPos = tmpState[robo];
-                    final int oldRoboDir = tmpDirs[robo];
-                    for (int dir = 0;  dir < 4;  ++dir) {
+                final int oldRoboPos = tmpState[robo1],  oldRoboDir = tmpDirs[robo1];
+                int dir = -1;
+                for (int dirIncr : this.board.directionIncrement) {
+                    ++dir;
+                    //don't allow rebound moves
+                    if ((oldRoboDir != dir) && (oldRoboDir != ((dir + 2) & 3))) {
+                        int newRoboPos = oldRoboPos;
+                        while (0 == this.boardWalls[newRoboPos][dir]) {     //move the robot until it reaches a wall or another robot.
+                            newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
+                            if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
+                                newRoboPos -= dirIncr;                      //some additional boundary checking here.
+                                break;
+                            }
+                        }
+                        if (oldRoboPos != newRoboPos) {
+                            tmpState[robo1] = newRoboPos;
+                            tmpDirs[robo1] = dir;
+                            if ((true == knownStates.add(tmpState, tmpDirs)) && (goalPosition == newRoboPos)) {
+                                finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                            }
+                        }
+                    }
+                }
+                tmpState[robo1] = oldRoboPos;
+                for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
+                if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
+            }
+            if ((0 < finalStates.size()) && (false == isWildcardGoal)) { return; }  //goal has been reached!
+            //second pass: move the other (non-goal) robots.
+            iter = knownStates.iterator(depth - 1);
+            while (true == iter.next(tmpState, tmpDirs)) {
+                if (Thread.interrupted()) { throw new InterruptedException(); }
+                for (int pos : tmpState) { this.expandRobotPositions[pos] = true; }
+                for (int robo2 = 0;  robo2 < robo1;  ++robo2) {
+                    final int oldRoboPos = tmpState[robo2],  oldRoboDir = tmpDirs[robo2];
+                    int dir = -1;
+                    for (int dirIncr : this.board.directionIncrement) {
+                        ++dir;
                         //don't allow rebound moves
                         if ((oldRoboDir != dir) && (oldRoboDir != ((dir + 2) & 3))) {
                             int newRoboPos = oldRoboPos;
-                            //move the robot until it reaches a wall or another robot.
-                            //NOTE: we rely on the fact that all boards are surrounded
-                            //by outer walls. without the outer walls we would need
-                            //some additional boundary checking here.
-                            final int dirIncr = this.board.directionIncrement[dir];
-                            while (0 == this.boardWalls[newRoboPos][dir]) {
-                                newRoboPos += dirIncr;
-                                if (this.expandRobotPositions[newRoboPos]) {
-                                    newRoboPos -= dirIncr;
+                            while (0 == this.boardWalls[newRoboPos][dir]) {     //move the robot until it reaches a wall or another robot.
+                                newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
+                                if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
+                                    newRoboPos -= dirIncr;                      //some additional boundary checking here.
                                     break;
                                 }
                             }
                             if (oldRoboPos != newRoboPos) {
-                                //add the new state to the set of known states
-                                //only if it's not already known.
-                                tmpState[robo] = newRoboPos;    //temporarily!
-                                tmpDirs[robo] = dir;            //temporarily!
-                                final boolean stateHasBeenAdded = knownStates.add(tmpState, tmpDirs);
-                                if (true == stateHasBeenAdded) {
-                                    //check if the goal robot has reached the goal position.
-                                    if ((goalPosition == newRoboPos) && ((goalRobot == robo) || (-1 == goalRobot))) {
-                                        finalStates.add(tmpState.clone());
+                                tmpState[robo2] = newRoboPos;
+                                tmpDirs[robo2] = dir;
+                                if (true == knownStates.add(tmpState, tmpDirs)) {
+                                    //in this second pass, we can reach a wildcard goal, only.
+                                    if ((goalPosition == newRoboPos) && (true == isWildcardGoal)) {
+                                        finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
                                     }
                                 }
                             }
                         }
                     }
-                    tmpState[robo] = oldRoboPos;    //temporarily! reverted!
-                    tmpDirs[robo] = oldRoboDir;     //temporarily! reverted!
+                    tmpState[robo2] = oldRoboPos;
+                    tmpDirs[robo2] = oldRoboDir;
                 }
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
                 if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
@@ -308,21 +358,23 @@ public class SolverBFS {
     
     private boolean doPathDFS(final int[] thisState, final KnownStates knownStates, final int depth, final List<int[]> result, final int[][] tmpStates) throws InterruptedException {
         final KnownStates.Iterator iter = knownStates.iterator(depth);
+        final int[] tmpStatesAtDepth = tmpStates[depth];
         if (0 == depth) {
-            iter.next(tmpStates[depth]);
-            result.add(tmpStates[depth].clone());
+            iter.next(tmpStatesAtDepth);
+            result.add(tmpStatesAtDepth.clone());
             return true;
         } else {
-            while (true == iter.next(tmpStates[depth])) {
+            while (true == iter.next(tmpStatesAtDepth)) {
                 if (Thread.interrupted()) { throw new InterruptedException(); }
                 //detect the number of moved robots between prevState and thisState.
                 //store the position difference in diffPos if only one robot has moved.
-                int diffPos = 0, prevPos = 0;
-                for (int i = 0;  i < thisState.length;  ++i) {
-                    if (tmpStates[depth][i] != thisState[i]) {
+                int diffPos = 0, prevPos = 0, i = -1;
+                for (int thisPos : thisState) {
+                    ++i;
+                    if (tmpStatesAtDepth[i] != thisPos) {
                         if (0 == diffPos) {
-                            prevPos = tmpStates[depth][i];
-                            diffPos = thisState[i] - prevPos;
+                            prevPos = tmpStatesAtDepth[i];
+                            diffPos = thisPos - prevPos;
                         } else {
                             diffPos = 0; break; //found more than one difference
                         }
@@ -331,7 +383,7 @@ public class SolverBFS {
                 //check if this position difference is a possible move along one row or column.
                 if ((0 != diffPos) && ((Math.abs(diffPos) < this.board.width) || (0 == diffPos % this.board.width))) {
                     final int thisPos = prevPos + diffPos;
-                    for (int pos : tmpStates[depth]) { this.expandRobotPositions[pos] = true; }
+                    for (int pos : tmpStatesAtDepth) { this.expandRobotPositions[pos] = true; }
                     final int dir = this.board.getDirection(diffPos);
                     //check if the move would go though obstacles (walls or robots).
                     final int dirIncr = this.board.directionIncrement[dir];
@@ -342,11 +394,11 @@ public class SolverBFS {
                             break;
                         }
                     }
-                    for (int pos : tmpStates[depth]) { this.expandRobotPositions[pos] = false; }
+                    for (int pos : tmpStatesAtDepth) { this.expandRobotPositions[pos] = false; }
                     //follow the move to the previous level in the array of states. (recursion)
                     if (prevPos == thisPos) {
-                        if (this.doPathDFS(tmpStates[depth], knownStates, depth-1, result, tmpStates)) {
-                            result.add(tmpStates[depth].clone());
+                        if (this.doPathDFS(tmpStatesAtDepth, knownStates, depth-1, result, tmpStates)) {
+                            result.add(tmpStatesAtDepth.clone());
                             return true;
                         }
                     }
@@ -360,21 +412,23 @@ public class SolverBFS {
     
     private boolean doPathDFSNoRebound(final int[] thisState, final KnownStates knownStates, final int depth, final List<int[]> result, final int[][] tmpStates, final int[] tmpDirections) throws InterruptedException {
         final KnownStates.Iterator iter = knownStates.iterator(depth);
+        final int[] tmpStatesAtDepth = tmpStates[depth];
         if (0 == depth) {
-            iter.next(tmpStates[depth]);
-            result.add(tmpStates[depth].clone());
+            iter.next(tmpStatesAtDepth);
+            result.add(tmpStatesAtDepth.clone());
             return true;
         } else {
-            while (true == iter.next(tmpStates[depth], tmpDirections)) {
+            while (true == iter.next(tmpStatesAtDepth, tmpDirections)) {
                 if (Thread.interrupted()) { throw new InterruptedException(); }
                 //detect the number of moved robots between prevState and thisState.
                 //store the position difference in diffPos if only one robot has moved.
-                int diffPos = 0, prevPos = 0, tmpDir = 0;
-                for (int i = 0;  i < thisState.length;  ++i) {
-                    if (tmpStates[depth][i] != thisState[i]) {
+                int diffPos = 0, prevPos = 0, tmpDir = 0, i = -1;
+                for (int thisPos : thisState) {
+                    ++i;
+                    if (tmpStatesAtDepth[i] != thisPos) {
                         if (0 == diffPos) {
-                            prevPos = tmpStates[depth][i];
-                            diffPos = thisState[i] - prevPos;
+                            prevPos = tmpStatesAtDepth[i];
+                            diffPos = thisPos - prevPos;
                             tmpDir  = tmpDirections[i];
                         } else {
                             diffPos = 0; break; //found more than one difference
@@ -387,7 +441,7 @@ public class SolverBFS {
                     //don't allow rebound moves
                     if ((tmpDir != dir) && (tmpDir != ((dir + 2) & 3))) {
                         final int thisPos = prevPos + diffPos;
-                        for (int pos : tmpStates[depth]) { this.expandRobotPositions[pos] = true; }
+                        for (int pos : tmpStatesAtDepth) { this.expandRobotPositions[pos] = true; }
                         //check if the move would go though obstacles (walls or robots).
                         final int dirIncr = this.board.directionIncrement[dir];
                         while (0 == this.boardWalls[prevPos][dir]) {
@@ -397,11 +451,11 @@ public class SolverBFS {
                                 break;
                             }
                         }
-                        for (int pos : tmpStates[depth]) { this.expandRobotPositions[pos] = false; }
+                        for (int pos : tmpStatesAtDepth) { this.expandRobotPositions[pos] = false; }
                         //follow the move to the previous level in the array of states. (recursion)
                         if (prevPos == thisPos) {
-                            if (this.doPathDFSNoRebound(tmpStates[depth], knownStates, depth-1, result, tmpStates, tmpDirections)) {
-                                result.add(tmpStates[depth].clone());
+                            if (this.doPathDFSNoRebound(tmpStatesAtDepth, knownStates, depth-1, result, tmpStates, tmpDirections)) {
+                                result.add(tmpStatesAtDepth.clone());
                                 return true;
                             }
                         }
@@ -505,25 +559,26 @@ public class SolverBFS {
         //store the unique keys of all known states in 32-bit ints
         //fastest version = uses full 4 gigabits array.
 //        private final class AllKeysIntBitArray extends AllKeys {
-//            private final int[] BIT_POS = {
-//                    0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080
-//            };
 //            private final KeyMakerInt keyMaker = createKeyMakerInt();
-//            private final byte[] allBits = new byte[(4096 / 8) * 1024 * 1024];  // 512 megabytes = 4 gigabits (2**32)
+//            private final int[] allBits = new int[(4096 / 32) * 1024 * 1024];   // 512 megabytes = 4 gigabits (2**32)
 //            public AllKeysIntBitArray() {
 //                super();
 //            }
 //            @Override
 //            public final boolean add(final int[] state) {
 //                final int key = this.keyMaker.run(state);
-//                final int index = key >>> 3;
-//                final byte oldBits = this.allBits[index];
-//                final int newBits = oldBits | this.BIT_POS[key & 7];
+//                final int index = key >>> 5;
+//                final int oldBits = this.allBits[index];
+//                final int newBits = oldBits | (1 << key);
 //                final boolean keyHasBeenAdded = (oldBits != newBits);
 //                if (true == keyHasBeenAdded) {
-//                    this.allBits[index] = (byte)newBits;
+//                    this.allBits[index] = newBits;
 //                }
 //                return keyHasBeenAdded;
+//            }
+//            @Override
+//            public final long getBytesAllocated() {
+//                return (this.allBits.length << 2);
 //            }
 //        }
         //store the unique keys of all known states in 64-bit longs
@@ -1123,7 +1178,7 @@ public class SolverBFS {
             //copy and sort state
             System.arraycopy(state, 0, this.tmpState, 0, state.length);
             Arrays.sort(this.tmpState, 0, this.idxSort);
-            //pack state into a single int value
+            //pack state into a single long value
             long result = this.tmpState[this.idxLen1];
             for (int i = this.idxLen2;  i >= 0;  --i) {
                 result = (result << s1) | this.tmpState[i];
