@@ -560,7 +560,7 @@ public class SolverBFS {
         private abstract class AllStates {
             protected final int ARRAY_SIZE = 60 * 100 * 100; //size of each array in the list of arrays. lcm(1,2,3,4,5) = 60
             protected int numStates = 0;                     //number of states that are stored
-            protected int addArray = -1;                     //add: index of the current array in list "allStates"
+            protected int addArrayNum = 0;                   //add: number of arrays in list "allStates"
             protected int addOffset = this.ARRAY_SIZE;       //add: current index inside the current array
             protected final List<Integer> depthBegin = new ArrayList<Integer>();    //iterateStart
             public int size() {
@@ -573,12 +573,12 @@ public class SolverBFS {
             public abstract Iterator iterator(final int depth);
             public abstract class Iterator {
                 protected final int iterStart, iterEnd;
-                protected int iterCurrent, iterArray, iterOffset;
+                protected int iterCurrent, iterArrayNum, iterOffset;
                 protected Iterator(final int depth) {
                     this.iterStart = depthBegin.get(depth).intValue();
                     this.iterEnd = ((depth + 1 < depthBegin.size()) ? depthBegin.get(depth + 1).intValue() : numStates);
                     this.iterCurrent = this.iterStart;
-                    this.iterArray = (this.iterStart * boardNumRobots) / ARRAY_SIZE;
+                    this.iterArrayNum = (this.iterStart * boardNumRobots) / ARRAY_SIZE;
                     this.iterOffset = (this.iterStart * boardNumRobots) % ARRAY_SIZE;
                 }
                 public int size() {
@@ -592,27 +592,30 @@ public class SolverBFS {
         //supports board sizes up to 256 (16*16)
         private final class AllStatesByte extends AllStates {
             private byte[][] allStatesArrays = new byte[32][];
+            private byte[] addArray = null;
             @Override
             public final void add(final int[] state) {
                 assert 8 >= boardSizeNumBits : boardSizeNumBits;
                 //if necessary, allocate an additional array and append it to the list
                 if (this.addOffset >= this.ARRAY_SIZE) {
-                    if (this.allStatesArrays.length <= this.addArray + 1) {
+                    if (this.allStatesArrays.length <= this.addArrayNum) {
                         this.allStatesArrays = Arrays.copyOf(this.allStatesArrays, this.allStatesArrays.length << 1);
                     }
-                    this.allStatesArrays[++this.addArray] = new byte[this.ARRAY_SIZE];
+                    this.addArray = new byte[this.ARRAY_SIZE];
+                    this.allStatesArrays[this.addArrayNum++] = this.addArray;
                     this.addOffset = 0;
                 }
-                //append state to the current array in list
-                final byte[] allStatesArray = this.allStatesArrays[this.addArray];
+                //append state to the current array
                 for (int pos : state) {
-                    allStatesArray[this.addOffset++] = (byte)pos;
+                    this.addArray[this.addOffset++] = (byte)pos;
                 }
                 this.numStates++;
             }
             private final class AllStatesByteIterator extends AllStates.Iterator {
+                private byte[] iterArray;
                 public AllStatesByteIterator(final int depth) {
                     super(depth);
+                    this.iterArray = allStatesArrays[this.iterArrayNum++];
                 }
                 @Override
                 public boolean next(final int[] resultState) {
@@ -620,13 +623,12 @@ public class SolverBFS {
                   if (true == hasNext) {
                       //if necessary, switch to next array in the list
                       if (this.iterOffset >= ARRAY_SIZE) {
-                          this.iterArray++;
+                          this.iterArray = allStatesArrays[this.iterArrayNum++];
                           this.iterOffset = 0;
                       }
                       //retrieve the next state
-                      final byte[] allStatesArray = allStatesArrays[this.iterArray];
                       for (int i = 0;  i < resultState.length;  i++) {
-                          resultState[i] = (boardSizeBitMask & allStatesArray[this.iterOffset++]);
+                          resultState[i] = (boardSizeBitMask & iterArray[this.iterOffset++]);
                       }
                       this.iterCurrent++;
                   }
@@ -640,7 +642,7 @@ public class SolverBFS {
             @Override
             public final long getBytesAllocated() {
                 long result = 0;
-                for (int i = 0;  i <= this.addArray;  ++i) {
+                for (int i = 0;  i < this.addArrayNum;  ++i) {
                     result += this.allStatesArrays[i].length;
                 }
                 return result;
@@ -770,7 +772,7 @@ public class SolverBFS {
         private abstract class AllDirections {
             protected final int ARRAY_SIZE = 10 * 100 * 100;
             protected int numDirs = 0;
-            protected int addArray = -1, addOffset = this.ARRAY_SIZE;
+            protected int addOffset = this.ARRAY_SIZE;
             protected final List<Integer> depthBegin = new ArrayList<Integer>();
             public final void incrementDepth() {
                 this.depthBegin.add(Integer.valueOf(this.numDirs));
@@ -779,12 +781,12 @@ public class SolverBFS {
             public abstract Iterator iterator(final int depth);
             public abstract class Iterator {
                 protected final int iterStart, iterEnd;
-                protected int iterCurrent, iterArray, iterOffset;
+                protected int iterCurrent, iterArrayNum, iterOffset;
                 protected Iterator(final int depth) {
                     this.iterStart = depthBegin.get(depth).intValue();
                     this.iterEnd = ((depth + 1 < depthBegin.size()) ? depthBegin.get(depth + 1).intValue() : numDirs);
                     this.iterCurrent = this.iterStart;
-                    this.iterArray = this.iterStart / ARRAY_SIZE;
+                    this.iterArrayNum = this.iterStart / ARRAY_SIZE;
                     this.iterOffset = this.iterStart % ARRAY_SIZE;
                 }
                 public int size() {
@@ -798,26 +800,29 @@ public class SolverBFS {
         //supports up to 5 robots (with 3 bits per direction)
         private final class AllDirectionsShort extends AllDirections {
             private final List<short[]> allDirsListOfShortArrays = new ArrayList<short[]>();
+            private short[] addArray = null;
             @Override
             public final void add(final int[] dirs) {
                 assert dirs.length <= 5 : dirs.length;
                 //if necessary, allocate an additional array and append it to the list
                 if (this.addOffset >= this.ARRAY_SIZE) {
-                    this.addArray++;
-                    this.allDirsListOfShortArrays.add(new short[this.ARRAY_SIZE]);
+                    this.addArray = new short[this.ARRAY_SIZE];
+                    this.allDirsListOfShortArrays.add(this.addArray);
                     this.addOffset = 0;
                 }
                 //append "dirs" to the current array in list
-                int packed = dirs[0];
-                for (int i = 1;  i < dirs.length;  ++i) {
-                    packed = (packed << 3) | dirs[i];
+                int packed = 0;
+                for (int dir : dirs) {
+                    packed = (packed << 3) | dir;
                 }
-                this.allDirsListOfShortArrays.get(this.addArray)[this.addOffset++] = (short)packed;
+                this.addArray[this.addOffset++] = (short)packed;
                 this.numDirs++;
             }
             private final class AllDirectionsShortIterator extends AllDirections.Iterator {
+                private short[] iterArray;
                 public AllDirectionsShortIterator(final int depth) {
                     super(depth);
+                    this.iterArray = ((allDirsListOfShortArrays.size() == 0) ? null : allDirsListOfShortArrays.get(this.iterArrayNum++));
                 }
                 @Override
                 public boolean next(final int[] resultDirs) {
@@ -825,10 +830,10 @@ public class SolverBFS {
                     final boolean hasNext = (this.iterEnd > this.iterCurrent);
                     if (true == hasNext) {
                         if (this.iterOffset >= ARRAY_SIZE) {
-                            this.iterArray++;
+                            this.iterArray = allDirsListOfShortArrays.get(this.iterArrayNum++);
                             this.iterOffset = 0;
                         }
-                        int packed = allDirsListOfShortArrays.get(this.iterArray)[this.iterOffset++];
+                        int packed = this.iterArray[this.iterOffset++];
                         for (int i = resultDirs.length - 1;  i > 0;  --i) {
                             resultDirs[i] = (7 & packed);
                             packed >>>= 3;

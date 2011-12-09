@@ -31,7 +31,7 @@ import driftingdroids.model.SolverBFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids (work in progress 2011-12-08)");
+        new SwingGUI("DriftingDroids (work in progress 2011-12-09)");
         //runTestRandom1000();
     }
     
