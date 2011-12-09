@@ -399,7 +399,7 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.row().grid().add(new JLabel("solver options"));
         prepareLayout.row().grid().add(new JLabel(" "));
-        prepareLayout.row().grid().add(new JLabel("choose solution with")).add(this.jcomboOptSolutionMode);
+        prepareLayout.row().grid().add(new JLabel("prefer solution with")).add(this.jcomboOptSolutionMode);
         prepareLayout.row().grid().add(new JLabel("number of robots moved"));
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);

@@ -29,7 +29,7 @@ import java.util.List;
 public class SolverBFS {
     
     public enum SOLUTION_MODE {
-        ANY("any"), MINIMUM("minimum"), MAXIMUM("maximum");
+        MINIMUM("minimum"), MAXIMUM("maximum");
         private final String name;
         private SOLUTION_MODE(String name) { this.name = name; }
         @Override public String toString() { return this.name; }
@@ -44,7 +44,7 @@ public class SolverBFS {
     private final boolean isBoardGoalWildcard;
     private final boolean[] expandRobotPositions;
     
-    private SOLUTION_MODE optSolutionMode = SOLUTION_MODE.ANY;
+    private SOLUTION_MODE optSolutionMode = SOLUTION_MODE.MINIMUM;
     private boolean optAllowRebounds = true;
     
     private List<Solution> lastResultSolutions = null;
@@ -81,7 +81,6 @@ public class SolverBFS {
         
         final KnownStates knownStates = new KnownStates();
         final List<int[]> finalStates = new ArrayList<int[]>();
-        final boolean returnFirstSolution = (SOLUTION_MODE.ANY == this.optSolutionMode);
         System.out.println();
         System.out.println("options: " + this.getOptionsAsString());
         
@@ -92,9 +91,9 @@ public class SolverBFS {
         //find the "finalStates" and save all intermediate states in "knownStates"
         final long startGetStates = System.currentTimeMillis();
         if (true == this.optAllowRebounds) {
-            this.getFinalStates(startState, this.board.getGoal().position, this.isBoardGoalWildcard, returnFirstSolution, knownStates, finalStates);
+            this.getFinalStates(startState, this.board.getGoal().position, this.isBoardGoalWildcard, knownStates, finalStates);
         } else {
-            this.getFinalStatesNoRebound(startState, this.board.getGoal().position, this.isBoardGoalWildcard, returnFirstSolution, knownStates, finalStates);
+            this.getFinalStatesNoRebound(startState, this.board.getGoal().position, this.isBoardGoalWildcard, knownStates, finalStates);
         }
         this.solutionStoredStates = knownStates.size();
         System.out.println("knownStates: " + knownStates.infoString());
@@ -148,7 +147,6 @@ public class SolverBFS {
             final int[] startState,             //IN: initial state (positions of all robots)
             final int goalPosition,             //IN: position of goal
             final boolean isWildcardGoal,       //IN: is it the wildcard goal (any robot)
-            final boolean returnFirstSolution,  //IN: find only the first shortest solution (false = find all shortest solutions)
             final KnownStates knownStates,      //OUT: all known states
             final List<int[]> finalStates       //OUT: final states (goal robot has reached goal position)
             ) throws InterruptedException {
@@ -193,7 +191,6 @@ public class SolverBFS {
                 }
                 tmpState[robo1] = oldRoboPos;
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
-                if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
             }
             if ((0 < finalStates.size()) && (false == isWildcardGoal)) { return; }  //goal has been reached!
             //second pass: move the other (non-goal) robots.
@@ -218,7 +215,7 @@ public class SolverBFS {
                             tmpState[robo2] = newRoboPos;
                             if (true == knownStates.add(tmpState)) {
                                 //in this second pass, we can reach a wildcard goal, only.
-                                if ((goalPosition == newRoboPos) && (true == isWildcardGoal)) {
+                                if ((true == isWildcardGoal) && (goalPosition == newRoboPos)) {
                                     finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
                                 }
                             }
@@ -227,7 +224,6 @@ public class SolverBFS {
                     tmpState[robo2] = oldRoboPos;
                 }
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
-                if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
             }
         }
     }
@@ -238,7 +234,6 @@ public class SolverBFS {
             final int[] startState,             //IN: initial state (positions of all robots)
             final int goalPosition,             //IN: position of goal
             final boolean isWildcardGoal,       //IN: is it the wildcard goal (any robot)
-            final boolean returnFirstSolution,  //IN: find only the first shortest solution (false = find all shortest solutions)
             final KnownStates knownStates,      //OUT: all known states
             final List<int[]> finalStates       //OUT: final states (goal robot has reached goal position)
             ) throws InterruptedException {
@@ -289,7 +284,6 @@ public class SolverBFS {
                 }
                 tmpState[robo1] = oldRoboPos;
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
-                if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
             }
             if ((0 < finalStates.size()) && (false == isWildcardGoal)) { return; }  //goal has been reached!
             //second pass: move the other (non-goal) robots.
@@ -317,7 +311,7 @@ public class SolverBFS {
                                 tmpDirs[robo2] = dir;
                                 if (true == knownStates.add(tmpState, tmpDirs)) {
                                     //in this second pass, we can reach a wildcard goal, only.
-                                    if ((goalPosition == newRoboPos) && (true == isWildcardGoal)) {
+                                    if ((true == isWildcardGoal) && (goalPosition == newRoboPos)) {
                                         finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
                                     }
                                 }
@@ -328,7 +322,6 @@ public class SolverBFS {
                     tmpDirs[robo2] = oldRoboDir;
                 }
                 for (int pos : tmpState) { this.expandRobotPositions[pos] = false; }
-                if (returnFirstSolution && (0 < finalStates.size())) { return; }    //goal has been reached!
             }
         }
     }
