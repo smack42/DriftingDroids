@@ -43,6 +43,9 @@ public class Board {
     public static final int GOAL_SQUARE   = 2;
     public static final int GOAL_HEXAGON  = 3;
     public static final int GOAL_VORTEX   = 4;
+    public static final String[] GOAL_SHAPE_NAMES = {
+        "circle", "triangle", "square", "hexagon", "vortex"
+    };
     
     public static final String[] QUADRANT_NAMES = {
         "1A", "2A", "3A", "4A", "1B", "2B", "3B", "4B"

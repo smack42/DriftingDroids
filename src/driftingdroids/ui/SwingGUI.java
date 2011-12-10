@@ -110,6 +110,7 @@ public class SwingGUI implements ActionListener {
     private static final String AC_SHOW_PREV_MOVE = "prevmove";
     private static final String AC_SHOW_ALL_MOVES = "allmoves";
     private static final String AC_SHOW_NO_MOVES  = "nomoves";
+    private static final String AC_SHOW_COLOR_NAMES = "showcolornames";
     
     private Board board = null;
     private final BoardCell[] boardCells;
@@ -128,6 +129,7 @@ public class SwingGUI implements ActionListener {
     private final JComboBox jcomboRobots = new JComboBox();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
+    private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
     private final JTabbedPane jtabPreparePlay = new JTabbedPane();
     private final JButton jbutRandomRobots = new JButton("Random robots");
     private final JButton jbutRandomGoal = new JButton("Random goal");
@@ -385,7 +387,12 @@ public class SwingGUI implements ActionListener {
         
         this.jcheckOptAllowRebounds.setText("allow rebound moves");
         this.jcheckOptAllowRebounds.setSelected(true);
-        
+
+        this.jcheckOptShowColorNames.setText("show color names (robots and goals)");
+        this.jcheckOptShowColorNames.setSelected(true);
+        this.jcheckOptShowColorNames.setActionCommand(AC_SHOW_COLOR_NAMES);
+        this.jcheckOptShowColorNames.addActionListener(this);
+
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         prepareLayout.row().grid().add(new JSeparator());
@@ -393,7 +400,6 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
         prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
         prepareLayout.row().grid().add(new JLabel(" "));
-        prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.row().grid().add(new JLabel("number of robots")).add(this.jcomboRobots);
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(new JSeparator());
@@ -405,6 +411,9 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(new JSeparator());
+        prepareLayout.row().grid().add(new JLabel("GUI options"));
+        prepareLayout.row().grid().add(new JLabel(" "));
+        prepareLayout.row().grid().add(this.jcheckOptShowColorNames);
         
         this.jbutRandomRobots.setMnemonic(KeyEvent.VK_R);
         this.jbutRandomRobots.setActionCommand(AC_RANDOM_ROBOTS);
@@ -699,6 +708,8 @@ public class SwingGUI implements ActionListener {
             this.refreshBoard();
         } else if (AC_GAME_ID.equals(e.getActionCommand())) {
             this.handleGameID();
+        } else if (AC_SHOW_COLOR_NAMES.equals(e.getActionCommand())) {
+            this.refreshBoard();
         }
     }
     
@@ -729,6 +740,7 @@ public class SwingGUI implements ActionListener {
             final int hWallWidth = height / H_WALL_DIVISOR;
             final int vWallWidth = width / V_WALL_DIVISOR;
             
+            this.setToolTipText(null);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             
             // fill background (walls and center)
@@ -813,9 +825,13 @@ public class SwingGUI implements ActionListener {
                     area.subtract(new Area(innerShape));
                     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2d.fill(area);
-//                    final String goalColorName = ((goal.robotNumber < 0) ? "*" : Board.ROBOT_COLOR_NAMES_SHORT[goal.robotNumber]);
-//                    g2d.setColor(Color.BLACK);
-//                    g2d.drawChars(goalColorName.toCharArray(), 0, 1, mySize.width / 2 - 3, mySize.height / 2 + 3);
+                    if (jcheckOptShowColorNames.isSelected()) {
+                        final String goalColorShort = ((goal.robotNumber < 0) ? "*" : Board.ROBOT_COLOR_NAMES_SHORT[goal.robotNumber]);
+                        g2d.setColor(Color.BLACK);
+                        g2d.drawChars(goalColorShort.toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
+                        final String goalColorLong = ((goal.robotNumber < 0) ? "wildcard" : Board.ROBOT_COLOR_NAMES_LONG[goal.robotNumber]);
+                        this.setToolTipText(goalColorLong + " " + Board.GOAL_SHAPE_NAMES[goal.shape] + " goal");
+                    }
                 }
             }
             
@@ -868,8 +884,11 @@ public class SwingGUI implements ActionListener {
                         g2d.setColor(outlineColor); g2d.draw(shapeFoot);
                         g2d.setPaint(fillPaint);    g2d.fill(shapeBody);
                         g2d.setColor(outlineColor); g2d.draw(shapeBody);
-//                        g2d.setColor(Color.WHITE);
-//                        g2d.drawChars(Board.ROBOT_COLOR_NAMES_SHORT[i].toCharArray(), 0, 1, mySize.width / 2 - 3, mySize.height / 2 + 3);
+                        if (jcheckOptShowColorNames.isSelected()) {
+                            g2d.setColor(Color.WHITE);
+                            g2d.drawChars(Board.ROBOT_COLOR_NAMES_SHORT[i].toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
+                            this.setToolTipText(Board.ROBOT_COLOR_NAMES_LONG[i] + " robot");
+                        }
                         break;
                     }
                 }
