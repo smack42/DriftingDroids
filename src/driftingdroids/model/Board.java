@@ -350,14 +350,58 @@ public class Board {
     }
     
     
-    public void setRobotsRandom() {
-        Arrays.fill(this.robots, -1);
-        for (int i = 0; i < this.robots.length; ++i) {
-            int position;
-            do {
-                position = RANDOM.nextInt(this.size);
-            } while (! this.setRobot(i, position));
+    public boolean isSolution01() {
+        boolean result = false;
+        //is this a zero-move solution?
+        if (this.goal.robotNumber < 0) {
+            for (int pos : this.robots) {
+                if (this.goal.position == pos) {
+                    result = true;  break;
+                }
+            }
+        } else if (this.goal.position == this.robots[this.goal.robotNumber]) {
+            result = true;
         }
+        //is this a one-move solution?
+        if (false == result) {
+            //copied from SolverBFS.getFinalStates()
+            final boolean[] expandRobotPositions = new boolean[this.size];
+            Arrays.fill(expandRobotPositions, false);
+            for (int pos : this.robots) { expandRobotPositions[pos] = true; }
+            for (int robo = 0;  robo < this.robots.length;  ++robo) {
+                final int oldRoboPos = this.robots[robo];
+                int dir = -1;
+                for (int dirIncr : this.directionIncrement) {
+                    ++dir;
+                    int newRoboPos = oldRoboPos;
+                    while (0 == this.walls[newRoboPos][dir]) {  //move the robot until it reaches a wall or another robot.
+                        newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
+                        if (expandRobotPositions[newRoboPos]) { //by outer walls. without the outer walls we would need
+                            newRoboPos -= dirIncr;              //some additional boundary checking here.
+                            break;
+                        }
+                    }
+                    if ( (oldRoboPos != newRoboPos) && (this.goal.position == newRoboPos) &&
+                            ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1)) ) {
+                        result = true;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+    
+    
+    public void setRobotsRandom() {
+        do {
+            Arrays.fill(this.robots, -1);
+            for (int i = 0;  i < this.robots.length;  ++i) {
+                int position;
+                do {
+                    position = RANDOM.nextInt(this.size);
+                } while (false == this.setRobot(i, position));
+            }
+        } while (true == this.isSolution01());
     }
     
     public boolean setRobots(final int[] newRobots) {
@@ -386,7 +430,7 @@ public class Board {
             //position already occupied by another robot?
             final int otherRobot = this.getRobotNum(position);
             final int oldPosition = this.robots[robot];
-            if ((otherRobot >= 0) && (otherRobot != robot)) {
+            if ((otherRobot >= 0) && (otherRobot != robot) && (oldPosition >= 0)) {
                 this.robots[otherRobot] = oldPosition;
             }
             //set this robot's position
@@ -401,6 +445,13 @@ public class Board {
             Collections.shuffle(this.randomGoals, RANDOM);
         }
         this.goal = this.randomGoals.remove(0);
+        if (this.isSolution01() && (this.randomGoals.size() > 0)) {
+            //the resulting board configuration has a solution of 0 or 1 move
+            //and there are some other goals available in list randomGoals.
+            final Goal goal01 = this.goal;
+            this.setGoalRandom();   //recursion
+            this.randomGoals.add(goal01);
+        }
     }
     
     public boolean setGoal(final int position) {
