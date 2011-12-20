@@ -899,10 +899,11 @@ public class SwingGUI implements ActionListener {
         @Override
         public void mouseClicked(MouseEvent e) {
             if (placeRobot >= 0) {
-                board.setRobot(placeRobot, this.boardPosition);
+                if (board.setRobot(placeRobot, this.boardPosition)) {
+                    updateBoardGetRobots();
+                }
                 placeRobot = -1;
                 refreshJComboPlaceRobot();
-                updateBoardGetRobots();
             }
             if (placeGoal) {
                 if (board.setGoal(this.boardPosition)) {

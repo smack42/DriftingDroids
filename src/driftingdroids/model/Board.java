@@ -378,13 +378,17 @@ public class Board {
     public boolean setRobot(final int robot, final int position) {
         //invalid robot number?
         //impossible position (out of bounds or obstacle)?
-        //position already occupied by a robot?
         if ((robot < 0) || (robot >= this.robots.length) ||
                 (position < 0) || (position >= this.size) ||
-                this.isObstacle(position) ||
-                ((this.getRobotNum(position) >= 0) && (this.getRobotNum(position) != robot))) {
+                this.isObstacle(position)) {
             return false;   
         } else {
+            //position already occupied by another robot?
+            final int otherRobot = this.getRobotNum(position);
+            final int oldPosition = this.robots[robot];
+            if ((otherRobot >= 0) && (otherRobot != robot)) {
+                this.robots[otherRobot] = oldPosition;
+            }
             //set this robot's position
             this.robots[robot] = position;
             return true;
