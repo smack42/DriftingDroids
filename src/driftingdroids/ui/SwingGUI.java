@@ -32,6 +32,7 @@ import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -49,6 +50,9 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.CancellationException;
 
+import javax.swing.AbstractAction;
+import javax.swing.AbstractButton;
+import javax.swing.Action;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
@@ -62,10 +66,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
+import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.BadLocationException;
@@ -74,13 +80,12 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 import javax.swing.text.StyledDocument;
 
+import net.java.dev.designgridlayout.DesignGridLayout;
+import net.java.dev.designgridlayout.RowGroup;
 import driftingdroids.model.Board;
 import driftingdroids.model.Move;
 import driftingdroids.model.Solution;
 import driftingdroids.model.SolverBFS;
-
-import net.java.dev.designgridlayout.DesignGridLayout;
-import net.java.dev.designgridlayout.RowGroup;
 
 
 
@@ -97,19 +102,11 @@ public class SwingGUI implements ActionListener {
         Color.WHITE
     };
     
-    private static final String AC_RANDOM_LAYOUT  = "randlay";
     private static final String AC_BOARD_QUADRANTS= "quadrants";
-    private static final String AC_RANDOM_ROBOTS  = "randrob";
-    private static final String AC_RANDOM_GOAL    = "randgoal";
     private static final String AC_PLACE_ROBOT    = "placerobot";
     private static final String AC_PLACE_GOAL     = "placegoal";
     private static final String AC_GAME_ID        = "gameid";
     private static final String AC_SELECT_SOLUTION= "selectsolution";
-    private static final String AC_SHOW_HINT      = "hint";
-    private static final String AC_SHOW_NEXT_MOVE = "nextmove";
-    private static final String AC_SHOW_PREV_MOVE = "prevmove";
-    private static final String AC_SHOW_ALL_MOVES = "allmoves";
-    private static final String AC_SHOW_NO_MOVES  = "nomoves";
     private static final String AC_SHOW_COLOR_NAMES = "showcolornames";
     
     private Board board = null;
@@ -124,15 +121,12 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean placeGoal = false;
     
-    private final JButton jbutRandomLayout = new JButton("Random tiles");
     private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
     private final JComboBox jcomboRobots = new JComboBox();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
     private final JTabbedPane jtabPreparePlay = new JTabbedPane();
-    private final JButton jbutRandomRobots = new JButton("Random robots");
-    private final JButton jbutRandomGoal = new JButton("Random goal");
     private final JComboBox jcomboPlaceRobot = new JComboBox();
     private final JButton jbutPlaceGoal = new JButton("Place goal");
     private final JComboBox jcomboGameIDs = new JComboBox();
@@ -356,14 +350,48 @@ public class SwingGUI implements ActionListener {
             }
         }
     }
-
-
+    
+    
+    private void addKeyBindingTooltip(AbstractButton button, int keyCode, String tooltip, Action action) {
+        final KeyStroke keyStroke = KeyStroke.getKeyStroke(keyCode, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask());
+        final String actionMapKey = KeyEvent.getKeyText(keyCode) + "_action_key";
+        button.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(keyStroke, actionMapKey);
+        button.getActionMap().put(actionMapKey, action);
+        button.addActionListener(action);
+        
+        final String acceleratorDelimiter = UIManager.getString("MenuItem.acceleratorDelimiter"); 
+        String acceleratorText = ""; 
+        int modifiers = keyStroke.getModifiers();
+        if (modifiers > 0) {
+            acceleratorText = KeyEvent.getKeyModifiersText(modifiers);
+            acceleratorText += acceleratorDelimiter;
+        }
+        acceleratorText += KeyEvent.getKeyText(keyCode);
+        button.setToolTipText("<html>" + tooltip + " &nbsp; <small><strong>" + acceleratorText + "</strong></small></html>");
+    }
+    
+    
+    @SuppressWarnings("serial")
     private void createAndShowGUI(String windowTitle) {
+//        try {
+//            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+//        } catch (Exception ignored) { }
+        
         final JFrame frame = new JFrame(windowTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        this.jbutRandomLayout.setActionCommand(AC_RANDOM_LAYOUT);
-        this.jbutRandomLayout.addActionListener(this);
+        final JButton jbutRandomLayout = new JButton("Random layout");
+        this.addKeyBindingTooltip(jbutRandomLayout, KeyEvent.VK_L,
+                "place the board tiles at random positions",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        makeRandomBoardQuadrants();
+                        refreshJComboPlaceRobot();
+                        refreshJcomboQuadrants();
+                    }
+                }
+        );
+        
         for (int i = 0;  i < 4;  ++i) {
             this.jcomboQuadrants[i].setModel(new DefaultComboBoxModel(Board.QUADRANT_NAMES));
             this.jcomboQuadrants[i].setEditable(false);
@@ -372,6 +400,7 @@ public class SwingGUI implements ActionListener {
             this.jcomboQuadrants[i].addActionListener(this);
             this.setJComboCenterAlignment(this.jcomboQuadrants[i]);
         }
+        
         final String[] strRobots = { "1", "2", "3", "4", "5" };
         this.jcomboRobots.setModel(new DefaultComboBoxModel(strRobots));
         this.jcomboRobots.setEditable(false);
@@ -396,7 +425,7 @@ public class SwingGUI implements ActionListener {
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel("board tiles")).add(this.jbutRandomLayout);
+        prepareLayout.row().grid().add(new JLabel("board tiles")).add(jbutRandomLayout);
         prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
         prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
         prepareLayout.row().grid().add(new JLabel(" "));
@@ -415,25 +444,45 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(this.jcheckOptShowColorNames);
         
-        this.jbutRandomRobots.setMnemonic(KeyEvent.VK_R);
-        this.jbutRandomRobots.setActionCommand(AC_RANDOM_ROBOTS);
-        this.jbutRandomRobots.addActionListener(this);
-        this.jbutRandomGoal.setMnemonic(KeyEvent.VK_G);
-        this.jbutRandomGoal.setActionCommand(AC_RANDOM_GOAL);
-        this.jbutRandomGoal.addActionListener(this);
+        final JButton jbutRandomRobots = new JButton("Random robots");
+        this.addKeyBindingTooltip(jbutRandomRobots, KeyEvent.VK_R,
+                "place the robots randomly on the board",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        placeRobot = -1;
+                        refreshJComboPlaceRobot();
+                        updateBoardRandomRobots();
+                    }
+                }
+        );
+        
+        final JButton jbutRandomGoal = new JButton("Random goal");
+        this.addKeyBindingTooltip(jbutRandomGoal, KeyEvent.VK_G,
+                "pick a goal at random",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        placeGoal = false;
+                        updateBoardRandomGoal();
+                    }
+                }
+        );
+        
         this.refreshJComboPlaceRobot();   //this.jcomboPlaceRobot
         this.jcomboPlaceRobot.setEditable(false);
         this.jcomboPlaceRobot.setActionCommand(AC_PLACE_ROBOT);
         this.jcomboPlaceRobot.addActionListener(this);
         this.jcomboPlaceRobot.setToolTipText("first select a robot here and then click on its new board position");
         this.setJComboCenterAlignment(this.jcomboPlaceRobot);
+        
         this.jbutPlaceGoal.setActionCommand(AC_PLACE_GOAL);
         this.jbutPlaceGoal.addActionListener(this);
         this.jbutPlaceGoal.setToolTipText("first click here and then select a goal on the board");
+        
         this.jcomboGameIDs.setModel(new DefaultComboBoxModel());
         this.jcomboGameIDs.setEditable(true);
         this.jcomboGameIDs.setActionCommand(AC_GAME_ID);
         this.jcomboGameIDs.addActionListener(this);
+        
         this.jcomboSelectSolution.setModel(new DefaultComboBoxModel());
         this.jcomboSelectSolution.setPrototypeDisplayValue("99)  99/9/#####");  //longest string possible here
         this.jcomboSelectSolution.addItem("Select solution");
@@ -442,31 +491,63 @@ public class SwingGUI implements ActionListener {
         this.jcomboSelectSolution.addActionListener(this);
         this.jcomboSelectSolution.setToolTipText("SPOILER WARNING. clicking this reveals hints about the solutions");
         this.setJComboCenterAlignment(this.jcomboSelectSolution);
-        this.jbutSolutionHint.setMnemonic(KeyEvent.VK_H);
-        this.jbutSolutionHint.setActionCommand(AC_SHOW_HINT);
-        this.jbutSolutionHint.addActionListener(this);
-        this.jbutSolutionHint.setToolTipText("click 3 times to get more detailed hints");
-        this.jbutNextMove.setMnemonic(KeyEvent.VK_PLUS);
-        this.jbutNextMove.setActionCommand(AC_SHOW_NEXT_MOVE);
-        this.jbutNextMove.addActionListener(this);
-        this.jbutNextMove.setToolTipText("show next move");
-        this.jbutAllMoves.setMnemonic(KeyEvent.VK_A);
-        this.jbutAllMoves.setActionCommand(AC_SHOW_ALL_MOVES);
-        this.jbutAllMoves.addActionListener(this);
-        this.jbutAllMoves.setToolTipText("show all moves");
-        this.jbutPrevMove.setMnemonic(KeyEvent.VK_MINUS);
-        this.jbutPrevMove.setActionCommand(AC_SHOW_PREV_MOVE);
-        this.jbutPrevMove.addActionListener(this);
-        this.jbutPrevMove.setToolTipText("undo last move");
-        this.jbutNoMoves.setActionCommand(AC_SHOW_NO_MOVES);
-        this.jbutNoMoves.addActionListener(this);
-        this.jbutNoMoves.setToolTipText("undo all moves");
+        
+        this.addKeyBindingTooltip(this.jbutSolutionHint, KeyEvent.VK_H,
+                "click 3 times to get more detailed hints",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        showHint();
+                    }
+                }
+        );
+        
+        this.addKeyBindingTooltip(this.jbutNextMove, KeyEvent.VK_N,
+                "show next move",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        showNextMove(true);
+                    }
+                }
+        );
+        
+        this.addKeyBindingTooltip(this.jbutAllMoves, KeyEvent.VK_M,
+                "show all moves",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        while (jbutNextMove.isEnabled()) {
+                            showNextMove(true);
+                        }
+                    }
+                }
+        );
+        
+        this.addKeyBindingTooltip(this.jbutPrevMove, KeyEvent.VK_B,
+                "undo last move",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        showPrevMove(true);
+                    }
+                }
+        );
+        
+        this.addKeyBindingTooltip(this.jbutNoMoves, KeyEvent.VK_V,
+                "undo all moves",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        while (jbutPrevMove.isEnabled()) {
+                            showPrevMove(true);
+                        }
+                    }
+                }
+        );
+        
         this.jtextSolution.setEditable(false);
         final JPanel panelSolutionText = new JPanel(new BorderLayout());
         panelSolutionText.add(this.jtextSolution, BorderLayout.CENTER);
         final JScrollPane scrollSolutionText = new JScrollPane(this.jtextSolution, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollSolutionText.setPreferredSize(new Dimension(10, 10)); //workaround for layout problem ?!?!
         scrollSolutionText.setMinimumSize(new Dimension(10, 10));   //workaround for layout problem ?!?!
+        
         final RowGroup playSolutionGroup = new RowGroup();
         final JCheckBox groupBox = new JCheckBox("show computed solutions");
         groupBox.addItemListener(new ShowHideAction(playSolutionGroup));
@@ -475,7 +556,7 @@ public class SwingGUI implements ActionListener {
         final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
         playLayout.row().grid().add(new JSeparator());
         playLayout.row().grid().add(new JLabel("set starting position"));
-        playLayout.row().grid().add(this.jbutRandomRobots).add(this.jbutRandomGoal);
+        playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(this.jbutPlaceGoal);
         playLayout.row().grid().add(new JLabel("game ID")).add(this.jcomboGameIDs, 3);
         playLayout.row().grid().add(new JLabel(" "));
@@ -674,33 +755,8 @@ public class SwingGUI implements ActionListener {
         if (AC_BOARD_QUADRANTS.equals(e.getActionCommand())) {
             this.makeBoardQuadrants();
             this.refreshJComboPlaceRobot();
-        } else if (AC_RANDOM_LAYOUT.equals(e.getActionCommand())) {
-            this.makeRandomBoardQuadrants();
-            this.refreshJComboPlaceRobot();
-            this.refreshJcomboQuadrants();
-        } else if (AC_RANDOM_ROBOTS.equals(e.getActionCommand())) {
-            this.placeRobot = -1;
-            refreshJComboPlaceRobot();
-            this.updateBoardRandomRobots();
-        } else if (AC_RANDOM_GOAL.equals(e.getActionCommand())) {
-            this.placeGoal = false;
-            this.updateBoardRandomGoal();
-        } else if (AC_SHOW_NEXT_MOVE.equals(e.getActionCommand())) {
-            this.showNextMove(true);
-        } else if (AC_SHOW_PREV_MOVE.equals(e.getActionCommand())) {
-            this.showPrevMove(true);
-        } else if (AC_SHOW_ALL_MOVES.equals(e.getActionCommand())) {
-            while (this.jbutNextMove.isEnabled()) {
-                this.showNextMove(true);
-            }
-        } else if (AC_SHOW_NO_MOVES.equals(e.getActionCommand())) {
-            while (this.jbutPrevMove.isEnabled()) {
-                this.showPrevMove(true);
-            }
         } else if (AC_SELECT_SOLUTION.equals(e.getActionCommand())) {
             this.selectSolution(this.jcomboSelectSolution.getSelectedIndex(), this.jcomboSelectSolution.getSelectedItem().toString());
-        } else if (AC_SHOW_HINT.equals(e.getActionCommand())) {
-            this.showHint();
         } else if (AC_PLACE_ROBOT.equals(e.getActionCommand())) {
             this.placeRobot = this.jcomboPlaceRobot.getSelectedIndex() - 1;     //item #0 is "Place robot"
         } else if (AC_PLACE_GOAL.equals(e.getActionCommand())) {
