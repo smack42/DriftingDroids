@@ -359,7 +359,8 @@ public class SwingGUI implements ActionListener {
         button.getActionMap().put(actionMapKey, action);
         button.addActionListener(action);
         
-        final String acceleratorDelimiter = UIManager.getString("MenuItem.acceleratorDelimiter"); 
+        String acceleratorDelimiter = UIManager.getString("MenuItem.acceleratorDelimiter");
+        if (null == acceleratorDelimiter) { acceleratorDelimiter = "-"; }
         String acceleratorText = ""; 
         int modifiers = keyStroke.getModifiers();
         if (modifiers > 0) {
@@ -373,10 +374,6 @@ public class SwingGUI implements ActionListener {
     
     @SuppressWarnings("serial")
     private void createAndShowGUI(String windowTitle) {
-//        try {
-//            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-//        } catch (Exception ignored) { }
-        
         final JFrame frame = new JFrame(windowTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         

@@ -852,7 +852,7 @@ public class SolverBFS {
             public final long getBytesAllocated() {
                 long result = 0;
                 for (short[] dirArray : this.allDirsListOfShortArrays) {
-                    result += dirArray.length;
+                    result += dirArray.length << 1;
                 }
                 return result;
             }
