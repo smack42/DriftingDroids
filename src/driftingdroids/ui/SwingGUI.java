@@ -952,6 +952,7 @@ public class SwingGUI implements ActionListener {
         @Override
         public void mouseClicked(MouseEvent e) {
             if (placeRobot >= 0) {
+                board.setRobots(currentPosition);
                 if (board.setRobot(placeRobot, this.boardPosition)) {
                     updateBoardGetRobots();
                 }
@@ -961,6 +962,7 @@ public class SwingGUI implements ActionListener {
             if (placeGoal) {
                 if (board.setGoal(this.boardPosition)) {
                     placeGoal = false;
+                    board.setRobots(currentPosition);
                     updateBoardGetRobots();
                 }
             }
