@@ -54,7 +54,6 @@ import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -68,7 +67,6 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
@@ -395,7 +393,6 @@ public class SwingGUI implements ActionListener {
             this.jcomboQuadrants[i].setSelectedIndex(this.board.getQuadrantNum(i));
             this.jcomboQuadrants[i].setActionCommand(AC_BOARD_QUADRANTS);
             this.jcomboQuadrants[i].addActionListener(this);
-            this.setJComboCenterAlignment(this.jcomboQuadrants[i]);
         }
         
         final String[] strRobots = { "1", "2", "3", "4", "5" };
@@ -403,13 +400,11 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.setEditable(false);
         this.jcomboRobots.setActionCommand(AC_BOARD_QUADRANTS);
         this.jcomboRobots.addActionListener(this);
-        this.setJComboCenterAlignment(this.jcomboRobots);
         this.refreshJcomboRobots();
         
         final SolverBFS.SOLUTION_MODE[] solModes = SolverBFS.SOLUTION_MODE.values();
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
         this.jcomboOptSolutionMode.setSelectedItem(SolverBFS.SOLUTION_MODE.MINIMUM);
-        this.setJComboCenterAlignment(this.jcomboOptSolutionMode);
         
         this.jcheckOptAllowRebounds.setText("allow rebound moves");
         this.jcheckOptAllowRebounds.setSelected(true);
@@ -421,7 +416,6 @@ public class SwingGUI implements ActionListener {
 
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
-        prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.row().grid().add(new JLabel("board tiles")).add(jbutRandomLayout);
         prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
         prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
@@ -469,7 +463,6 @@ public class SwingGUI implements ActionListener {
         this.jcomboPlaceRobot.setActionCommand(AC_PLACE_ROBOT);
         this.jcomboPlaceRobot.addActionListener(this);
         this.jcomboPlaceRobot.setToolTipText("first select a robot here and then click on its new board position");
-        this.setJComboCenterAlignment(this.jcomboPlaceRobot);
         
         this.jbutPlaceGoal.setActionCommand(AC_PLACE_GOAL);
         this.jbutPlaceGoal.addActionListener(this);
@@ -487,7 +480,6 @@ public class SwingGUI implements ActionListener {
         this.jcomboSelectSolution.setActionCommand(AC_SELECT_SOLUTION);
         this.jcomboSelectSolution.addActionListener(this);
         this.jcomboSelectSolution.setToolTipText("SPOILER WARNING. clicking this reveals hints about the solutions");
-        this.setJComboCenterAlignment(this.jcomboSelectSolution);
         
         this.addKeyBindingTooltip(this.jbutSolutionHint, KeyEvent.VK_H,
                 "click 3 times to get more detailed hints",
@@ -551,7 +543,6 @@ public class SwingGUI implements ActionListener {
         
         final JPanel playPanel = new JPanel();
         final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
-        playLayout.row().grid().add(new JSeparator());
         playLayout.row().grid().add(new JLabel("set starting position"));
         playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(this.jbutPlaceGoal);
@@ -580,13 +571,23 @@ public class SwingGUI implements ActionListener {
         frame.pack();
         frame.setVisible(true);
         
+        try {
+            final String defLaf = UIManager.getLookAndFeel().getClass().getName();
+            final String sysLaf = UIManager.getSystemLookAndFeelClassName();
+            System.out.println("default L&F: " + defLaf);
+            System.out.println("system  L&F: " + sysLaf);
+            if ((false == defLaf.equals(sysLaf)) && (false == defLaf.toLowerCase().contains("nimbus"))) {
+                System.out.println("activating system L&F now.");
+                UIManager.setLookAndFeel(sysLaf);
+                SwingUtilities.updateComponentTreeUI(frame);
+                frame.pack();
+                System.out.println("successfully activated system L&F.");
+            }
+        } catch (Exception e) {
+            System.out.println("ERROR: could not activate system L&F: " + e.toString());
+        }
+        
         this.updateBoardGetRobots();
-    }
-    
-    private void setJComboCenterAlignment(final JComboBox jcombo) {
-        final DefaultListCellRenderer renderer = new DefaultListCellRenderer();
-        renderer.setHorizontalAlignment(SwingConstants.CENTER);
-        jcombo.setRenderer(renderer);
     }
     
     private void refreshJComboPlaceRobot() {
