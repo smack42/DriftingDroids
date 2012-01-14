@@ -35,8 +35,6 @@ import java.awt.Stroke;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -79,7 +77,6 @@ import javax.swing.text.StyleContext;
 import javax.swing.text.StyledDocument;
 
 import net.java.dev.designgridlayout.DesignGridLayout;
-import net.java.dev.designgridlayout.RowGroup;
 import driftingdroids.model.Board;
 import driftingdroids.model.Move;
 import driftingdroids.model.Solution;
@@ -316,21 +313,6 @@ public class SwingGUI implements ActionListener {
         }
     }
     
-    private class ShowHideAction implements ItemListener     {
-        final private RowGroup group;
-        public ShowHideAction(RowGroup group) {
-            this.group = group;
-        }
-        @Override
-        public void itemStateChanged(ItemEvent event) {
-            if (event.getStateChange() == ItemEvent.SELECTED) {
-                this.group.show();
-            } else {
-                this.group.hide();
-            }
-        }
-    }
-    
     private class TabListener implements ChangeListener {
         private Board oldBoard = null;
         @Override
@@ -416,23 +398,24 @@ public class SwingGUI implements ActionListener {
 
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
-        prepareLayout.row().grid().add(new JLabel("board tiles")).add(jbutRandomLayout);
-        prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
-        prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
-        prepareLayout.row().grid().add(new JLabel(" "));
-        prepareLayout.row().grid().add(new JLabel("number of robots")).add(this.jcomboRobots);
-        prepareLayout.row().grid().add(new JLabel(" "));
+        prepareLayout.row().grid().add(new JLabel("board tiles"));
+        prepareLayout.row().grid().add(jbutRandomLayout).grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
+        prepareLayout.row().grid().add(new JLabel(" ")) .grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JSeparator());
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JLabel("number of robots")).grid().add(this.jcomboRobots).add(new JLabel(" "));
+        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.row().grid().add(new JLabel("solver options"));
-        prepareLayout.row().grid().add(new JLabel(" "));
-        prepareLayout.row().grid().add(new JLabel("prefer solution with")).add(this.jcomboOptSolutionMode);
-        prepareLayout.row().grid().add(new JLabel("number of robots moved"));
-        prepareLayout.row().grid().add(new JLabel(" "));
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JLabel("<html>prefer solution with ...<br>number of robots moved</html>")).grid().add(this.jcomboOptSolutionMode);
+        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);
-        prepareLayout.row().grid().add(new JLabel(" "));
+        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.row().grid().add(new JLabel("GUI options"));
-        prepareLayout.row().grid().add(new JLabel(" "));
+        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jcheckOptShowColorNames);
         
         final JButton jbutRandomRobots = new JButton("Random robots");
@@ -533,13 +516,9 @@ public class SwingGUI implements ActionListener {
         this.jtextSolution.setEditable(false);
         final JPanel panelSolutionText = new JPanel(new BorderLayout());
         panelSolutionText.add(this.jtextSolution, BorderLayout.CENTER);
-        final JScrollPane scrollSolutionText = new JScrollPane(this.jtextSolution, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        final JScrollPane scrollSolutionText = new JScrollPane(panelSolutionText, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollSolutionText.setPreferredSize(new Dimension(10, 10)); //workaround for layout problem ?!?!
         scrollSolutionText.setMinimumSize(new Dimension(10, 10));   //workaround for layout problem ?!?!
-        
-        final RowGroup playSolutionGroup = new RowGroup();
-        final JCheckBox groupBox = new JCheckBox("show computed solutions");
-        groupBox.addItemListener(new ShowHideAction(playSolutionGroup));
         
         final JPanel playPanel = new JPanel();
         final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
@@ -547,14 +526,12 @@ public class SwingGUI implements ActionListener {
         playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(this.jbutPlaceGoal);
         playLayout.row().grid().add(new JLabel("game ID")).add(this.jcomboGameIDs, 3);
-        playLayout.row().grid().add(new JLabel(" "));
+        playLayout.emptyRow();
         playLayout.row().grid().add(new JSeparator());
-        playLayout.row().grid().add(groupBox);
-        playLayout.row().group(playSolutionGroup).grid().add(this.jcomboSelectSolution).add(this.jbutSolutionHint);
-        playLayout.row().group(playSolutionGroup).grid().add(this.jbutNoMoves).add(this.jbutPrevMove).add(this.jbutNextMove).add(this.jbutAllMoves);
-        playLayout.row().group(playSolutionGroup).grid().add(scrollSolutionText);
-        groupBox.setSelected(true); //false
-        //playSolutionGroup.hide();
+        playLayout.row().grid().add(new JLabel("show computed solutions"));
+        playLayout.row().grid().add(this.jcomboSelectSolution).add(this.jbutSolutionHint);
+        playLayout.row().grid().add(this.jbutNoMoves).add(this.jbutPrevMove).add(this.jbutNextMove).add(this.jbutAllMoves);
+        playLayout.row().grid().add(scrollSolutionText);
         
         this.jtabPreparePlay.addTab("Prepare board / Options", preparePanel);
         this.jtabPreparePlay.addTab("Play game", playPanel);
