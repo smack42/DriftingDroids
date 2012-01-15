@@ -399,8 +399,8 @@ public class SwingGUI implements ActionListener {
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         prepareLayout.row().grid().add(new JLabel("board tiles"));
-        prepareLayout.row().grid().add(jbutRandomLayout).grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]);
-        prepareLayout.row().grid().add(new JLabel(" ")) .grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]);
+        prepareLayout.row().grid().add(this.jcomboQuadrants[0]).add(this.jcomboQuadrants[1]).grid().add(jbutRandomLayout);
+        prepareLayout.row().grid().add(this.jcomboQuadrants[3]).add(this.jcomboQuadrants[2]).grid().add(new JLabel(" "));
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
@@ -410,7 +410,7 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JLabel("solver options"));
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JLabel("<html>prefer solution with ...<br>number of robots moved</html>")).grid().add(this.jcomboOptSolutionMode);
-        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
