@@ -445,6 +445,9 @@ public class Board {
             Collections.shuffle(this.randomGoals, RANDOM);
         }
         this.goal = this.randomGoals.remove(0);
+        if (this.goal.robotNumber >= this.robots.length) {  //goal not usable
+            this.setGoalRandom();   //recursion
+        }
         if (this.isSolution01() && (this.randomGoals.size() > 0)) {
             //the resulting board configuration has a solution of 0 or 1 move
             //and there are some other goals available in list randomGoals.
