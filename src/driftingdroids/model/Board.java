@@ -197,11 +197,11 @@ public class Board {
         b.addQuadrant(quadrantSW, 3);
         b.addOuterWalls();
         //place the robots
-        b.setRobot(0, 14 +  2 * 16); //R
-        b.setRobot(1,  1 +  2 * 16); //G
-        b.setRobot(2, 13 + 11 * 16); //B
-        b.setRobot(3, 15 +  0 * 16); //Y
-        b.setRobot(4, 15 +  7 * 16); //W
+        b.setRobot(0, 14 +  2 * 16, false); //R
+        b.setRobot(1,  1 +  2 * 16, false); //G
+        b.setRobot(2, 13 + 11 * 16, false); //B
+        b.setRobot(3, 15 +  0 * 16, false); //Y
+        b.setRobot(4, 15 +  7 * 16, false); //W
         //choose a goal
         b.setGoalRandom();
         return b;
@@ -399,7 +399,7 @@ public class Board {
                 int position;
                 do {
                     position = RANDOM.nextInt(this.size);
-                } while (false == this.setRobot(i, position));
+                } while (false == this.setRobot(i, position, false));
             }
         } while (true == this.isSolution01());
     }
@@ -409,7 +409,7 @@ public class Board {
         final int[] backup = Arrays.copyOf(this.robots, this.robots.length);
         Arrays.fill(this.robots, -1);
         for (int i = 0; i < newRobots.length; ++i) {
-            if ( ! this.setRobot(i, newRobots[i])) {    //failed to set a robot
+            if ( ! this.setRobot(i, newRobots[i], false)) {    //failed to set a robot
                 for (int j = 0; j < backup.length; ++j) {
                     this.robots[j] = backup[j];         //undo all changes
                 }
@@ -419,12 +419,13 @@ public class Board {
         return true;
     }
     
-    public boolean setRobot(final int robot, final int position) {
+    public boolean setRobot(final int robot, final int position, final boolean allowSwapRobots) {
         //invalid robot number?
         //impossible position (out of bounds or obstacle)?
         if ((robot < 0) || (robot >= this.robots.length) ||
                 (position < 0) || (position >= this.size) ||
-                this.isObstacle(position)) {
+                this.isObstacle(position) ||
+                ((false == allowSwapRobots) && (this.getRobotNum(position) >= 0) && (this.getRobotNum(position) != robot)) )  {
             return false;   
         } else {
             //position already occupied by another robot?
