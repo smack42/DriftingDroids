@@ -246,7 +246,6 @@ public class SwingGUI implements ActionListener {
             this.computedSolutionIndex = solutionIndex - 1;
             this.appendSolutionText("\nselected solution " + solutionString + "\n", null);
             this.computedSolutionList.get(this.computedSolutionIndex).resetMoves();
-            this.hintCounter = 3;
             //show moves
             for (int i = 0;  i < oldMovesSize;  ++i) {
                 this.showNextMove(true);
@@ -265,12 +264,22 @@ public class SwingGUI implements ActionListener {
         } else if (1 == this.hintCounter) {
             //second hint: number of moves + number of robots moved
             this.appendSolutionText("hint: " + movesStr + ", " + robotsMovedStr + " moved.\n", null);
-        } else {
-            //last hint: number of moves + number of robots moved + which robots moved
-            this.appendSolutionText("last hint: " + movesStr + ", " + robotsMovedStr + ": ", null);
+        } else if (2 == this.hintCounter) {
+            //third hint: number of moves + number of robots moved + which robots moved
+            this.appendSolutionText("hint: " + movesStr + ", " + robotsMovedStr + " ", null);
             for (Integer robot : robotsMoved) {
                 this.appendSolutionText(Board.ROBOT_COLOR_NAMES_SHORT[robot.intValue()], COL_ROBOT[robot.intValue()]);
             }
+            this.appendSolutionText(".\n", null);
+        } else {
+            //fourth hint: number of moves + which robots moved + last move
+            this.appendSolutionText("hint: " + movesStr + ", robot" + (1==robotsMoved.size() ? " " : "s "), null);
+            for (Integer robot : robotsMoved) {
+                this.appendSolutionText(Board.ROBOT_COLOR_NAMES_SHORT[robot.intValue()], COL_ROBOT[robot.intValue()]);
+            }
+            this.appendSolutionText(", last move ", null);
+            final Move lastMove = this.computedSolutionList.get(this.computedSolutionIndex).getLastMove();
+            this.appendSolutionText(lastMove.strRobotDirection(), COL_ROBOT[lastMove.robotNumber]);
             this.appendSolutionText(".\n", null);
         }
         ++this.hintCounter;
@@ -471,7 +480,7 @@ public class SwingGUI implements ActionListener {
         this.jcomboSelectSolution.setToolTipText("SPOILER WARNING. clicking this reveals hints about the solutions");
         
         this.addKeyBindingTooltip(this.jbutSolutionHint, KeyEvent.VK_H,
-                "click 3 times to get more detailed hints",
+                "click four times to get more detailed hints",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         showHint();

@@ -102,6 +102,14 @@ public class Solution implements Comparable<Solution> {
         return getCurrentMove();
     }
     
+    public Move getLastMove() {
+        if (this.movesList.size() > 0) {
+            return this.movesList.get(this.movesList.size() - 1);
+        } else {
+            return null;
+        }
+    }
+    
     public String toMovelistString() {
         StringBuilder s = new StringBuilder();
         s.append("solution: size=").append(this.movesList.size()).append(" *****");
