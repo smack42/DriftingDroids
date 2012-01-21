@@ -108,8 +108,8 @@ public class SwingGUI implements ActionListener {
     private final BoardCell[] boardCells;
     private int[] currentPosition;
     
-    private SolverTask solverTask = null;   //only set while SolverTask is working
-    private List<Solution> computedSolutionList = null;       //result of SolverTask -> solver.execute()
+    private volatile SolverTask solverTask = null;                  //only set while SolverTask is working
+    private volatile List<Solution> computedSolutionList = null;    //result of SolverTask -> solver.execute()
     private int computedSolutionIndex = 0;
     private final List<Move> moves;
     private int hintCounter = 0;
@@ -181,8 +181,10 @@ public class SwingGUI implements ActionListener {
     }
     
     private void removeSolution() {
-        if (null != this.solverTask) {
-            this.solverTask.cancel(true);
+        final SolverTask st = this.solverTask;
+        if (null != st) {
+            this.solverTask = null;
+            st.cancel(true);
         }
         this.computedSolutionList = null;
         this.computedSolutionIndex = 0;
@@ -296,16 +298,19 @@ public class SwingGUI implements ActionListener {
         @Override
         protected void done() {
             String errorMsg = "";
-            solverTask = null;
-            try {
-                setSolution(this.get());
-            }
-            catch (CancellationException e) {
-                System.err.println(e.toString());
-            }
-            catch (Exception e) {
-                errorMsg = e.toString();
-                e.printStackTrace();
+            final SolverTask st = solverTask;
+            if (this == st) {
+                solverTask = null;
+                try {
+                    setSolution(this.get());
+                }
+                catch (CancellationException e) {
+                    System.err.println(e.toString());
+                }
+                catch (Exception e) {
+                    errorMsg = e.toString();
+                    e.printStackTrace();
+                }
             }
             if ( ! errorMsg.isEmpty()) {
                 appendSolutionText("error:\n" + errorMsg + "\n", null);
