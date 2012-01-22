@@ -45,7 +45,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.CancellationException;
 
 import javax.swing.AbstractAction;
@@ -344,7 +343,7 @@ public class SwingGUI implements ActionListener {
     }
     
     
-    private void addKeyBindingTooltip(AbstractButton button, int keyCode, String tooltip, Action action) {
+    private String addKeyBindingTooltip(AbstractButton button, int keyCode, String tooltip, Action action) {
         final KeyStroke keyStroke = KeyStroke.getKeyStroke(keyCode, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask());
         final String actionMapKey = KeyEvent.getKeyText(keyCode) + "_action_key";
         button.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(keyStroke, actionMapKey);
@@ -361,6 +360,7 @@ public class SwingGUI implements ActionListener {
         }
         acceleratorText += KeyEvent.getKeyText(keyCode);
         button.setToolTipText("<html>" + tooltip + " &nbsp; <small><strong>" + acceleratorText + "</strong></small></html>");
+        return acceleratorText;
     }
     
     
@@ -458,7 +458,45 @@ public class SwingGUI implements ActionListener {
         this.jcomboPlaceRobot.setEditable(false);
         this.jcomboPlaceRobot.setActionCommand(AC_PLACE_ROBOT);
         this.jcomboPlaceRobot.addActionListener(this);
-        this.jcomboPlaceRobot.setToolTipText("first select a robot here and then click on its new board position");
+        String prtt = "<html>first select a robot here and then click on its new board position &nbsp; <small><strong>";
+        final JButton jbutPlaceRobot = new JButton("place robot accelerator key");
+        jbutPlaceRobot.setPreferredSize(new Dimension());  //invisible button
+        prtt += this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_1, "",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        if (jcomboPlaceRobot.getItemCount() > 1) { jcomboPlaceRobot.setSelectedIndex(1); }
+                    }
+                }
+        );
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_2, "",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        if (jcomboPlaceRobot.getItemCount() > 2) { jcomboPlaceRobot.setSelectedIndex(2); }
+                    }
+                }
+        );
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_3, "",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        if (jcomboPlaceRobot.getItemCount() > 3) { jcomboPlaceRobot.setSelectedIndex(3); }
+                    }
+                }
+        );
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_4, "",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        if (jcomboPlaceRobot.getItemCount() > 4) { jcomboPlaceRobot.setSelectedIndex(4); }
+                    }
+                }
+        );
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_5, "",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        if (jcomboPlaceRobot.getItemCount() > 5) { jcomboPlaceRobot.setSelectedIndex(5); }
+                    }
+                }
+        );
+        this.jcomboPlaceRobot.setToolTipText(prtt + "</strong></small></html>");
         
         final JButton jbutSelectGoal = new JButton("Select goal");
         this.addKeyBindingTooltip(jbutSelectGoal, KeyEvent.VK_O,
@@ -542,7 +580,7 @@ public class SwingGUI implements ActionListener {
         
         final JPanel playPanel = new JPanel();
         final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
-        playLayout.row().grid().add(new JLabel("set starting position"));
+        playLayout.row().grid().addMulti(new JLabel("set starting position"), jbutPlaceRobot);
         playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(jbutSelectGoal);
         playLayout.row().grid().add(new JLabel("game ID")).add(this.jcomboGameIDs, 3);
@@ -588,13 +626,12 @@ public class SwingGUI implements ActionListener {
     }
     
     private void refreshJComboPlaceRobot() {
-        final Vector<String> vec = new Vector<String>();
-        vec.add("Place robot");
+        this.jcomboPlaceRobot.removeAllItems();
+        this.jcomboPlaceRobot.addItem("Place robot");
         final int numRobots = this.board.getRobotPositions().length;
         for (int i = 0;  i < numRobots;  ++i) {
-            vec.add(Board.ROBOT_COLOR_NAMES_LONG[i]);
+            this.jcomboPlaceRobot.addItem(Board.ROBOT_COLOR_NAMES_LONG[i]);
         }
-        this.jcomboPlaceRobot.setModel(new DefaultComboBoxModel(vec));
         this.jcomboPlaceRobot.setSelectedIndex(0);
     }
     
