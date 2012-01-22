@@ -99,7 +99,6 @@ public class SwingGUI implements ActionListener {
     
     private static final String AC_BOARD_QUADRANTS= "quadrants";
     private static final String AC_PLACE_ROBOT    = "placerobot";
-    private static final String AC_PLACE_GOAL     = "placegoal";
     private static final String AC_GAME_ID        = "gameid";
     private static final String AC_SELECT_SOLUTION= "selectsolution";
     private static final String AC_SHOW_COLOR_NAMES = "showcolornames";
@@ -114,7 +113,7 @@ public class SwingGUI implements ActionListener {
     private final List<Move> moves;
     private int hintCounter = 0;
     private int placeRobot = -1;    //default: false
-    private boolean placeGoal = false;
+    private boolean selectGoal = false;
     
     private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
     private final JComboBox jcomboRobots = new JComboBox();
@@ -123,7 +122,6 @@ public class SwingGUI implements ActionListener {
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
     private final JTabbedPane jtabPreparePlay = new JTabbedPane();
     private final JComboBox jcomboPlaceRobot = new JComboBox();
-    private final JButton jbutPlaceGoal = new JButton("Place goal");
     private final JComboBox jcomboGameIDs = new JComboBox();
     private final JComboBox jcomboSelectSolution = new JComboBox();
     private final JButton jbutSolutionHint = new JButton("Hint");
@@ -450,7 +448,7 @@ public class SwingGUI implements ActionListener {
                 "pick a goal at random",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
-                        placeGoal = false;
+                        selectGoal = false;
                         updateBoardRandomGoal();
                     }
                 }
@@ -462,9 +460,16 @@ public class SwingGUI implements ActionListener {
         this.jcomboPlaceRobot.addActionListener(this);
         this.jcomboPlaceRobot.setToolTipText("first select a robot here and then click on its new board position");
         
-        this.jbutPlaceGoal.setActionCommand(AC_PLACE_GOAL);
-        this.jbutPlaceGoal.addActionListener(this);
-        this.jbutPlaceGoal.setToolTipText("first click here and then select a goal on the board");
+        final JButton jbutSelectGoal = new JButton("Select goal");
+        this.addKeyBindingTooltip(jbutSelectGoal, KeyEvent.VK_O,
+                "first click here and then select a goal on the board",
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        selectGoal = !selectGoal;
+                        refreshBoard();
+                    }
+                }
+        );
         
         this.jcomboGameIDs.setModel(new DefaultComboBoxModel());
         this.jcomboGameIDs.setEditable(true);
@@ -539,7 +544,7 @@ public class SwingGUI implements ActionListener {
         final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
         playLayout.row().grid().add(new JLabel("set starting position"));
         playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
-        playLayout.row().grid().add(this.jcomboPlaceRobot).add(this.jbutPlaceGoal);
+        playLayout.row().grid().add(this.jcomboPlaceRobot).add(jbutSelectGoal);
         playLayout.row().grid().add(new JLabel("game ID")).add(this.jcomboGameIDs, 3);
         playLayout.emptyRow();
         playLayout.row().grid().add(new JSeparator());
@@ -749,9 +754,6 @@ public class SwingGUI implements ActionListener {
             this.selectSolution(this.jcomboSelectSolution.getSelectedIndex(), this.jcomboSelectSolution.getSelectedItem().toString());
         } else if (AC_PLACE_ROBOT.equals(e.getActionCommand())) {
             this.placeRobot = this.jcomboPlaceRobot.getSelectedIndex() - 1;     //item #0 is "Place robot"
-        } else if (AC_PLACE_GOAL.equals(e.getActionCommand())) {
-            this.placeGoal = !this.placeGoal;
-            this.refreshBoard();
         } else if (AC_GAME_ID.equals(e.getActionCommand())) {
             this.handleGameID();
         } else if (AC_SHOW_COLOR_NAMES.equals(e.getActionCommand())) {
@@ -814,9 +816,9 @@ public class SwingGUI implements ActionListener {
             }
             
             // paint the goal
-            if (!isModePlay() || placeGoal || (board.getGoal().position == this.boardPosition)) {
+            if (!isModePlay() || selectGoal || (board.getGoal().position == this.boardPosition)) {
                 final Board.Goal goal;
-                if (isModePlay() && !placeGoal) {
+                if (isModePlay() && !selectGoal) {
                     goal = board.getGoal();
                 } else {
                     goal = board.getGoalAt(this.boardPosition);
@@ -952,9 +954,9 @@ public class SwingGUI implements ActionListener {
                 placeRobot = -1;
                 refreshJComboPlaceRobot();
             }
-            if (placeGoal) {
+            if (true == selectGoal) {
                 if (board.setGoal(this.boardPosition)) {
-                    placeGoal = false;
+                    selectGoal = false;
                     board.setRobots(currentPosition);
                     updateBoardGetRobots();
                 }
