@@ -42,8 +42,10 @@ import java.awt.geom.Area;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.lang.reflect.InvocationTargetException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 
@@ -102,6 +104,8 @@ public class SwingGUI implements ActionListener {
     private static final String AC_SELECT_SOLUTION= "selectsolution";
     private static final String AC_SHOW_COLOR_NAMES = "showcolornames";
     
+    private static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-ui");  //L10N = Localization
+    
     private Board board = null;
     private final BoardCell[] boardCells;
     private int[] currentPosition;
@@ -123,11 +127,11 @@ public class SwingGUI implements ActionListener {
     private final JComboBox jcomboPlaceRobot = new JComboBox();
     private final JComboBox jcomboGameIDs = new JComboBox();
     private final JComboBox jcomboSelectSolution = new JComboBox();
-    private final JButton jbutSolutionHint = new JButton("Hint");
-    private final JButton jbutNextMove = new JButton(">");
-    private final JButton jbutAllMoves = new JButton(">>|");
-    private final JButton jbutPrevMove = new JButton("<");
-    private final JButton jbutNoMoves = new JButton("|<<");
+    private final JButton jbutSolutionHint = new JButton();
+    private final JButton jbutNextMove = new JButton();
+    private final JButton jbutAllMoves = new JButton();
+    private final JButton jbutPrevMove = new JButton();
+    private final JButton jbutNoMoves = new JButton();
     private final JTextPane jtextSolution = new JTextPane();
     
     public SwingGUI(final String windowTitle) throws InterruptedException, InvocationTargetException {
@@ -208,6 +212,20 @@ public class SwingGUI implements ActionListener {
         }
     }
     
+    private String getSolverOptionsString(final SolverBFS solver) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(L10N.getString("txt.Options.text")).append('\n')
+          .append("- ")
+          .append(L10N.getString("lbl.PreferSolutionWith.text"))
+          .append(" [").append(solver.getOptionSolutionMode().toString()).append("] ")
+          .append("\n   ").append(L10N.getString("lbl.NumberOfRobotsMoved.text"))
+          .append("\n- [")
+          .append(L10N.getString(solver.getOptionAllowRebounds() ? "txt.Yes.text" : "txt.No.text"))
+          .append("] ").append(L10N.getString("chk.AllowReboundMoves.text"))
+          .append("\n\n");
+        return sb.toString();
+    }
+    
     private void setSolution(final SolverBFS solver) {
         this.computedSolutionList = solver.get();
         this.computedSolutionIndex = 0;
@@ -216,14 +234,16 @@ public class SwingGUI implements ActionListener {
         }
         this.hintCounter = 0;
         this.jtextSolution.setText(null);
-        this.appendSolutionText("options:\n" + solver.getOptionsAsString2() + "\n", null);
+        this.appendSolutionText(this.getSolverOptionsString(solver), null);
         if (this.computedSolutionList.get(this.computedSolutionIndex).size() > 0) {
-            final long seconds = (solver.getSolutionMilliSeconds() + 999) / 1000;
+            final int seconds = (int)((solver.getSolutionMilliSeconds() + 999) / 1000);
             final int solutions = this.computedSolutionList.size();
-            this.appendSolutionText("found " + solutions + " solution" + (1==solutions ? "" : "s") +
-                    " in " + seconds + " second" + (1==seconds ? "" : "s") + ".\n\n", null);
+            // message: found 1 solution(s) in 3 second(s).
+            this.appendSolutionText(
+                    MessageFormat.format(L10N.getString("msg.FoundSolutions.pattern"), Integer.valueOf(solutions), Integer.valueOf(seconds))
+                    + "\n\n", null);
         } else {
-            this.appendSolutionText("no solution found!\n", null);
+            this.appendSolutionText(L10N.getString("txt.NoSolutionFound.text") + "\n", null);
         }
         System.out.println(this.computedSolutionList.get(this.computedSolutionIndex).toMovelistString() + "  (" + solver.toString() + ")");
         this.refreshButtons();
@@ -241,7 +261,7 @@ public class SwingGUI implements ActionListener {
             }
             //set new solution
             this.computedSolutionIndex = solutionIndex - 1;
-            this.appendSolutionText("\nselected solution " + solutionString + "\n", null);
+            this.appendSolutionText("\n" + L10N.getString("txt.SelectSolution.text") + " " + solutionString + "\n", null);
             this.computedSolutionList.get(this.computedSolutionIndex).resetMoves();
             //show moves
             for (int i = 0;  i < oldMovesSize;  ++i) {
@@ -251,32 +271,31 @@ public class SwingGUI implements ActionListener {
     }
     
     private void showHint() {
-        final int moves = this.computedSolutionList.get(this.computedSolutionIndex).size();
-        final String movesStr = Integer.toString(moves) + " move" + (1==moves ? "" : "s");
+        final Integer numMoves = Integer.valueOf(this.computedSolutionList.get(this.computedSolutionIndex).size());
         final Set<Integer> robotsMoved = this.computedSolutionList.get(this.computedSolutionIndex).getRobotsMoved();
-        final String robotsMovedStr = Integer.toString(robotsMoved.size()) + " robot" + (1==robotsMoved.size() ? "" : "s");
+        final Integer numRobots = Integer.valueOf(robotsMoved.size());
         if (0 == this.hintCounter) {
             //first hint: number of moves
-            this.appendSolutionText("hint: solution contains " + movesStr + ".\n", null);
+            this.appendSolutionText(MessageFormat.format(L10N.getString("msg.Hint.1.pattern"), numMoves) + "\n", null);
         } else if (1 == this.hintCounter) {
             //second hint: number of moves + number of robots moved
-            this.appendSolutionText("hint: " + movesStr + ", " + robotsMovedStr + " moved.\n", null);
+            this.appendSolutionText(MessageFormat.format(L10N.getString("msg.Hint.2.pattern"), numMoves, numRobots) + "\n", null);
         } else if (2 == this.hintCounter) {
             //third hint: number of moves + number of robots moved + which robots moved
-            this.appendSolutionText("hint: " + movesStr + ", " + robotsMovedStr + " ", null);
+            this.appendSolutionText(MessageFormat.format(L10N.getString("msg.Hint.3.pattern"), numMoves, numRobots) + " ", null);
             for (Integer robot : robotsMoved) {
-                this.appendSolutionText(Board.ROBOT_COLOR_NAMES_SHORT[robot.intValue()], COL_ROBOT[robot.intValue()]);
+                this.appendSolutionText(Board.getColorShortL10N(robot.intValue()), COL_ROBOT[robot.intValue()]);
             }
             this.appendSolutionText(".\n", null);
         } else {
             //fourth hint: number of moves + which robots moved + last move
-            this.appendSolutionText("hint: " + movesStr + ", robot" + (1==robotsMoved.size() ? " " : "s "), null);
+            this.appendSolutionText(MessageFormat.format(L10N.getString("msg.Hint.4.pattern"), numMoves, numRobots) + " ", null);
             for (Integer robot : robotsMoved) {
-                this.appendSolutionText(Board.ROBOT_COLOR_NAMES_SHORT[robot.intValue()], COL_ROBOT[robot.intValue()]);
+                this.appendSolutionText(Board.getColorShortL10N(robot.intValue()), COL_ROBOT[robot.intValue()]);
             }
-            this.appendSolutionText(", last move ", null);
+            this.appendSolutionText(L10N.getString("msg.Hint.4.LastMove.text") + " ", null);
             final Move lastMove = this.computedSolutionList.get(this.computedSolutionIndex).getLastMove();
-            this.appendSolutionText(lastMove.strRobotDirection(), COL_ROBOT[lastMove.robotNumber]);
+            this.appendSolutionText(lastMove.strRobotDirectionL10N(), COL_ROBOT[lastMove.robotNumber]);
             this.appendSolutionText(".\n", null);
         }
         ++this.hintCounter;
@@ -296,8 +315,8 @@ public class SwingGUI implements ActionListener {
             solver.setOptionSolutionMode((SolverBFS.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
-            appendSolutionText("options:\n" + solver.getOptionsAsString2() + "\n", null);
-            appendSolutionText("computing solutions...\n\n", null);
+            appendSolutionText(getSolverOptionsString(solver), null);
+            appendSolutionText(L10N.getString("txt.ComputingSolutions.text") + "\n\n", null);
             solver.execute();
             return solver;
         }
@@ -343,8 +362,10 @@ public class SwingGUI implements ActionListener {
     }
     
     
-    private String addKeyBindingTooltip(AbstractButton button, int keyCode, String tooltip, Action action) {
-        final KeyStroke keyStroke = KeyStroke.getKeyStroke(keyCode, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask());
+    private String addKeyBindingTooltip(AbstractButton button, String keyCodeStr, String tooltip, Action action) {
+        final int keyCode = KeyStroke.getKeyStroke(keyCodeStr).getKeyCode();
+        final int keyModifiers = KeyStroke.getKeyStroke(keyCodeStr).getModifiers();
+        final KeyStroke keyStroke = KeyStroke.getKeyStroke(keyCode, keyModifiers | Toolkit.getDefaultToolkit().getMenuShortcutKeyMask());
         final String actionMapKey = KeyEvent.getKeyText(keyCode) + "_action_key";
         button.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(keyStroke, actionMapKey);
         button.getActionMap().put(actionMapKey, action);
@@ -369,9 +390,10 @@ public class SwingGUI implements ActionListener {
         final JFrame frame = new JFrame(windowTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        final JButton jbutRandomLayout = new JButton("Random layout");
-        this.addKeyBindingTooltip(jbutRandomLayout, KeyEvent.VK_L,
-                "place the board tiles at random positions",
+        final JButton jbutRandomLayout = new JButton(L10N.getString("btn.RandomLayout.text"));
+        this.addKeyBindingTooltip(jbutRandomLayout,
+                L10N.getString("btn.RandomLayout.acceleratorkey"),
+                L10N.getString("btn.RandomLayout.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         makeRandomBoardQuadrants();
@@ -400,40 +422,41 @@ public class SwingGUI implements ActionListener {
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
         this.jcomboOptSolutionMode.setSelectedItem(SolverBFS.SOLUTION_MODE.MINIMUM);
         
-        this.jcheckOptAllowRebounds.setText("allow rebound moves");
+        this.jcheckOptAllowRebounds.setText(L10N.getString("chk.AllowReboundMoves.text"));
         this.jcheckOptAllowRebounds.setSelected(true);
 
-        this.jcheckOptShowColorNames.setText("show color names (robots and goals)");
+        this.jcheckOptShowColorNames.setText(L10N.getString("chk.ShowColorNames.text"));
         this.jcheckOptShowColorNames.setSelected(true);
         this.jcheckOptShowColorNames.setActionCommand(AC_SHOW_COLOR_NAMES);
         this.jcheckOptShowColorNames.addActionListener(this);
 
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
-        prepareLayout.row().grid().add(new JLabel("board tiles"));
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.BoardTiles.text")));
         prepareLayout.row().grid().addMulti(this.jcomboQuadrants[0], this.jcomboQuadrants[1]).add(jbutRandomLayout);
         prepareLayout.row().grid().addMulti(this.jcomboQuadrants[3], this.jcomboQuadrants[2]).empty();
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JLabel("number of robots")).addMulti(this.jcomboRobots);
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text"))).addMulti(this.jcomboRobots);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel("solver options"));
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
         prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JLabel("prefer solution with")).addMulti(this.jcomboOptSolutionMode);
-        prepareLayout.row().grid().add(new JLabel("number of robots moved"));
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.PreferSolutionWith.text"))).addMulti(this.jcomboOptSolutionMode);
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
         prepareLayout.row().grid().add(new JLabel(" "));
         prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel("GUI options"));
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jcheckOptShowColorNames);
         
-        final JButton jbutRandomRobots = new JButton("Random robots");
-        this.addKeyBindingTooltip(jbutRandomRobots, KeyEvent.VK_R,
-                "place the robots randomly on the board",
+        final JButton jbutRandomRobots = new JButton(L10N.getString("btn.RandomRobots.text"));
+        this.addKeyBindingTooltip(jbutRandomRobots,
+                L10N.getString("btn.RandomRobots.acceleratorkey"),
+                L10N.getString("btn.RandomRobots.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         placeRobot = -1;
@@ -443,9 +466,10 @@ public class SwingGUI implements ActionListener {
                 }
         );
         
-        final JButton jbutRandomGoal = new JButton("Random goal");
-        this.addKeyBindingTooltip(jbutRandomGoal, KeyEvent.VK_G,
-                "pick a goal at random",
+        final JButton jbutRandomGoal = new JButton(L10N.getString("btn.RandomGoal.text"));
+        this.addKeyBindingTooltip(jbutRandomGoal,
+                L10N.getString("btn.RandomGoal.acceleratorkey"),
+                L10N.getString("btn.RandomGoal.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         selectGoal = false;
@@ -458,38 +482,38 @@ public class SwingGUI implements ActionListener {
         this.jcomboPlaceRobot.setEditable(false);
         this.jcomboPlaceRobot.setActionCommand(AC_PLACE_ROBOT);
         this.jcomboPlaceRobot.addActionListener(this);
-        String prtt = "<html>first select a robot here and then click on its new board position &nbsp; <small><strong>";
-        final JButton jbutPlaceRobot = new JButton("place robot accelerator key");
+        String prtt = "<html>" + L10N.getString("cmb.PlaceRobot.tooltip") + " &nbsp; <small><strong>";
+        final JButton jbutPlaceRobot = new JButton("place robot accelerator keys");
         jbutPlaceRobot.setPreferredSize(new Dimension());  //invisible button
-        prtt += this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_1, "",
+        prtt += this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.1.acceleratorkey"), "",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 1) { jcomboPlaceRobot.setSelectedIndex(1); }
                     }
                 }
         );
-        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_2, "",
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.2.acceleratorkey"), "",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 2) { jcomboPlaceRobot.setSelectedIndex(2); }
                     }
                 }
         );
-        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_3, "",
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.3.acceleratorkey"), "",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 3) { jcomboPlaceRobot.setSelectedIndex(3); }
                     }
                 }
         );
-        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_4, "",
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.4.acceleratorkey"), "",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 4) { jcomboPlaceRobot.setSelectedIndex(4); }
                     }
                 }
         );
-        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, KeyEvent.VK_5, "",
+        prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.5.acceleratorkey"), "",
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 5) { jcomboPlaceRobot.setSelectedIndex(5); }
@@ -498,9 +522,10 @@ public class SwingGUI implements ActionListener {
         );
         this.jcomboPlaceRobot.setToolTipText(prtt + "</strong></small></html>");
         
-        final JButton jbutSelectGoal = new JButton("Select goal");
-        this.addKeyBindingTooltip(jbutSelectGoal, KeyEvent.VK_O,
-                "first click here and then select a goal on the board",
+        final JButton jbutSelectGoal = new JButton(L10N.getString("btn.SelectGoal.text"));
+        this.addKeyBindingTooltip(jbutSelectGoal,
+                L10N.getString("btn.SelectGoal.acceleratorkey"),
+                L10N.getString("btn.SelectGoal.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         selectGoal = !selectGoal;
@@ -516,32 +541,36 @@ public class SwingGUI implements ActionListener {
         
         this.jcomboSelectSolution.setModel(new DefaultComboBoxModel());
         this.jcomboSelectSolution.setPrototypeDisplayValue("99)  99/9/#####");  //longest string possible here
-        this.jcomboSelectSolution.addItem("Select solution");
+        this.jcomboSelectSolution.addItem(L10N.getString("cmb.SelectSolution.text"));
         this.jcomboSelectSolution.setEditable(false);
         this.jcomboSelectSolution.setActionCommand(AC_SELECT_SOLUTION);
         this.jcomboSelectSolution.addActionListener(this);
-        this.jcomboSelectSolution.setToolTipText("SPOILER WARNING. clicking this reveals hints about the solutions");
+        this.jcomboSelectSolution.setToolTipText(L10N.getString("cmb.SelectSolution.tooltip"));
         
-        this.addKeyBindingTooltip(this.jbutSolutionHint, KeyEvent.VK_H,
-                "click four times to get more detailed hints",
+        this.jbutSolutionHint.setText(L10N.getString("btn.Hint.text"));
+        this.addKeyBindingTooltip(this.jbutSolutionHint,
+                L10N.getString("btn.Hint.acceleratorkey"),
+                L10N.getString("btn.Hint.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         showHint();
                     }
                 }
         );
-        
-        this.addKeyBindingTooltip(this.jbutNextMove, KeyEvent.VK_N,
-                "show next move",
+        this.jbutNextMove.setText(L10N.getString("btn.NextMove.text"));
+        this.addKeyBindingTooltip(this.jbutNextMove,
+                L10N.getString("btn.NextMove.acceleratorkey"),
+                L10N.getString("btn.NextMove.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         showNextMove(true);
                     }
                 }
         );
-        
-        this.addKeyBindingTooltip(this.jbutAllMoves, KeyEvent.VK_M,
-                "show all moves",
+        this.jbutAllMoves.setText(L10N.getString("btn.AllMoves.text"));
+        this.addKeyBindingTooltip(this.jbutAllMoves,
+                L10N.getString("btn.AllMoves.acceleratorkey"),
+                L10N.getString("btn.AllMoves.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         while (jbutNextMove.isEnabled()) {
@@ -550,18 +579,20 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
-        
-        this.addKeyBindingTooltip(this.jbutPrevMove, KeyEvent.VK_B,
-                "undo last move",
+        this.jbutPrevMove.setText(L10N.getString("btn.PrevMove.text"));
+        this.addKeyBindingTooltip(this.jbutPrevMove,
+                L10N.getString("btn.PrevMove.acceleratorkey"),
+                L10N.getString("btn.PrevMove.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         showPrevMove(true);
                     }
                 }
         );
-        
-        this.addKeyBindingTooltip(this.jbutNoMoves, KeyEvent.VK_V,
-                "undo all moves",
+        this.jbutNoMoves.setText(L10N.getString("btn.NoMoves.text"));
+        this.addKeyBindingTooltip(this.jbutNoMoves,
+                L10N.getString("btn.NoMoves.acceleratorkey"),
+                L10N.getString("btn.NoMoves.tooltip"),
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
                         while (jbutPrevMove.isEnabled()) {
@@ -580,19 +611,19 @@ public class SwingGUI implements ActionListener {
         
         final JPanel playPanel = new JPanel();
         final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
-        playLayout.row().grid().addMulti(new JLabel("set starting position"), jbutPlaceRobot);
+        playLayout.row().grid().addMulti(new JLabel(L10N.getString("lbl.SetStartingPosition.text")), jbutPlaceRobot);
         playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(jbutSelectGoal);
-        playLayout.row().grid().add(new JLabel("game ID")).add(this.jcomboGameIDs, 3);
+        playLayout.row().grid().add(new JLabel(L10N.getString("lbl.GameID.text"))).add(this.jcomboGameIDs, 3);
         playLayout.emptyRow();
         playLayout.row().grid().add(new JSeparator());
-        playLayout.row().grid().add(new JLabel("show computed solutions"));
+        playLayout.row().grid().add(new JLabel(L10N.getString("lbl.ShowComputedSolutions.text")));
         playLayout.row().grid().add(this.jcomboSelectSolution).add(this.jbutSolutionHint);
         playLayout.row().grid().add(this.jbutNoMoves).add(this.jbutPrevMove).add(this.jbutNextMove).add(this.jbutAllMoves);
         playLayout.row().grid().add(scrollSolutionText);
         
-        this.jtabPreparePlay.addTab("Prepare board / Options", preparePanel);
-        this.jtabPreparePlay.addTab("Play game", playPanel);
+        this.jtabPreparePlay.addTab(L10N.getString("tab.PrepareBoardOptions.text"), preparePanel);
+        this.jtabPreparePlay.addTab(L10N.getString("tab.PlayGame.text"), playPanel);
         this.jtabPreparePlay.setSelectedIndex(1);   //Play
         this.jtabPreparePlay.addChangeListener(new TabListener());
         
@@ -627,10 +658,10 @@ public class SwingGUI implements ActionListener {
     
     private void refreshJComboPlaceRobot() {
         this.jcomboPlaceRobot.removeAllItems();
-        this.jcomboPlaceRobot.addItem("Place robot");
+        this.jcomboPlaceRobot.addItem(L10N.getString("cmb.PlaceRobot.text"));
         final int numRobots = this.board.getRobotPositions().length;
         for (int i = 0;  i < numRobots;  ++i) {
-            this.jcomboPlaceRobot.addItem(Board.ROBOT_COLOR_NAMES_LONG[i]);
+            this.jcomboPlaceRobot.addItem(Board.getColorLongL10N(i));
         }
         this.jcomboPlaceRobot.setSelectedIndex(0);
     }
@@ -752,8 +783,10 @@ public class SwingGUI implements ActionListener {
     private void showMove(final Move step, final boolean doPrint) {
         if (doPrint) {
             this.appendSolutionText((step.stepNumber + 1) + ": ", null);
-            this.appendSolutionText(step.strRobotDirection(), COL_ROBOT[step.robotNumber]);
-            this.appendSolutionText(" " + step.strOldNewPosition() + (this.computedSolutionList.get(this.computedSolutionIndex).isRebound(step) ? " rebound" : "") + "\n", null);
+            this.appendSolutionText(step.strRobotDirectionL10N(), COL_ROBOT[step.robotNumber]);
+            this.appendSolutionText(" " + step.strOldNewPosition()
+                    + (this.computedSolutionList.get(this.computedSolutionIndex).isRebound(step) ? " " + L10N.getString("txt.Rebound.text") : "")
+                    + "\n", null);
             //System.out.println(step.toString());
         }
         this.refreshButtons();
@@ -773,7 +806,7 @@ public class SwingGUI implements ActionListener {
                 this.refreshJcomboQuadrants();
                 this.updateBoardGetRobots();
             } else {
-                appendSolutionText("error: this game ID '" + newGameID + "' is not valid.\n", null);
+                appendSolutionText(MessageFormat.format(L10N.getString("msg.ErrorGameID.pattern"), newGameID) + "\n", null);
             }
         }
     }
@@ -911,11 +944,11 @@ public class SwingGUI implements ActionListener {
                     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2d.fill(area);
                     if (jcheckOptShowColorNames.isSelected()) {
-                        final String goalColorShort = ((goal.robotNumber < 0) ? "*" : Board.ROBOT_COLOR_NAMES_SHORT[goal.robotNumber]);
+                        final String goalColorShort = ((goal.robotNumber < 0) ? "*" : Board.getColorShortL10N(goal.robotNumber));
                         g2d.setColor(Color.BLACK);
                         g2d.drawChars(goalColorShort.toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
-                        final String goalColorLong = ((goal.robotNumber < 0) ? "wildcard" : Board.ROBOT_COLOR_NAMES_LONG[goal.robotNumber]);
-                        this.setToolTipText(goalColorLong + " " + Board.GOAL_SHAPE_NAMES[goal.shape] + " goal");
+                        final String goalColorLong = ((goal.robotNumber < 0) ? L10N.getString("txt.Wildcard.text") : Board.getColorLongL10N(goal.robotNumber));
+                        this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + goalColorLong + " - " + Board.getGoalShapeL10N(goal.shape));
                     }
                 }
             }
@@ -971,8 +1004,8 @@ public class SwingGUI implements ActionListener {
                         g2d.setColor(outlineColor); g2d.draw(shapeBody);
                         if (jcheckOptShowColorNames.isSelected()) {
                             g2d.setColor(Color.WHITE);
-                            g2d.drawChars(Board.ROBOT_COLOR_NAMES_SHORT[i].toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
-                            this.setToolTipText(Board.ROBOT_COLOR_NAMES_LONG[i] + " robot");
+                            g2d.drawChars(Board.getColorShortL10N(i).toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
+                            this.setToolTipText(L10N.getString("txt.Robot.text") + " - " + Board.getColorLongL10N(i));
                         }
                         break;
                     }

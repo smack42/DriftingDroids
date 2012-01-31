@@ -23,18 +23,21 @@ import java.util.Collections;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Random;
+import java.util.ResourceBundle;
 
 
 
 public class Board {
+    static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-model");   //L10N = Localization
+    
     public static final int WIDTH_STANDARD = 16;
     public static final int HEIGHT_STANDARD = 16;
     public static final int NUMROBOTS_STANDARD = 4;
     
-    public static final String[] ROBOT_COLOR_NAMES_SHORT = {
+    public static final String[] ROBOT_COLOR_NAMES_SHORT = {    //also used as part of L10N-keys
         "r", "g", "b", "y", "s"
     };
-    public static final String[] ROBOT_COLOR_NAMES_LONG = {
+    public static final String[] ROBOT_COLOR_NAMES_LONG = {     //also used as part of L10N-keys
         "red", "green", "blue", "yellow", "silver"
     };
     
@@ -649,5 +652,15 @@ public class Board {
             else                        { dir = Board.SOUTH; }
         }
         return dir;
+    }
+    
+    public static String getColorLongL10N(int color) {
+        return L10N.getString("board.color." + ROBOT_COLOR_NAMES_LONG[color] +".text");
+    }
+    public static String getColorShortL10N(int color) {
+        return L10N.getString("board.color." + ROBOT_COLOR_NAMES_SHORT[color] +".text");
+    }
+    public static String getGoalShapeL10N(int shape) {
+        return L10N.getString("board.shape." + GOAL_SHAPE_NAMES[shape] + ".text");
     }
 }

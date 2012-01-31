@@ -29,10 +29,11 @@ import java.util.List;
 public class SolverBFS {
     
     public enum SOLUTION_MODE {
-        MINIMUM("minimum"), MAXIMUM("maximum");
-        private final String name;
-        private SOLUTION_MODE(String name) { this.name = name; }
-        @Override public String toString() { return this.name; }
+        MINIMUM("minimum", "solver.Minimum.text"), MAXIMUM("maximum", "solver.Maximum.text");
+        private final String name, l10nKey;
+        private SOLUTION_MODE(String name, String l10nKey) { this.name = name;  this.l10nKey = l10nKey; }
+        @Override public String toString() { return Board.L10N.getString(this.l10nKey); }
+        public String getName() { return this.name; }
     }
     
     private final Board board;
@@ -451,18 +452,20 @@ public class SolverBFS {
     public void setOptionSolutionMode(SOLUTION_MODE mode) {
         this.optSolutionMode = mode;
     }
+    public SOLUTION_MODE getOptionSolutionMode() {
+        return this.optSolutionMode;
+    }
     
     public void setOptionAllowRebounds(boolean allowRebounds) {
         this.optAllowRebounds = allowRebounds;
     }
+    public boolean getOptionAllowRebounds() {
+        return this.optAllowRebounds;
+    }
     
     public String getOptionsAsString() {
-        return this.optSolutionMode.toString() + " number of robots moved; "
+        return this.optSolutionMode.getName() + " number of robots moved; "
                 + (this.optAllowRebounds ? "with" : "no") + " rebound moves";
-    }
-    public String getOptionsAsString2() {
-        return "-" + this.optSolutionMode.toString() + " number of robots moved\n-"
-                + (this.optAllowRebounds ? "with" : "no") + " rebound moves\n";
     }
     
     public long getSolutionMilliSeconds() {
