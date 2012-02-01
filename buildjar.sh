@@ -2,9 +2,7 @@ OUTPUT=driftingdroids.jar
 
 rm -f $OUTPUT
 
-java -jar $HOME/Programme/proguard4.6/lib/proguard.jar @proguard_config -outjars $OUTPUT
-
-#java -jar $HOME/Programme/autojar-2.1/autojar.jar  -o $OUTPUT  -m ./resource/META-INF/MANIFEST.MF  -c ./designgridlayout-1.9.jar  -c ./bin  -v
+java -jar $HOME/Programme/proguard4.7/lib/proguard.jar @proguard_config -outjars $OUTPUT
 
 chmod u+x $OUTPUT
 
