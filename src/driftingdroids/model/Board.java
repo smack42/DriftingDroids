@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011  Michael Henke
+    Copyright (C) 2011, 2012  Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -655,10 +655,18 @@ public class Board {
     }
     
     public static String getColorLongL10N(int color) {
-        return L10N.getString("board.color." + ROBOT_COLOR_NAMES_LONG[color] +".text");
+        if (color < 0) {    //wildcard
+            return L10N.getString("board.color.wildcard.text");
+        } else {
+            return L10N.getString("board.color." + ROBOT_COLOR_NAMES_LONG[color] +".text");
+        }
     }
     public static String getColorShortL10N(int color) {
-        return L10N.getString("board.color." + ROBOT_COLOR_NAMES_SHORT[color] +".text");
+        if (color < 0) {    //wildcard
+            return L10N.getString("board.color.w.text");
+        } else {
+            return L10N.getString("board.color." + ROBOT_COLOR_NAMES_SHORT[color] +".text");
+        }
     }
     public static String getGoalShapeL10N(int shape) {
         return L10N.getString("board.shape." + GOAL_SHAPE_NAMES[shape] + ".text");

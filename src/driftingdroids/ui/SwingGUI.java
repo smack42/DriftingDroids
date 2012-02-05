@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011  Michael Henke
+    Copyright (C) 2011, 2012  Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -123,6 +123,7 @@ public class SwingGUI implements ActionListener {
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
+    private final JCheckBox jcheckOptShowSolutions = new JCheckBox();
     private final JTabbedPane jtabPreparePlay = new JTabbedPane();
     private final JComboBox jcomboPlaceRobot = new JComboBox();
     private final JComboBox jcomboGameIDs = new JComboBox();
@@ -247,6 +248,11 @@ public class SwingGUI implements ActionListener {
         }
         System.out.println(this.computedSolutionList.get(this.computedSolutionIndex).toMovelistString() + "  (" + solver.toString() + ")");
         this.refreshButtons();
+        if (this.jcheckOptShowSolutions.isSelected()) {
+            while (this.jbutNextMove.isEnabled()) {
+                this.showNextMove(true);
+            }
+        }
     }
     
     private void selectSolution(final int solutionIndex, final String solutionString) {
@@ -430,6 +436,9 @@ public class SwingGUI implements ActionListener {
         this.jcheckOptShowColorNames.setActionCommand(AC_SHOW_COLOR_NAMES);
         this.jcheckOptShowColorNames.addActionListener(this);
 
+        this.jcheckOptShowSolutions.setText(L10N.getString("chk.ShowSolutions.text"));
+        this.jcheckOptShowSolutions.setSelected(false);
+
         final JPanel preparePanel = new JPanel();
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.BoardTiles.text")));
@@ -452,6 +461,7 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jcheckOptShowColorNames);
+        prepareLayout.row().grid().add(this.jcheckOptShowSolutions);
         
         final JButton jbutRandomRobots = new JButton(L10N.getString("btn.RandomRobots.text"));
         this.addKeyBindingTooltip(jbutRandomRobots,
@@ -737,7 +747,7 @@ public class SwingGUI implements ActionListener {
             this.jbutNoMoves.setEnabled(false);
         } else {
             if (this.computedSolutionList.get(this.computedSolutionIndex).size() > 0) {
-                this.jcomboSelectSolution.setEnabled(true);
+                this.jcomboSelectSolution.setEnabled((this.computedSolutionList.size() > 1));
                 this.jbutSolutionHint.setEnabled(true);
             }
             this.jbutNextMove.setEnabled(true);
@@ -944,10 +954,10 @@ public class SwingGUI implements ActionListener {
                     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2d.fill(area);
                     if (jcheckOptShowColorNames.isSelected()) {
-                        final String goalColorShort = ((goal.robotNumber < 0) ? "*" : Board.getColorShortL10N(goal.robotNumber));
+                        final String goalColorShort = Board.getColorShortL10N(goal.robotNumber);
                         g2d.setColor(Color.BLACK);
                         g2d.drawChars(goalColorShort.toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
-                        final String goalColorLong = ((goal.robotNumber < 0) ? L10N.getString("txt.Wildcard.text") : Board.getColorLongL10N(goal.robotNumber));
+                        final String goalColorLong = Board.getColorLongL10N(goal.robotNumber);
                         this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + goalColorLong + " - " + Board.getGoalShapeL10N(goal.shape));
                     }
                 }

@@ -1,39 +1,41 @@
-DriftingDroids - yet another Ricochet Robots solver program.
+DriftingDroids - noch ein weiteres Ricochet Robots Lösungsprogramm.
 
 Version   1.1 (2012-02-05)
 Homepage  https://github.com/smack42/DriftingDroids/wiki
 
 
 
-## about
+## Einleitung
 
-Ricochet Robots is a board game designed by Alex Randolph.
-If you don't know the game yet then you can start to read about it here:
-https://en.wikipedia.org/wiki/Ricochet_Robot
+Ricochet Robots (auch bekannt als Rasende Roboter) ist ein Brettspiel
+von Alex Randolph. Wenn Du es noch nicht kennen solltest dann kannst Du
+hier etwas darüber lesen:
 https://de.wikipedia.org/wiki/Rasende_Roboter
+https://en.wikipedia.org/wiki/Ricochet_Robot
 http://boardgamegeek.com/boardgame/51/ricochet-robots
 
-DriftingDroids is a computer version of the Ricochet Robots board game.
-It includes a solver algorithm that finds the optimal solutions to every
-game problem.
-You can use it as your trainer for solo playing or as a referee during
-real board gaming sessions.
+DriftingDroids ist eine Computervariante des Brettspiels Ricochet Robots.
+Es enthält einen Lösungsalgorithmus der die optimalen Lösungen für jedes
+Spielproblem findet.
+Du kannst das Programm als persönlichen Trainer verwenden, der Dir die
+besten Lösungen zeigt, oder als Schiedsrichter in geselligen Spielrunden
+mit dem echten Brettspiel.
 
 
 
-## usage
+## Benutzung
 
-Java SE Runtime Environment (JRE version 6 or newer) is required to run
-this program. You can download Java here:
+Java SE Runtime Environment (JRE Version 6 oder neuer) wird benötigt um
+das Programm zu benutzen. Du kannst Java hier herunterladen:
 http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
-To run DriftingDroids just doubleclick "start.jar".
+Um DriftingDroids zu starten doppelklicke auf "start.jar".
 
-For more info please read the included documentation.
+Für mehr Informationen lies bitte die beiliegende Dokumentation.
 
 
 
-## license
+## Lizenz
 
 DriftingDroids - yet another Ricochet Robots solver program.
 Copyright (C) 2011, 2012  Michael Henke <smack42@googlemail.com>
