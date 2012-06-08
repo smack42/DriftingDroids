@@ -77,7 +77,7 @@ public class SolverBFS {
     
     
     public List<Solution> execute() throws InterruptedException {
-        final long startExecute = System.currentTimeMillis();
+        final long startExecute = System.nanoTime();
         this.lastResultSolutions = new ArrayList<Solution>();
         
         final KnownStates knownStates = new KnownStates();
@@ -90,7 +90,7 @@ public class SolverBFS {
         System.out.printf("startState=" + this.stateString(startState) + "\n");
         
         //find the "finalStates" and save all intermediate states in "knownStates"
-        final long startGetStates = System.currentTimeMillis();
+        final long startGetStates = System.nanoTime();
         if (true == this.optAllowRebounds) {
             this.getFinalStates(startState, this.board.getGoal().position, this.isBoardGoalWildcard, knownStates, finalStates);
         } else {
@@ -98,7 +98,7 @@ public class SolverBFS {
         }
         this.solutionStoredStates = knownStates.size();
         System.out.println("knownStates: " + knownStates.infoString());
-        final long durationStates = System.currentTimeMillis() - startGetStates;
+        final long durationStates = (System.nanoTime() - startGetStates) / 1000000L;
         System.out.println("time (Breadth-First-Search for finalStates) : " + (durationStates / 1000d) + " seconds");
         System.out.println("number of finalStates: " + finalStates.size());
         System.out.println(knownStates.megaBytesAllocated());
@@ -109,7 +109,7 @@ public class SolverBFS {
         //depending on the options, this list is then sorted in natural order (MINIMUM)
         //or reverse natural order (MAXIMUM), so that the preferred solution is always
         //placed at list index 0.
-        final long startGetPath = System.currentTimeMillis();
+        final long startGetPath = System.nanoTime();
         for (int[] finalState : finalStates) {
             final List<int[]> statesPath = this.getStatesPath(finalState, knownStates);
             if (1 < statesPath.size()) {
@@ -135,10 +135,10 @@ public class SolverBFS {
         } else if (SOLUTION_MODE.MAXIMUM == this.optSolutionMode) {
             Collections.sort(this.lastResultSolutions, Collections.reverseOrder());
         }
-        final long durationPath = System.currentTimeMillis() - startGetPath;
+        final long durationPath = (System.nanoTime() - startGetPath) / 1000000L;
         System.out.println("time (Depth-First-Search   for statePaths ) : " + (durationPath / 1000d) + " seconds");
         
-        this.solutionMilliSeconds = System.currentTimeMillis() - startExecute;
+        this.solutionMilliSeconds = (System.nanoTime() - startExecute) / 1000000L;
         return this.lastResultSolutions;
     }
     
@@ -153,7 +153,8 @@ public class SolverBFS {
             ) throws InterruptedException {
         int depth = knownStates.incrementDepth();
         assert 0 == depth : depth;
-        knownStates.add(startState);
+        knownStates.addKey(startState);
+        knownStates.addState(startState);
         final int[] tmpState = new int[startState.length];
         final int robo1 = tmpState.length - 1;  //goal robot is always the last one.
         //is the starting position already on goal?
@@ -161,12 +162,16 @@ public class SolverBFS {
             for (int pos : startState) { if (goalPosition == pos) { finalStates.add(startState.clone()); } }
         } else if (goalPosition == startState[robo1]) { finalStates.add(startState.clone()); }
         //breadth-first search
+        int prevSize = 0;
+        boolean foundGoal = false;
         while(true) {
             if (0 < finalStates.size()) { return; } //goal has been reached!
             depth = knownStates.incrementDepth();
             KnownStates.Iterator iter = knownStates.iterator(depth - 1);
-            System.out.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size());
+            final double thisPrevSizes = (0 == iter.size() ? 0.0 : (double)prevSize / iter.size());
+            System.out.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size() + "   prev/thisStates=" + Math.round(thisPrevSizes*1000d)/1000d);
             if (0 == iter.size()) { return; }       //goal NOT reachable!
+            prevSize += iter.size();
             //first pass: move goal robot, only.
             while (true == iter.next(tmpState)) {
                 if (Thread.interrupted()) { throw new InterruptedException(); }
@@ -185,8 +190,16 @@ public class SolverBFS {
                     }
                     if (oldRoboPos != newRoboPos) {
                         tmpState[robo1] = newRoboPos;
-                        if ((true == knownStates.add(tmpState)) && (goalPosition == newRoboPos)) {
-                            finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                        //if we have already found a finalState then this is the last BFS pass.
+                        //and we only need to store the additional finalStates but not all the "misses".
+                        if ((false == foundGoal) || (goalPosition == newRoboPos)) {
+                            if (true == knownStates.addKey(tmpState)) {
+                                knownStates.addState(tmpState);
+                                if (goalPosition == newRoboPos) {
+                                    finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                                    foundGoal = true;
+                                }
+                            }
                         }
                     }
                 }
@@ -214,10 +227,16 @@ public class SolverBFS {
                         }
                         if (oldRoboPos != newRoboPos) {
                             tmpState[robo2] = newRoboPos;
-                            if (true == knownStates.add(tmpState)) {
-                                //in this second pass, we can reach a wildcard goal, only.
-                                if ((true == isWildcardGoal) && (goalPosition == newRoboPos)) {
-                                    finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                            //if we have already found a finalState then this is the last BFS pass.
+                            //and we only need to store the additional finalStates but not all the "misses".
+                            if ((false == foundGoal) || ((true == isWildcardGoal) && (goalPosition == newRoboPos))) {
+                                if (true == knownStates.addKey(tmpState)) {
+                                    knownStates.addState(tmpState);
+                                    //in this second pass, we can reach a wildcard goal, only.
+                                    if ((true == isWildcardGoal) && (goalPosition == newRoboPos)) {
+                                        finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                                        foundGoal = true;
+                                    }
                                 }
                             }
                         }
@@ -242,7 +261,9 @@ public class SolverBFS {
         assert 0 == depth : depth;
         final int[] tmpDirs = new int[startState.length];
         for (int i = 0;  i < tmpDirs.length;  ++i) { tmpDirs[i] = 7; }  // 7 == not_yet_moved
-        knownStates.add(startState, tmpDirs);
+        knownStates.addKey(startState);
+        knownStates.addState(startState);
+        knownStates.addDirection(tmpDirs);
         final int[] tmpState = new int[startState.length];
         final int robo1 = tmpState.length - 1;  //goal robot is always the last one.
         //is the starting position already on goal?
@@ -250,6 +271,7 @@ public class SolverBFS {
             for (int pos : startState) { if (goalPosition == pos) { finalStates.add(startState.clone()); } }
         } else if (goalPosition == startState[robo1]) { finalStates.add(startState.clone()); }
         //breadth-first search
+        boolean foundGoal = false;
         while(true) {
             if (0 < finalStates.size()) { return; } //goal has been reached!
             depth = knownStates.incrementDepth();
@@ -277,9 +299,16 @@ public class SolverBFS {
                             if (oldRoboPos != newRoboPos) {
                                 tmpState[robo] = newRoboPos;
                                 tmpDirs[robo] = dir;
-                                if (true == knownStates.add(tmpState, tmpDirs)) {
-                                    if ((goalPosition == newRoboPos) && ((robo1 == robo) || (true == isWildcardGoal))) {
-                                        finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                                //if we have already found a finalState then this is the last BFS pass.
+                                //and we only need to store the additional finalStates but not all the "misses".
+                                if ((false == foundGoal) || ((goalPosition == newRoboPos) && ((robo1 == robo) || (true == isWildcardGoal)))) {
+                                    if (true == knownStates.addKey(tmpState)) {
+                                        knownStates.addState(tmpState);
+                                        knownStates.addDirection(tmpDirs);
+                                        if ((goalPosition == newRoboPos) && ((robo1 == robo) || (true == isWildcardGoal))) {
+                                            finalStates.add(tmpState.clone());  //goal robot has reached the goal position.
+                                            foundGoal = true;
+                                        }
                                     }
                                 }
                             }
@@ -891,23 +920,19 @@ public class SolverBFS {
             return this.currentDepth;
         }
         
-        public final boolean add(final int[] state) {
+        public final boolean addKey(final int[] state) {
             assert state.length == boardNumRobots : state.length;
-            final boolean stateHasBeenAdded = this.allKeys.add(state);
-            if (true == stateHasBeenAdded) {
-                this.allStates.add(state);
-            }
-            return stateHasBeenAdded;
+            return this.allKeys.add(state);
         }
-        public final boolean add(final int[] state, final int[] dirs) {
+        
+        public final void addState(final int[] state) {
             assert state.length == boardNumRobots : state.length;
+            this.allStates.add(state);
+        }
+        
+        public final void addDirection(final int[] dirs) {
             assert dirs.length == boardNumRobots : dirs.length;
-            final boolean stateHasBeenAdded = this.allKeys.add(state);
-            if (true == stateHasBeenAdded) {
-                this.allStates.add(state);
-                this.allDirections.add(dirs);
-            }
-            return stateHasBeenAdded;
+            this.allDirections.add(dirs);
         }
         
         public Iterator iterator(final int depth) {
