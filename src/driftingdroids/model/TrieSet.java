@@ -47,7 +47,7 @@ public final class TrieSet {
     private int numLeafArrays, nextLeaf, nextLeafArray;
     
     private final int nodeBits, leafBits;
-    private final int nodeNumber, nodeSize, nodeMask;
+    private final int nodeNumber, nodeNumberLong31, nodeSize, nodeMask;
     private final int leafShift, leafSize, leafMask;
     
     
@@ -64,6 +64,7 @@ public final class TrieSet {
         this.leafBits = 8;  //tuning parameter: number of value bits per leaf
         
         this.nodeNumber = (valueBits - this.leafBits + (this.nodeBits - 1)) / this.nodeBits;
+        this.nodeNumberLong31 = (valueBits - 31 + (this.nodeBits - 1)) / this.nodeBits;
         this.nodeSize = 1 << this.nodeBits;
         this.nodeMask = this.nodeSize - 1;
         this.leafShift = this.leafBits - 5;
@@ -95,11 +96,23 @@ public final class TrieSet {
         //root node
         int[] nodeArray = this.rootNode;
         int nidx = value & this.nodeMask;
-        //go through nodes
+        //go through nodes (with compression)
         for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
-            value >>>= this.nodeBits;
             nodeIndex = nodeArray[nidx];
+            value >>>= this.nodeBits;
             if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                nodeArray[nidx] = ~value;   //negative
+                return true;    //added
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                //exit immediately if previous and current values are equal (duplicate)
+                final int prevValue = ~nodeIndex;
+                if (prevValue == value) {
+                    return false;   //not added
+                }
                 //create a new node
                 if (this.nextNode >= this.nextNodeArray) {
                     if (this.nodeArrays.length <= this.numNodeArrays) {
@@ -111,14 +124,32 @@ public final class TrieSet {
                 nodeIndex = this.nextNode;
                 this.nextNode += this.nodeSize;
                 nodeArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevValue & this.nodeMask);
+                nodeArray[nidx] = ~(prevValue >>> this.nodeBits);
+            } else {
+                // -> node pointer is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             }
-            nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             nidx = (nodeIndex & NODE_ARRAY_MASK) + (value & this.nodeMask);
         }
-        //get leaf
-        value >>>= this.nodeBits;
+        //get leaf (with compression)
         int leafIndex = nodeArray[nidx];
+        value >>>= this.nodeBits;
         if (0 == leafIndex) {
+            // -> leaf index is null = unused
+            //write current value as a "compressed branch" (negative leaf index)
+            //exit immediately because no leaf needs to be stored
+            nodeArray[nidx] = ~value;   //negative
+            return true;    //added
+        } else if (0 > leafIndex) {
+            // -> leaf index is negative = used by a single "compressed branch"
+            //exit immediately if previous and current values are equal (duplicate)
+            final int prevValue = ~leafIndex;
+            if (prevValue == value) {
+                return false;   //not added
+            }
             //create a new leaf
             if (this.nextLeaf >= this.nextLeafArray) {
                 if (this.leafArrays.length <= this.numLeafArrays) {
@@ -130,17 +161,21 @@ public final class TrieSet {
             leafIndex = this.nextLeaf;
             this.nextLeaf += this.leafSize;
             nodeArray[nidx] = leafIndex;
+            //push the previous "compressed branch" further to the leaf
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevValue & this.leafMask);
+            this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (1 << (prevValue >>> this.leafShift));
         }
         final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
         final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (value & this.leafMask);
         //set bit in leaf
         final int oldBits = leafArray[lidx];
         final int newBits = oldBits | (1 << (value >>> this.leafShift));
-        final boolean bitHasBeenAdded = (oldBits != newBits);
-        if (true == bitHasBeenAdded) {
+        if (oldBits != newBits) {
             leafArray[lidx] = newBits;
+            return true;    //added
+        } else {
+            return false;   //not added
         }
-        return bitHasBeenAdded;
     }
     
     
@@ -152,15 +187,14 @@ public final class TrieSet {
      * @return <code>true</code> if this set did not already contain the specified value
      */
     public final boolean add(long value) {
-        //this method is copy&paste from the one above.
-        //only the lines marked with //(int) differ: cast value from long to int.
         //root node
         int[] nodeArray = this.rootNode;
         int nidx = (int)value & this.nodeMask;  //(int)
-        //go through nodes
-        for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
-            value >>>= this.nodeBits;
+        int nodeIndex, i;   //used by both for() loops
+        //go through nodes (without compression because value is greater than "int")
+        for (i = 1;  i < this.nodeNumberLong31;  ++i) {
             nodeIndex = nodeArray[nidx];
+            value >>>= this.nodeBits;
             if (0 == nodeIndex) {
                 //create a new node
                 if (this.nextNode >= this.nextNodeArray) {
@@ -177,10 +211,60 @@ public final class TrieSet {
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);    //(int)
         }
-        //get leaf
-        value >>>= this.nodeBits;
+        //go through nodes (with compression because value is inside "int" range now)
+        for ( ;  i < this.nodeNumber;  ++i) {
+            nodeIndex = nodeArray[nidx];
+            value >>>= this.nodeBits;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                nodeArray[nidx] = ~((int)value);   //negative  //(int)
+                return true;    //added
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                //exit immediately if previous and current values are equal (duplicate)
+                final int prevValue = ~nodeIndex;
+                if (prevValue == value) {
+                    return false;   //not added
+                }
+                //create a new node
+                if (this.nextNode >= this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.nodeSize;
+                nodeArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevValue & this.nodeMask);
+                nodeArray[nidx] = ~(prevValue >>> this.nodeBits);
+            } else {
+                // -> node pointer is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);    //(int)
+        }
+        //get leaf (with compression)
         int leafIndex = nodeArray[nidx];
+        value >>>= this.nodeBits;
         if (0 == leafIndex) {
+            // -> leaf index is null = unused
+            //write current value as a "compressed branch" (negative leaf index)
+            //exit immediately because no leaf needs to be stored
+            nodeArray[nidx] = ~((int)value);    //negative  //(int)
+            return true;    //added
+        } else if (0 > leafIndex) {
+            // -> leaf index is negative = used by a single "compressed branch"
+            //exit immediately if previous and current values are equal (duplicate)
+            final int prevValue = ~leafIndex;
+            if (prevValue == value) {
+                return false;   //not added
+            }
             //create a new leaf
             if (this.nextLeaf >= this.nextLeafArray) {
                 if (this.leafArrays.length <= this.numLeafArrays) {
@@ -192,17 +276,21 @@ public final class TrieSet {
             leafIndex = this.nextLeaf;
             this.nextLeaf += this.leafSize;
             nodeArray[nidx] = leafIndex;
+            //push the previous "compressed branch" further to the leaf
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevValue & this.leafMask);
+            this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (1 << (prevValue >>> this.leafShift));
         }
         final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
         final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)value & this.leafMask);  //(int)
         //set bit in leaf
         final int oldBits = leafArray[lidx];
         final int newBits = oldBits | (1 << ((int)value >>> this.leafShift));   //(int)
-        final boolean bitHasBeenAdded = (oldBits != newBits);
-        if (true == bitHasBeenAdded) {
+        if (oldBits != newBits) {
             leafArray[lidx] = newBits;
+            return true;    //added
+        } else {
+            return false;   //not added
         }
-        return bitHasBeenAdded;
     }
     
     
