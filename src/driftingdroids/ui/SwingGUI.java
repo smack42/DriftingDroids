@@ -81,6 +81,7 @@ import net.java.dev.designgridlayout.DesignGridLayout;
 import driftingdroids.model.Board;
 import driftingdroids.model.Move;
 import driftingdroids.model.Solution;
+import driftingdroids.model.Solver;
 import driftingdroids.model.SolverBFS;
 
 
@@ -213,7 +214,7 @@ public class SwingGUI implements ActionListener {
         }
     }
     
-    private String getSolverOptionsString(final SolverBFS solver) {
+    private String getSolverOptionsString(final Solver solver) {
         StringBuilder sb = new StringBuilder();
         sb.append(L10N.getString("txt.Options.text")).append('\n')
           .append("- ")
@@ -227,7 +228,7 @@ public class SwingGUI implements ActionListener {
         return sb.toString();
     }
     
-    private void setSolution(final SolverBFS solver) {
+    private void setSolution(final Solver solver) {
         this.computedSolutionList = solver.get();
         this.computedSolutionIndex = 0;
         for (int i = 0;  i < this.computedSolutionList.size();  ++i) {
@@ -314,11 +315,11 @@ public class SwingGUI implements ActionListener {
         this.solverTask.execute();
     }
     
-    private class SolverTask extends SwingWorker<SolverBFS, Object> {
+    private class SolverTask extends SwingWorker<Solver, Object> {
         @Override
-        protected SolverBFS doInBackground() throws Exception {
-            final SolverBFS solver = new SolverBFS(board);
-            solver.setOptionSolutionMode((SolverBFS.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
+        protected Solver doInBackground() throws Exception {
+            final Solver solver = new SolverBFS(board);
+            solver.setOptionSolutionMode((Solver.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
             appendSolutionText(getSolverOptionsString(solver), null);
@@ -424,9 +425,9 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.addActionListener(this);
         this.refreshJcomboRobots();
         
-        final SolverBFS.SOLUTION_MODE[] solModes = SolverBFS.SOLUTION_MODE.values();
+        final Solver.SOLUTION_MODE[] solModes = Solver.SOLUTION_MODE.values();
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
-        this.jcomboOptSolutionMode.setSelectedItem(SolverBFS.SOLUTION_MODE.MINIMUM);
+        this.jcomboOptSolutionMode.setSelectedItem(Solver.SOLUTION_MODE.MINIMUM);
         
         this.jcheckOptAllowRebounds.setText(L10N.getString("chk.AllowReboundMoves.text"));
         this.jcheckOptAllowRebounds.setSelected(true);
