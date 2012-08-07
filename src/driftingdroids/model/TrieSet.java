@@ -129,7 +129,7 @@ public final class TrieSet {
                 nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevValue & this.nodeMask);
                 nodeArray[nidx] = ~(prevValue >>> this.nodeBits);
             } else {
-                // -> node pointer is positive = go to next node
+                // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             }
             nidx = (nodeIndex & NODE_ARRAY_MASK) + (value & this.nodeMask);
@@ -225,7 +225,7 @@ public final class TrieSet {
                 // -> node index is negative = used by a single "compressed branch"
                 //exit immediately if previous and current values are equal (duplicate)
                 final int prevValue = ~nodeIndex;
-                if (prevValue == value) {
+                if (prevValue == (int)value) {  //(int)
                     return false;   //not added
                 }
                 //create a new node
@@ -244,7 +244,7 @@ public final class TrieSet {
                 nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevValue & this.nodeMask);
                 nodeArray[nidx] = ~(prevValue >>> this.nodeBits);
             } else {
-                // -> node pointer is positive = go to next node
+                // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             }
             nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);    //(int)
@@ -262,7 +262,7 @@ public final class TrieSet {
             // -> leaf index is negative = used by a single "compressed branch"
             //exit immediately if previous and current values are equal (duplicate)
             final int prevValue = ~leafIndex;
-            if (prevValue == value) {
+            if (prevValue == (int)value) {  //(int)
                 return false;   //not added
             }
             //create a new leaf
@@ -295,6 +295,106 @@ public final class TrieSet {
     
     
     
+    /**
+     * Returns <code>true</code> if this set contains the specified <tt>int</tt> value.
+     * 
+     * @param value whose presence in this set is to be tested
+     * @return <code>true</code> if this set contains the specified value
+     */
+    public final boolean contains(int value) {
+        //root node
+        int[] nodeArray = this.rootNode;
+        int nidx = value & this.nodeMask;
+        //go through nodes (with compression)
+        for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
+            nodeIndex = nodeArray[nidx];
+            value >>>= this.nodeBits;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                return false;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                return (~nodeIndex == value);
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (value & this.nodeMask);
+            }
+        }
+        //get leaf (with compression)
+        final int leafIndex = nodeArray[nidx];
+        value >>>= this.nodeBits;
+        if (0 == leafIndex) {
+            // -> leaf index is null = unused
+            return false;
+        } else if (0 > leafIndex) {
+            // -> leaf index is negative = used by a single "compressed branch"
+            return (~leafIndex == value);
+        }
+        //test bit in leaf
+        final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (value & this.leafMask);
+        return (0 != (leafArray[lidx] & (1 << (value >>> this.leafShift))));
+    }
+    
+    
+    
+    /**
+     * Returns <code>true</code> if this set contains the specified <tt>long</tt> value.
+     * 
+     * @param value whose presence in this set is to be tested
+     * @return <code>true</code> if this set contains the specified value
+     */
+    public final boolean contains(long value) {
+        //root node
+        int[] nodeArray = this.rootNode;
+        int nidx = (int)value & this.nodeMask;  //(int)
+        int nodeIndex, i;   //used by both for() loops
+        //go through nodes (without compression because value is greater than "int")
+        for (i = 1;  i < this.nodeNumberLong31;  ++i) {
+            nodeIndex = nodeArray[nidx];
+            value >>>= this.nodeBits;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                return false;
+            }
+            nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);    //(int)
+        }
+        //go through nodes (with compression because value is inside "int" range now)
+        for ( ;  i < this.nodeNumber;  ++i) {
+            nodeIndex = nodeArray[nidx];
+            value >>>= this.nodeBits;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                return false;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                return (~nodeIndex == (int)value);  //(int)
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)value & this.nodeMask);    //(int)
+            }
+        }
+        //get leaf (with compression)
+        int leafIndex = nodeArray[nidx];
+        value >>>= this.nodeBits;
+        if (0 == leafIndex) {
+            // -> leaf index is null = unused
+            return false;
+        } else if (0 > leafIndex) {
+            // -> leaf index is negative = used by a single "compressed branch"
+            return (~leafIndex == (int)value);  //(int)
+        }
+        //test bit in leaf
+        final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)value & this.leafMask);  //(int)
+        return (0 != (leafArray[lidx] & (1 << ((int)value >>> this.leafShift))));   //(int)
+    }
+    
+    
+    
     public final long getBytesAllocated() {
         long result = 0;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
@@ -314,9 +414,11 @@ public final class TrieSet {
 //    public static final void main(String[] args) {
 //        final TrieSet t = new TrieSet(32);
 //        for (long i = 0;  i < 0x100000000L;  ++i) {
-//            final boolean addedA = t.add(i);
+//            final boolean containsA = t.contains(i);
+//            final boolean addedA = t.add((int)i);
 //            final boolean addedB = t.add(i);
-//            if ((true != addedA) || (false != addedB)) {
+//            final boolean containsB = t.contains(i);
+//            if ((false != containsA) || (true != addedA) || (false != addedB) || (true != containsB)) {
 //                System.out.println("BUG!");
 //            }
 //        }
