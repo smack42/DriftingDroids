@@ -17,7 +17,6 @@
 
 package driftingdroids.model;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Formatter;
 import java.util.List;
@@ -42,7 +41,6 @@ public abstract class Solver {
     protected final int boardNumRobots;
     protected final boolean isBoardStateInt32;
     protected final boolean isBoardGoalWildcard;
-    protected final boolean[] expandRobotPositions;
     
     protected SOLUTION_MODE optSolutionMode = SOLUTION_MODE.MINIMUM;
     protected boolean optAllowRebounds = true;
@@ -67,8 +65,6 @@ public abstract class Solver {
         this.boardNumRobots = this.board.getRobotPositions().length;
         this.isBoardStateInt32 = (this.boardSizeNumBits * this.boardNumRobots <= 32);
         this.isBoardGoalWildcard = (this.board.getGoal().robotNumber < 0);
-        this.expandRobotPositions = new boolean[this.board.size];
-        Arrays.fill(this.expandRobotPositions, false);
     }
 
     protected final String stateString(final int[] state) {

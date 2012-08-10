@@ -83,6 +83,7 @@ import driftingdroids.model.Move;
 import driftingdroids.model.Solution;
 import driftingdroids.model.Solver;
 import driftingdroids.model.SolverBFS;
+import driftingdroids.model.SolverIDDFS;
 
 
 
@@ -318,7 +319,7 @@ public class SwingGUI implements ActionListener {
     private class SolverTask extends SwingWorker<Solver, Object> {
         @Override
         protected Solver doInBackground() throws Exception {
-            final Solver solver = new SolverBFS(board);
+            final Solver solver = new SolverIDDFS(board);     //SolverBFS   //SolverIDDFS
             solver.setOptionSolutionMode((Solver.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
