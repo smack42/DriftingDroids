@@ -29,7 +29,7 @@ public class SolverIDDFS extends Solver {
     
     private final int[][] states = new int[MAX_DEPTH][];
     private final boolean[][] expandRobotPositions = new boolean[MAX_DEPTH][];
-    private final KnownStates knownStates = new KnownStates();
+    private KnownStates knownStates;
     private int goalPosition;
     private int minRobotLast;
     private int depthLimit;
@@ -65,6 +65,7 @@ public class SolverIDDFS extends Solver {
         this.iddfs();
         
         this.solutionStoredStates = this.knownStates.size();
+        this.knownStates = null;    //allow garbage collection
         
         this.sortSolutions();
         this.solutionMilliSeconds = (System.nanoTime() - startExecute) / 1000000L;
@@ -74,17 +75,20 @@ public class SolverIDDFS extends Solver {
     
     
     private void iddfs() throws InterruptedException {
+        this.knownStates = null;
         
         //TODO if goal is already reached in startState, then do not add startState to knownStates
         
+        long totalStates = 0;
         for (this.depthLimit = 1;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
-            knownStates.clear(this.depthLimit);
+            this.knownStates = new KnownStates(this.knownStates);
             if (this.depthLimit > 1) {
                 dfsRecursion(1);
             } else {
                 dfsLast(1);
             }
-            System.out.println("iddfs: " + this.knownStates.infoString());
+            totalStates += this.knownStates.size();
+            System.out.println("iddfs: " + this.knownStates.infoString() + " totalStates=" + totalStates);
             if (false == this.lastResultSolutions.isEmpty()) {
                 break;  //found solution(s)
             }
@@ -115,7 +119,7 @@ public class SolverIDDFS extends Solver {
                 }
                 if (oldRoboPos != newRoboPos) { //the robot has actually moved
                     oldState[robo] = newRoboPos;
-                    if (true == knownStates.add(oldState, depth)) {  //the new state is not already known
+                    if (true == this.knownStates.add(oldState, depth)) {    //the new state is not already known
                         this.states[depth] = oldState.clone();
                         oldState[robo] = oldRoboPos;
                         if (this.depthLimit > depth1) {
@@ -152,9 +156,10 @@ public class SolverIDDFS extends Solver {
                         break;
                     }
                 }
-                if (this.goalPosition == newRoboPos) { //the robot arrived at the goal
+                //the robot has actually moved and has arrived at the goal
+                if ((oldRoboPos != newRoboPos) && (this.goalPosition == newRoboPos)) {
                     oldState[robo] = newRoboPos;
-                    if (true == knownStates.add(oldState, depth)) {  //the new state is not already known
+                    if (true == this.knownStates.add(oldState, depth)) {    //the new state is not already known
                         this.states[depth] = oldState.clone();
                         oldState[robo] = oldRoboPos;
                         //build solution
@@ -162,13 +167,13 @@ public class SolverIDDFS extends Solver {
                         int[] state0 = this.states[0].clone();
                         swapGoalLast(state0);
                         for (int i = 0;  i < depth;  ++i) {
-                            int[] state1 = this.states[i + 1].clone();
+                            final int[] state1 = this.states[i + 1].clone();
                             swapGoalLast(state1);
                             tmpSolution.add(new Move(this.board, state0, state1, i));
                             state0 = state1;
                         }
                         this.lastResultSolutions.add(tmpSolution);
-                        System.out.println(tmpSolution.toMovelistString() + " " + tmpSolution.toString() + " finalState=" + this.stateString(state0));
+                        System.out.println(tmpSolution.toMovelistString() + " " + tmpSolution.toString() + " finalState=" + this.stateString(states[depth]));
                     } else {
                         oldState[robo] = oldRoboPos;
                     }
@@ -183,14 +188,25 @@ public class SolverIDDFS extends Solver {
     private class KnownStates {
         private final AllKeys allKeys;
         
-        public KnownStates() {
-            this.allKeys = ((true == isBoardStateInt32) ? new AllKeysInt() : new AllKeysLong());
+        public KnownStates(final KnownStates previousKnownStates) {
+            this.allKeys = ((true == isBoardStateInt32) ? new AllKeysInt(previousKnownStates) : new AllKeysLong(previousKnownStates));
         }
         
         //store the unique keys of all known states
         private abstract class AllKeys {
-            protected final TrieSet[] theSets = new TrieSet[MAX_DEPTH];
+            protected final TrieSet[] theSets;
+            protected final TrieSet[] previousSets;
             public int size = 0;
+            
+            protected AllKeys(final KnownStates previousKnownStates) {
+                this.theSets = new TrieSet[MAX_DEPTH];
+                Arrays.fill(this.theSets, null);
+                for (int i = 0;  i <= depthLimit;  ++i) {
+                    this.theSets[i] = new TrieSet(Math.max(12, boardNumRobots * boardSizeNumBits));
+                }
+                this.size = 0;
+                this.previousSets = ((null == previousKnownStates) ? this.theSets : previousKnownStates.allKeys.theSets);
+            }
             
             public abstract boolean add(final int[] state, final int depth);
             
@@ -201,53 +217,54 @@ public class SolverIDDFS extends Solver {
                 }
                 return result;
             }
-            
-            public void init(final int depthLimit) {
-                Arrays.fill(this.theSets, null);
-                for (int i = 0;  i <= depthLimit;  ++i) {
-                    this.theSets[i] = new TrieSet(Math.max(12, boardNumRobots * boardSizeNumBits));
-                }
-                this.size = 0;
-            }
         }
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
         private final class AllKeysInt extends AllKeys {
             private final KeyMakerInt keyMaker = KeyMakerInt.createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+            public AllKeysInt(final KnownStates previousKnownStates) {
+                super(previousKnownStates);
+            }
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
-                for (int i = depth;  0 <= i;  --i) {
-                    if (this.theSets[i].contains(key)) {
+                for (int i = depth - 1;  0 <= i;  --i) {
+                    if (this.previousSets[i].contains(key)) {
                         return false;
                     }
                 }
-                this.theSets[depth].add(key);
-                ++this.size;
-                return true;
+                if (true == this.theSets[depth].add(key)) {
+                    ++this.size;
+                    return true;
+                } else {
+                    return false;
+                }
             }
         }
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
         private final class AllKeysLong extends AllKeys {
             private final KeyMakerLong keyMaker = KeyMakerLong.createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+            public AllKeysLong(final KnownStates previousKnownStates) {
+                super(previousKnownStates);
+            }
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
-                for (int i = depth;  0 <= i;  --i) {
-                    if (this.theSets[i].contains(key)) {
+                for (int i = depth - 1;  0 <= i;  --i) {
+                    if (this.previousSets[i].contains(key)) {
                         return false;
                     }
                 }
-                this.theSets[depth].add(key);
-                ++this.size;
-                return true;
+                if (true == this.theSets[depth].add(key)) {
+                    ++this.size;
+                    return true;
+                } else {
+                    return false;
+                }
             }
         }
 
-        public final void clear(final int depthLimit) {
-            this.allKeys.init(depthLimit);
-        }
         public boolean add(int[] state, int depth) {
             return this.allKeys.add(state, depth);
         }
