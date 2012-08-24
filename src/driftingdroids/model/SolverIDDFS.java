@@ -223,16 +223,15 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
-                final int prevDepth = 0xff & this.previousMap.get(key);
-                if (prevDepth < depth) {
-                    return false;
-                }
                 if (true == this.theMap.putIfLess(key, (byte)depth)) {
+                    final int prevDepth = 0xff & this.previousMap.get(key);
+                    if (prevDepth < depth) {
+                        return false;
+                    }
                     ++this.size;
                     return true;
-                } else {
-                    return false;
                 }
+                return false;
             }
         }
         //store the unique keys of all known states in 64-bit longs
@@ -245,16 +244,15 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
-                final int prevDepth = 0xff & this.previousMap.get(key);
-                if (prevDepth < depth) {
-                    return false;
-                }
                 if (true == this.theMap.putIfLess(key, (byte)depth)) {
+                    final int prevDepth = 0xff & this.previousMap.get(key);
+                    if (prevDepth < depth) {
+                        return false;
+                    }
                     ++this.size;
                     return true;
-                } else {
-                    return false;
                 }
+                return false;
             }
         }
 
