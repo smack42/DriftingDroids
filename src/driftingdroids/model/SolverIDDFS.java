@@ -194,27 +194,22 @@ public class SolverIDDFS extends Solver {
         
         //store the unique keys of all known states
         private abstract class AllKeys {
-            protected final TrieSet[] theSets;
-            protected final TrieSet[] previousSets;
+            protected final TrieMapUByte theMap;
+            protected final TrieMapUByte previousMap;
             public int size = 0;
             
             protected AllKeys(final KnownStates previousKnownStates) {
-                this.theSets = new TrieSet[MAX_DEPTH];
-                Arrays.fill(this.theSets, null);
-                for (int i = 0;  i <= depthLimit;  ++i) {
-                    this.theSets[i] = new TrieSet(Math.max(12, boardNumRobots * boardSizeNumBits));
-                }
                 this.size = 0;
-                this.previousSets = ((null == previousKnownStates) ? this.theSets : previousKnownStates.allKeys.theSets);
+                this.theMap = new TrieMapUByte(Math.max(12, boardNumRobots * boardSizeNumBits));
+                this.previousMap = ((null == previousKnownStates) ? this.theMap : previousKnownStates.allKeys.theMap);
             }
             
             public abstract boolean add(final int[] state, final int depth);
             
             public long getBytesAllocated() {
                 long result = 0;
-                for (int i = 0;  i < depthLimit;  ++i) {
-                    result += this.theSets[i].getBytesAllocated();
-                }
+                result += this.theMap.getBytesAllocated();
+                result += this.previousMap.getBytesAllocated();
                 return result;
             }
         }
@@ -228,12 +223,11 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
-                for (int i = depth - 1;  0 <= i;  --i) {
-                    if (this.previousSets[i].contains(key)) {
-                        return false;
-                    }
+                final int prevDepth = 0xff & this.previousMap.get(key);
+                if (prevDepth < depth) {
+                    return false;
                 }
-                if (true == this.theSets[depth].add(key)) {
+                if (true == this.theMap.putIfLess(key, (byte)depth)) {
                     ++this.size;
                     return true;
                 } else {
@@ -251,12 +245,11 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
-                for (int i = depth - 1;  0 <= i;  --i) {
-                    if (this.previousSets[i].contains(key)) {
-                        return false;
-                    }
+                final int prevDepth = 0xff & this.previousMap.get(key);
+                if (prevDepth < depth) {
+                    return false;
                 }
-                if (true == this.theSets[depth].add(key)) {
+                if (true == this.theMap.putIfLess(key, (byte)depth)) {
                     ++this.size;
                     return true;
                 } else {
