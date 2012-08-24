@@ -146,7 +146,7 @@ public class Board {
     private static final Random RANDOM = new Random();
     
     private final int[] quadrants;      // quadrants used for this board (indexes in QUADRANTS) 
-    private final byte[][] walls;       // [width*height][4] directions
+    private final byte[][] walls;       // [4][width*height] 4 directions
     private final int[] robots;         // index=robot, value=position
     private final List<Goal> goals;     // all possible goals on the board
     private final List<Goal> randomGoals;
@@ -183,7 +183,7 @@ public class Board {
         this.directionIncrement[SOUTH] = width;
         this.directionIncrement[WEST]  = -1;
         this.quadrants = new int[4];
-        this.walls = new byte[width * height][4];
+        this.walls = new byte[4][width * height];
         this.robots = new int[numRobots];
         this.goals = new ArrayList<Goal>();
         this.randomGoals = new ArrayList<Goal>();
@@ -334,16 +334,16 @@ public class Board {
         for (qY = 0;  qY < quadrant.height/2;  ++qY) {
             for (qX = 0;  qX < quadrant.width/2;  ++qX) {
                 for (int dir = 0;  dir < 4;  ++dir) {
-                    this.walls[this.transformQuadrantPosition(qX, qY, qPos)][(dir + qPos) & 3] |=
-                        quadrant.walls[qX + qY * quadrant.width][dir];
+                    this.walls[(dir + qPos) & 3][this.transformQuadrantPosition(qX, qY, qPos)] |=
+                        quadrant.walls[dir][qX + qY * quadrant.width];
                 }
             }
-            this.walls[this.transformQuadrantPosition(qX, qY, qPos)][(WEST + qPos) & 3] |=
-                quadrant.walls[qX - 1 + qY * quadrant.width][EAST];
+            this.walls[(WEST + qPos) & 3][this.transformQuadrantPosition(qX, qY, qPos)] |=
+                quadrant.walls[EAST][qX - 1 + qY * quadrant.width];
         }
         for (qX = 0;  qX < quadrant.width/2;  ++qX) {
-            this.walls[this.transformQuadrantPosition(qX, qY, qPos)][(NORTH + qPos) & 3] |=
-                quadrant.walls[qX + (qY - 1) * quadrant.width][SOUTH];
+            this.walls[(NORTH + qPos) & 3][this.transformQuadrantPosition(qX, qY, qPos)] |=
+                quadrant.walls[SOUTH][qX + (qY - 1) * quadrant.width];
         }
         //add goals
         for (Goal g : quadrant.goals) {
@@ -377,7 +377,7 @@ public class Board {
                 for (int dirIncr : this.directionIncrement) {
                     ++dir;
                     int newRoboPos = oldRoboPos;
-                    while (0 == this.walls[newRoboPos][dir]) {  //move the robot until it reaches a wall or another robot.
+                    while (0 == this.walls[dir][newRoboPos]) {  //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
                         if (expandRobotPositions[newRoboPos]) { //by outer walls. without the outer walls we would need
                             newRoboPos -= dirIncr;              //some additional boundary checking here.
@@ -512,12 +512,12 @@ public class Board {
 
     private void addWall(int x, int y, int direction) {
         if ((x >= 0) && (x < this.width) && (y >= 0) && (y < this.height)) {
-            this.walls[x + y * this.width][direction] = 1;
+            this.walls[direction][x + y * this.width] = 1;
         }
     }
 
-    private boolean isWall(int position, int direction) {
-        return (this.walls[position][direction] != 0);
+    public boolean isWall(int position, int direction) {
+        return (this.walls[direction][position] != 0);
     }
     
     private boolean isObstacle(int position) {
@@ -631,10 +631,6 @@ public class Board {
     
     public byte[][] getWalls() {
         return this.walls;
-    }
-    
-    public byte[] getWalls(int position) {
-        return this.walls[position];
     }
     
     /**

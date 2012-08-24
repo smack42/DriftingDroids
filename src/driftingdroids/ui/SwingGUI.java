@@ -882,18 +882,17 @@ public class SwingGUI implements ActionListener {
             g2d.fillRect(vWallWidth, hWallWidth, width - vWallWidth * 2, height - hWallWidth * 2);
             
             // fill the 4 walls
-            final byte[] walls = board.getWalls(this.boardPosition);
             g2d.setColor(COL_WALL);
-            if (walls[Board.NORTH] != 0) {
+            if (true == board.isWall(this.boardPosition, Board.NORTH)) {
                 g2d.fillRect(0, 0, width, hWallWidth);
             }
-            if (walls[Board.EAST] != 0) {
+            if (true == board.isWall(this.boardPosition, Board.EAST)) {
                 g2d.fillRect(width - vWallWidth, 0, width, height);
             }
-            if (walls[Board.SOUTH] != 0) { 
+            if (true == board.isWall(this.boardPosition, Board.SOUTH)) {
                 g2d.fillRect(0, height - hWallWidth, width, height);
             }
-            if (walls[Board.WEST] != 0) {
+            if (true == board.isWall(this.boardPosition, Board.WEST)) {
                 g2d.fillRect(0, 0, vWallWidth, height);
             }
             
