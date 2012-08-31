@@ -60,7 +60,7 @@ public final class TrieMapUByte {
      * if you are sure that your application uses only a subset of all <tt>int</tt> keys)
      */
     public TrieMapUByte(final int keyBits) {
-        this.nodeBits = 4;  //tuning parameter: number of value bits per internal node
+        this.nodeBits = 2;  //tuning parameter: number of value bits per internal node
         this.leafBits = 4;  //tuning parameter: number of value bits per leaf
         
         this.nodeNumber = (keyBits - this.leafBits + (this.nodeBits - 1)) / this.nodeBits;
@@ -370,20 +370,11 @@ public final class TrieMapUByte {
         //root node
         int[] nodeArray = this.rootNode;
         int nidx = key & this.nodeMask;
-        int nodeIndex, i;   //used by both for() loops
         //go through nodes (without compression because (key<<8)+value is greater than "int")
-        for (i = 1;  i < this.nodeNumberUnCompr;  ++i) {
-            nodeIndex = nodeArray[nidx];
-            key >>>= this.nodeBits;
-            if (0 == nodeIndex) {
-                return DEFAULT_VALUE;
-            }
-            nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + (key & this.nodeMask);
-        }
+        //--not necessary because the "put" methods take care of that
         //go through nodes (with compression because (key<<8)+value is inside "int" range now)
-        for ( ;  i < this.nodeNumber;  ++i) {
-            nodeIndex = nodeArray[nidx];
+        for (int i = 1;  i < this.nodeNumber;  ++i) {
+            final int nodeIndex = nodeArray[nidx];
             key >>>= this.nodeBits;
             if (0 == nodeIndex) {
                 // -> node index is null = unused
@@ -400,7 +391,7 @@ public final class TrieMapUByte {
             }
         }
         //get leaf (with compression)
-        int leafIndex = nodeArray[nidx];
+        final int leafIndex = nodeArray[nidx];
         key >>>= this.nodeBits;
         if (0 == leafIndex) {
             // -> leaf index is null = unused
@@ -432,20 +423,11 @@ public final class TrieMapUByte {
         //root node
         int[] nodeArray = this.rootNode;
         int nidx = (int)key & this.nodeMask;    //(int)
-        int nodeIndex, i;   //used by both for() loops
         //go through nodes (without compression because (key<<8)+value is greater than "int")
-        for (i = 1;  i < this.nodeNumberUnCompr;  ++i) {
-            nodeIndex = nodeArray[nidx];
-            key >>>= this.nodeBits;
-            if (0 == nodeIndex) {
-                return DEFAULT_VALUE;
-            }
-            nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.nodeMask);  //(int)
-        }
+        //--not necessary because the "put" methods take care of that
         //go through nodes (with compression because (key<<8)+value is inside "int" range now)
-        for ( ;  i < this.nodeNumber;  ++i) {
-            nodeIndex = nodeArray[nidx];
+        for (int i = 1;  i < this.nodeNumber;  ++i) {
+            final int nodeIndex = nodeArray[nidx];
             key >>>= this.nodeBits;
             if (0 == nodeIndex) {
                 // -> node index is null = unused
@@ -462,7 +444,7 @@ public final class TrieMapUByte {
             }
         }
         //get leaf (with compression)
-        int leafIndex = nodeArray[nidx];
+        final int leafIndex = nodeArray[nidx];
         key >>>= this.nodeBits;
         if (0 == leafIndex) {
             // -> leaf index is null = unused
