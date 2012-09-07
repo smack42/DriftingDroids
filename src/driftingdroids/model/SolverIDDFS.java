@@ -25,7 +25,7 @@ import java.util.List;
 
 public class SolverIDDFS extends Solver {
     
-    private static final int MAX_DEPTH = 255;
+    private static final int MAX_DEPTH = 126;
     
     private final int[][] states = new int[MAX_DEPTH][];
     private final boolean[][] expandRobotPositions = new boolean[MAX_DEPTH][];
@@ -46,7 +46,6 @@ public class SolverIDDFS extends Solver {
     
     //TODO add support for optAllowRebounds
     //TODO comply with special cases in the rules (solutions with zero or one moves are not allowed, instead a longer solution must be found because the goal robot has to ricochet at least once)
-    //TODO performance (maybe use a TrieMap instead of an array of TrieSet)
     
     @Override
     public List<Solution> execute() throws InterruptedException {
@@ -197,22 +196,22 @@ public class SolverIDDFS extends Solver {
         //store the unique keys of all known states
         private abstract class AllKeys {
             protected final TrieMapUByte theMap;
-            protected final TrieMapUByte previousMap;
             public int size = 0;
             
             protected AllKeys(final KnownStates previousKnownStates) {
                 this.size = 0;
-                this.theMap = new TrieMapUByte(Math.max(12, boardNumRobots * boardSizeNumBits));
-                this.previousMap = ((null == previousKnownStates) ? this.theMap : previousKnownStates.allKeys.theMap);
+                if (null == previousKnownStates) {
+                    this.theMap = new TrieMapUByte(Math.max(12, boardNumRobots * boardSizeNumBits));
+                } else {
+                    this.theMap = previousKnownStates.allKeys.theMap;
+                    this.theMap.allValuesOr128();
+                }
             }
             
             public abstract boolean add(final int[] state, final int depth);
             
             public long getBytesAllocated() {
-                long result = 0;
-                result += this.theMap.getBytesAllocated();
-                result += this.previousMap.getBytesAllocated();
-                return result;
+                return this.theMap.getBytesAllocated();
             }
         }
         //store the unique keys of all known states in 32-bit ints
@@ -225,11 +224,14 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
-                if (true == this.theMap.putIfLess(key, (byte)depth)) {
-                    final int prevDepth = 0xff & this.previousMap.get(key);
-                    if (prevDepth < depth) {
-                        return false;
+                final int prevDepth = 0xff & this.theMap.get(key);
+                if (0 != (prevDepth & 128)) {
+                    if ((0xff == prevDepth) || (depth <= (prevDepth ^ 128))) {
+                        this.theMap.putIfLess(key, (byte)depth);    //regular "Map.put" would be enough
+                        ++this.size;
+                        return true;
                     }
+                } else if (true == this.theMap.putIfLess(key, (byte)depth)) {
                     ++this.size;
                     return true;
                 }
@@ -246,11 +248,14 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
-                if (true == this.theMap.putIfLess(key, (byte)depth)) {
-                    final int prevDepth = 0xff & this.previousMap.get(key);
-                    if (prevDepth < depth) {
-                        return false;
+                final int prevDepth = 0xff & this.theMap.get(key);
+                if (0 != (prevDepth & 128)) {
+                    if ((0xff == prevDepth) || (depth <= (prevDepth ^ 128))) {
+                        this.theMap.putIfLess(key, (byte)depth);    //regular "Map.put" would be enough
+                        ++this.size;
+                        return true;
                     }
+                } else if (true == this.theMap.putIfLess(key, (byte)depth)) {
                     ++this.size;
                     return true;
                 }
