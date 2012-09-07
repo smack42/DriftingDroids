@@ -60,7 +60,7 @@ public final class TrieMapUByte {
      * if you are sure that your application uses only a subset of all <tt>int</tt> keys)
      */
     public TrieMapUByte(final int keyBits) {
-        this.nodeBits = 2;  //tuning parameter: number of value bits per internal node
+        this.nodeBits = 4;  //tuning parameter: number of value bits per internal node
         this.leafBits = 4;  //tuning parameter: number of value bits per leaf
         
         this.nodeNumber = (keyBits - this.leafBits + (this.nodeBits - 1)) / this.nodeBits;
@@ -462,6 +462,48 @@ public final class TrieMapUByte {
     
     
     
+    /**
+     * All values stored in this map are or'ed with byte -128 (0x80).
+     */
+    public void allValuesOr128() {
+        for(int i = 0;  this.nodeSize > i;  ++i) {
+            final int nextNodeIndex = this.rootNode[i];
+            if (0 > nextNodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                this.rootNode[i] |= 128;
+            } else if (0 < nextNodeIndex) {
+                // -> node index is positive = go to next node
+                this.allValuesOr128Nodes(2, nextNodeIndex); //recursion
+            }
+        }
+    }
+    private void allValuesOr128Nodes(final int thisNodeDepth, final int thisNodeIndex) {
+        assert 0 < thisNodeIndex : thisNodeIndex;
+        final int[] nodeArray = this.nodeArrays[thisNodeIndex >>> NODE_ARRAY_SHIFT];
+        final int nidx = thisNodeIndex & NODE_ARRAY_MASK;
+        for(int i = 0;  this.nodeSize > i;  ++i) {
+            final int nextNodeIndex = nodeArray[nidx + i];
+            if (0 > nextNodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                nodeArray[nidx + i] |= 128;
+            } else if (0 < nextNodeIndex) {
+                if (thisNodeDepth < this.nodeNumber) {
+                    // -> node index is positive = go to next node
+                    this.allValuesOr128Nodes(thisNodeDepth + 1, nextNodeIndex); //recursion
+                } else {
+                    // -> node index is positive = go to leaf node
+                    final byte[] leafArray = this.leafArrays[nextNodeIndex >>> LEAF_ARRAY_SHIFT];
+                    final int lidx = nextNodeIndex & LEAF_ARRAY_MASK;
+                    for (int j = 0;  this.leafSize > j;  ++j) {
+                        leafArray[lidx + j] |= (byte)128;
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
     public final long getBytesAllocated() {
         long result = 0;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
@@ -481,7 +523,7 @@ public final class TrieMapUByte {
      */
     public static final void main(String[] args) {
         final TrieMapUByte t = new TrieMapUByte(28);
-        for (long i = 0;  i < 0x04000000L;  ++i) {
+        for (long i = 0;  i < 0x01000000L;  ++i) {
             final byte get0 = t.get((int)i);
             final boolean putA = t.putIfLess((int)i, (byte)0x42);
             final byte getA = t.get((int)i);
@@ -495,6 +537,7 @@ public final class TrieMapUByte {
                 System.out.println("TrieMapUByte BUG! " + i);   //debugger breakpoint here
             }
         }
+        t.allValuesOr128();
         System.out.println("TrieMapUByte TEST done.");
     }
 
