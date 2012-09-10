@@ -195,13 +195,13 @@ public class SolverIDDFS extends Solver {
         
         //store the unique keys of all known states
         private abstract class AllKeys {
-            protected final TrieMapUByte theMap;
+            protected final TrieMapByte theMap;
             public int size = 0;
             
             protected AllKeys(final KnownStates previousKnownStates) {
                 this.size = 0;
                 if (null == previousKnownStates) {
-                    this.theMap = new TrieMapUByte(Math.max(12, boardNumRobots * boardSizeNumBits));
+                    this.theMap = new TrieMapByte(Math.max(12, boardNumRobots * boardSizeNumBits));
                 } else {
                     this.theMap = previousKnownStates.allKeys.theMap;
                     this.theMap.allValuesOr128();
@@ -225,13 +225,14 @@ public class SolverIDDFS extends Solver {
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
                 final int prevDepth = 0xff & this.theMap.get(key);
-                if (0 != (prevDepth & 128)) {
-                    if ((0xff == prevDepth) || (depth <= (prevDepth ^ 128))) {
-                        this.theMap.putIfLess(key, (byte)depth);    //regular "Map.put" would be enough
+                if (128 == (prevDepth & 128)) {
+                    if (depth <= (prevDepth ^ 128)) {
+                        this.theMap.put(key, (byte)depth);
                         ++this.size;
                         return true;
                     }
-                } else if (true == this.theMap.putIfLess(key, (byte)depth)) {
+                } else if (depth < prevDepth) {
+                    this.theMap.put(key, (byte)depth);
                     ++this.size;
                     return true;
                 }
@@ -249,13 +250,14 @@ public class SolverIDDFS extends Solver {
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
                 final int prevDepth = 0xff & this.theMap.get(key);
-                if (0 != (prevDepth & 128)) {
-                    if ((0xff == prevDepth) || (depth <= (prevDepth ^ 128))) {
-                        this.theMap.putIfLess(key, (byte)depth);    //regular "Map.put" would be enough
+                if (128 == (prevDepth & 128)) {
+                    if (depth <= (prevDepth ^ 128)) {
+                        this.theMap.put(key, (byte)depth);
                         ++this.size;
                         return true;
                     }
-                } else if (true == this.theMap.putIfLess(key, (byte)depth)) {
+                } else if (depth < prevDepth) {
+                    this.theMap.put(key, (byte)depth);
                     ++this.size;
                     return true;
                 }

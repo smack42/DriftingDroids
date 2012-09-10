@@ -23,15 +23,15 @@ import java.util.Arrays;
 
 /**
  * This class is a minimal <tt>Map&ltK,V&gt</tt> implementation for primitive
- * <tt>int</tt> or <tt>long</tt> keys K and unsigned <tt>byte</tt> values V,
+ * <tt>int</tt> or <tt>long</tt> keys K and <tt>byte</tt> values V,
  *  based on a trie (prefix tree) data structure.
  * <p>
  * The aim is to balance a fast recognition of duplicate keys
  * and a compact storage of data.
  */
-public final class TrieMapUByte {
+public final class TrieMapByte {
     
-    private static final byte DEFAULT_VALUE = -1;   //unsigned byte: 255
+    public static final byte DEFAULT_VALUE = -1;    //unsigned byte: 255
     
     private static final int NODE_ARRAY_SHIFT = 16;
     private static final int NODE_ARRAY_SIZE = 1 << NODE_ARRAY_SHIFT;
@@ -59,7 +59,7 @@ public final class TrieMapUByte {
      * (e.g. specify 32 if your keys are of type <tt>int</tt>, or specify a lower number
      * if you are sure that your application uses only a subset of all <tt>int</tt> keys)
      */
-    public TrieMapUByte(final int keyBits) {
+    public TrieMapByte(final int keyBits) {
         this.nodeBits = 4;  //tuning parameter: number of value bits per internal node
         this.leafBits = 4;  //tuning parameter: number of value bits per leaf
         
@@ -87,15 +87,14 @@ public final class TrieMapUByte {
     
     
     /**
-     * Adds the specified pair of <tt>int</tt> key and unsigned <tt>byte</tt> value to this map,
-     * if the key is not already present or if the new value is less than the previously stored value.
-     * 
-     * @param key to be put into this map
-     * @param value to be associated with this key in this map (treated as unsigned byte: 0 <= value <= 255)
-     * @return <code>true</code> if this map did not already contain the specified key or if the key
-     * had already been present and the new value is less than the previously stored value.
+     * Associates the specified <tt>byte</tt> value with the specified <tt>int</tt> key in this map.
+     * If the map previously contained a mapping for the key, the old value is replaced by the specified value.
+     *  
+     * @param key - key with which the specified value is to be associated
+     * @param value - value to be associated with the specified key
+     * @return the previous value associated with key, or DEFAULT_VALUE (0xff) if there was no mapping for key.
      */
-    public final boolean putIfLess(int key, final byte value) {
+    public final byte put(int key, final byte value) {
         final int intVal = 0xff & value;    //unsigned byte: 0 <= intVal <= 255
         //root node
         int[] nodeArray = this.rootNode;
@@ -130,22 +129,17 @@ public final class TrieMapUByte {
                 //write current key+value as a "compressed branch" (negative node index)
                 //exit immediately because no further nodes and no leaf need to be stored
                 nodeArray[nidx] = ((~key) << 8) | intVal;   //negative
-                return true;    //added
+                return DEFAULT_VALUE;   //added
             } else if (0 > nodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
                 final int prevKey = (~nodeIndex) >> 8;
                 final int prevVal = 0xff & nodeIndex;
                 //previous and current keys are equal (duplicate key)
-                //put new value if it's less than previous value.
-                //exit immediately if new value is equal or greater than previous value
                 if (prevKey == key) {
-                    if (intVal < prevVal) {
-                        nodeArray[nidx] = (nodeIndex ^ prevVal) | intVal;   //negative
-                        return true;    //added
-                    } else {
-                        return false;   //not added
-                    }
+                    nodeArray[nidx] = (nodeIndex ^ prevVal) | intVal;   //negative
+                    return (byte)prevVal;   //added
                 }
+                //previous and current keys are not equal
                 //create a new node
                 if (this.nextNode >= this.nextNodeArray) {
                     if (this.nodeArrays.length <= this.numNodeArrays) {
@@ -160,7 +154,7 @@ public final class TrieMapUByte {
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
                 nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.nodeMask);
-                nodeArray[nidx] = (~(prevKey >>> this.nodeBits) << 8) | intVal; //negative
+                nodeArray[nidx] = (~(prevKey >>> this.nodeBits) << 8) | prevVal;    //negative
             } else {
                 // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
@@ -175,22 +169,17 @@ public final class TrieMapUByte {
             //write current value as a "compressed branch" (negative leaf index)
             //exit immediately because no leaf needs to be stored
             nodeArray[nidx] = ((~key) << 8) | intVal;   //negative
-            return true;    //added
+            return DEFAULT_VALUE;   //added
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
             final int prevKey = (~leafIndex) >> 8;
             final int prevVal = 0xff & leafIndex;
             //previous and current keys are equal (duplicate key)
-            //put new value if it's less than previous value.
-            //exit immediately if new value is equal or greater than previous value
             if (prevKey == key) {
-                if (intVal < prevVal) {
-                    nodeArray[nidx] = (leafIndex ^ prevVal) | intVal;   //negative
-                    return true;    //added
-                } else {
-                    return false;   //not added
-                }
+                nodeArray[nidx] = (leafIndex ^ prevVal) | intVal;   //negative
+                return (byte)prevVal;   //added
             }
+            //previous and current keys are not equal
             //create a new leaf
             if (this.nextLeaf >= this.nextLeafArray) {
                 if (this.leafArrays.length <= this.numLeafArrays) {
@@ -210,29 +199,24 @@ public final class TrieMapUByte {
         }
         final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
         final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (key & this.leafMask);
-        final int prevVal = 0xff & leafArray[lidx];
-        if (intVal < prevVal) {
-            leafArray[lidx] = value;
-            return true;    //added
-        } else {
-            return false;   //not added
-        }
+        final byte prevVal = leafArray[lidx];
+        leafArray[lidx] = value;
+        return prevVal; //added
     }
     
     
     
     /**
-     * Adds the specified pair of <tt>long</tt> key and unsigned <tt>byte</tt> value to this map,
-     * if the key is not already present or if the new value is less than the previously stored value.
-     * 
-     * @param key to be put into this map
-     * @param value to be associated with this key in this map (treated as unsigned byte: 0 <= value <= 255)
-     * @return <code>true</code> if this map did not already contain the specified key or if the key
-     * had already been present and the new value is less than the previously stored value.
+     * Associates the specified <tt>byte</tt> value with the specified <tt>long</tt> key in this map.
+     * If the map previously contained a mapping for the key, the old value is replaced by the specified value.
+     *  
+     * @param key - key with which the specified value is to be associated
+     * @param value - value to be associated with the specified key
+     * @return the previous value associated with key, or DEFAULT_VALUE (0xff) if there was no mapping for key.
      */
-    //this method is copy&paste from putIfLess(int,byte) with only a few (int) casts
-    //added where required, those lines are marked with //(int)
-    public final boolean putIfLess(long key, final byte value) {
+    //this method is copy&paste from put(int,byte) with only a few (int) casts added where required.
+    //those lines are marked with //(int)
+    public final byte put(long key, final byte value) {
         final int intVal = 0xff & value;    //unsigned byte: 0 <= intVal <= 255
         //root node
         int[] nodeArray = this.rootNode;
@@ -267,22 +251,17 @@ public final class TrieMapUByte {
                 //write current key+value as a "compressed branch" (negative node index)
                 //exit immediately because no further nodes and no leaf need to be stored
                 nodeArray[nidx] = ((~(int)key) << 8) | intVal;  //negative  //(int)
-                return true;    //added
+                return DEFAULT_VALUE;   //added
             } else if (0 > nodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
                 final int prevKey = (~nodeIndex) >> 8;
                 final int prevVal = 0xff & nodeIndex;
                 //previous and current keys are equal (duplicate key)
-                //put new value if it's less than previous value.
-                //exit immediately if new value is equal or greater than previous value
                 if (prevKey == (int)key) {  //(int)
-                    if (intVal < prevVal) {
-                        nodeArray[nidx] = (nodeIndex ^ prevVal) | intVal;   //negative
-                        return true;    //added
-                    } else {
-                        return false;   //not added
-                    }
+                    nodeArray[nidx] = (nodeIndex ^ prevVal) | intVal;   //negative
+                    return (byte)prevVal;   //added
                 }
+                //previous and current keys are not equal
                 //create a new node
                 if (this.nextNode >= this.nextNodeArray) {
                     if (this.nodeArrays.length <= this.numNodeArrays) {
@@ -297,7 +276,7 @@ public final class TrieMapUByte {
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
                 nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.nodeMask);
-                nodeArray[nidx] = (~(prevKey >>> this.nodeBits) << 8) | intVal; //negative
+                nodeArray[nidx] = (~(prevKey >>> this.nodeBits) << 8) | prevVal;    //negative
             } else {
                 // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
@@ -312,22 +291,17 @@ public final class TrieMapUByte {
             //write current value as a "compressed branch" (negative leaf index)
             //exit immediately because no leaf needs to be stored
             nodeArray[nidx] = ((~(int)key) << 8) | intVal;  //negative  //(int)
-            return true;    //added
+            return DEFAULT_VALUE;   //added
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
             final int prevKey = (~leafIndex) >> 8;
             final int prevVal = 0xff & leafIndex;
             //previous and current keys are equal (duplicate key)
-            //put new value if it's less than previous value.
-            //exit immediately if new value is equal or greater than previous value
             if (prevKey == (int)key) {  //(int)
-                if (intVal < prevVal) {
-                    nodeArray[nidx] = (leafIndex ^ prevVal) | intVal;   //negative
-                    return true;    //added
-                } else {
-                    return false;   //not added
-                }
+                nodeArray[nidx] = (leafIndex ^ prevVal) | intVal;   //negative
+                return (byte)prevVal;   //added
             }
+            //previous and current keys are not equal
             //create a new leaf
             if (this.nextLeaf >= this.nextLeafArray) {
                 if (this.leafArrays.length <= this.numLeafArrays) {
@@ -347,13 +321,9 @@ public final class TrieMapUByte {
         }
         final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
         final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)key & this.leafMask);    //(int)
-        final int prevVal = 0xff & leafArray[lidx];
-        if (intVal < prevVal) {
-            leafArray[lidx] = value;
-            return true;    //added
-        } else {
-            return false;   //not added
-        }
+        final byte prevVal = leafArray[lidx];
+        leafArray[lidx] = value;
+        return prevVal; //added
     }
     
     
@@ -417,8 +387,8 @@ public final class TrieMapUByte {
      * @return the value to which the specified key is mapped, or DEFAULT_VALUE (0xff)
      * if this map contains no mapping for the key
      */
-    //this method is copy&paste from get(int) with only a few (int) casts
-    //added where required, those lines are marked with //(int)
+    //this method is copy&paste from get(int) with only a few (int) casts added where required.
+    //those lines are marked with //(int)
     public final byte get(long key) {
         //root node
         int[] nodeArray = this.rootNode;
@@ -517,28 +487,28 @@ public final class TrieMapUByte {
     
     
     
-    /**
-     * A simple test case for this class.
-     * @param args not used
-     */
-    public static final void main(String[] args) {
-        final TrieMapUByte t = new TrieMapUByte(28);
-        for (long i = 0;  i < 0x01000000L;  ++i) {
-            final byte get0 = t.get((int)i);
-            final boolean putA = t.putIfLess((int)i, (byte)0x42);
-            final byte getA = t.get((int)i);
-            final boolean putB = t.putIfLess((int)i, (byte)  42);
-            final byte getB = t.get((int)i);
-            final boolean putC = t.putIfLess((int)i, (byte)0x42);
-            final byte getC = t.get((int)i);
-            if ((DEFAULT_VALUE != get0) || (true != putA) || ((byte)0x42 != getA)
-                    || (true != putB) || ((byte)42 != getB)
-                    || (false != putC) || ((byte)42 != getC)) {
-                System.out.println("TrieMapUByte BUG! " + i);   //debugger breakpoint here
-            }
-        }
-        t.allValuesOr128();
-        System.out.println("TrieMapUByte TEST done.");
-    }
+//    /**
+//     * A simple test case for this class.
+//     * @param args not used
+//     */
+//    public static final void main(String[] args) {
+//        final TrieMapUByte t = new TrieMapUByte(28);
+//        for (long i = 0;  i < 0x01000000L;  ++i) {
+//            final byte get0 = t.get((int)i);
+//            final byte putA = t.put((int)i, (byte)0x42);
+//            final byte getA = t.get((int)i);
+//            final byte putB = t.put((int)i, (byte)  42);
+//            final byte getB = t.get((int)i);
+//            final byte putC = t.put((int)i, (byte)0x42);
+//            final byte getC = t.get((int)i);
+//            if ((DEFAULT_VALUE != get0) || (get0 != putA) || ((byte)0x42 != getA)
+//                    || (getA != putB) || ((byte)42 != getB)
+//                    || (getB != putC) || ((byte)0x42 != getC)) {
+//                System.out.println("TrieMapUByte BUG! " + i);   //debugger breakpoint here
+//            }
+//        }
+//        t.allValuesOr128();
+//        System.out.println("TrieMapUByte TEST done.");
+//    }
 
 }
