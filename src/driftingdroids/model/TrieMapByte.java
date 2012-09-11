@@ -53,7 +53,7 @@ public final class TrieMapByte {
     
     
     /**
-     * Constructs an empty TrieMapUByte that is tuned to the expected bit-size of keys.
+     * Constructs an empty TrieMapByte that is tuned to the expected bit-size of keys.
      * 
      * @param keyBits the maximum number of bits used by any key that will be put into the map.
      * (e.g. specify 32 if your keys are of type <tt>int</tt>, or specify a lower number
@@ -95,7 +95,6 @@ public final class TrieMapByte {
      * @return the previous value associated with key, or DEFAULT_VALUE (0xff) if there was no mapping for key.
      */
     public final byte put(int key, final byte value) {
-        final int intVal = 0xff & value;    //unsigned byte: 0 <= intVal <= 255
         //root node
         int[] nodeArray = this.rootNode;
         int nidx = key & this.nodeMask;
@@ -128,7 +127,7 @@ public final class TrieMapByte {
                 // -> node index is null = unused
                 //write current key+value as a "compressed branch" (negative node index)
                 //exit immediately because no further nodes and no leaf need to be stored
-                nodeArray[nidx] = ((~key) << 8) | intVal;   //negative
+                nodeArray[nidx] = ((~key) << 8) | (0xff & value);   //negative
                 return DEFAULT_VALUE;   //added
             } else if (0 > nodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
@@ -136,7 +135,7 @@ public final class TrieMapByte {
                 final int prevVal = 0xff & nodeIndex;
                 //previous and current keys are equal (duplicate key)
                 if (prevKey == key) {
-                    nodeArray[nidx] = (nodeIndex ^ prevVal) | intVal;   //negative
+                    nodeArray[nidx] = (nodeIndex ^ prevVal) | (0xff & value);   //negative
                     return (byte)prevVal;   //added
                 }
                 //previous and current keys are not equal
@@ -168,7 +167,7 @@ public final class TrieMapByte {
             // -> leaf index is null = unused
             //write current value as a "compressed branch" (negative leaf index)
             //exit immediately because no leaf needs to be stored
-            nodeArray[nidx] = ((~key) << 8) | intVal;   //negative
+            nodeArray[nidx] = ((~key) << 8) | (0xff & value);   //negative
             return DEFAULT_VALUE;   //added
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
@@ -176,7 +175,7 @@ public final class TrieMapByte {
             final int prevVal = 0xff & leafIndex;
             //previous and current keys are equal (duplicate key)
             if (prevKey == key) {
-                nodeArray[nidx] = (leafIndex ^ prevVal) | intVal;   //negative
+                nodeArray[nidx] = (leafIndex ^ prevVal) | (0xff & value);   //negative
                 return (byte)prevVal;   //added
             }
             //previous and current keys are not equal
@@ -217,7 +216,6 @@ public final class TrieMapByte {
     //this method is copy&paste from put(int,byte) with only a few (int) casts added where required.
     //those lines are marked with //(int)
     public final byte put(long key, final byte value) {
-        final int intVal = 0xff & value;    //unsigned byte: 0 <= intVal <= 255
         //root node
         int[] nodeArray = this.rootNode;
         int nidx = (int)key & this.nodeMask;    //(int)
@@ -250,7 +248,7 @@ public final class TrieMapByte {
                 // -> node index is null = unused
                 //write current key+value as a "compressed branch" (negative node index)
                 //exit immediately because no further nodes and no leaf need to be stored
-                nodeArray[nidx] = ((~(int)key) << 8) | intVal;  //negative  //(int)
+                nodeArray[nidx] = ((~(int)key) << 8) | (0xff & value);  //negative  //(int)
                 return DEFAULT_VALUE;   //added
             } else if (0 > nodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
@@ -258,7 +256,7 @@ public final class TrieMapByte {
                 final int prevVal = 0xff & nodeIndex;
                 //previous and current keys are equal (duplicate key)
                 if (prevKey == (int)key) {  //(int)
-                    nodeArray[nidx] = (nodeIndex ^ prevVal) | intVal;   //negative
+                    nodeArray[nidx] = (nodeIndex ^ prevVal) | (0xff & value);   //negative
                     return (byte)prevVal;   //added
                 }
                 //previous and current keys are not equal
@@ -290,7 +288,7 @@ public final class TrieMapByte {
             // -> leaf index is null = unused
             //write current value as a "compressed branch" (negative leaf index)
             //exit immediately because no leaf needs to be stored
-            nodeArray[nidx] = ((~(int)key) << 8) | intVal;  //negative  //(int)
+            nodeArray[nidx] = ((~(int)key) << 8) | (0xff & value);  //negative  //(int)
             return DEFAULT_VALUE;   //added
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
@@ -298,7 +296,7 @@ public final class TrieMapByte {
             final int prevVal = 0xff & leafIndex;
             //previous and current keys are equal (duplicate key)
             if (prevKey == (int)key) {  //(int)
-                nodeArray[nidx] = (leafIndex ^ prevVal) | intVal;   //negative
+                nodeArray[nidx] = (leafIndex ^ prevVal) | (0xff & value);   //negative
                 return (byte)prevVal;   //added
             }
             //previous and current keys are not equal
@@ -345,35 +343,30 @@ public final class TrieMapByte {
         //go through nodes (with compression because (key<<8)+value is inside "int" range now)
         for (int i = 1;  i < this.nodeNumber;  ++i) {
             final int nodeIndex = nodeArray[nidx];
-            key >>>= this.nodeBits;
             if (0 == nodeIndex) {
                 // -> node index is null = unused
                 return DEFAULT_VALUE;
             } else if (0 > nodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
-                final int prevKey = (~nodeIndex) >> 8;
-                final byte prevVal = (byte)nodeIndex;
-                return ((prevKey == key) ? prevVal : DEFAULT_VALUE);
+                return ((((~nodeIndex) >> 8) == (key >>> this.nodeBits)) ? (byte)nodeIndex : DEFAULT_VALUE);
             } else {
                 // -> node index is positive = go to next node
+                key >>>= this.nodeBits;
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
                 nidx = (nodeIndex & NODE_ARRAY_MASK) + (key & this.nodeMask);
             }
         }
         //get leaf (with compression)
         final int leafIndex = nodeArray[nidx];
-        key >>>= this.nodeBits;
         if (0 == leafIndex) {
             // -> leaf index is null = unused
             return DEFAULT_VALUE;
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
-            final int prevKey = (~leafIndex) >> 8;
-            final byte prevVal = (byte)leafIndex;
-            return ((prevKey == key) ? prevVal : DEFAULT_VALUE);
+            return ((((~leafIndex) >> 8) == (key >>> this.nodeBits)) ? (byte)leafIndex : DEFAULT_VALUE);
         }
         final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
-        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (key & this.leafMask);
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((key >>> this.nodeBits) & this.leafMask);
         return leafArray[lidx];
     }
     
@@ -398,35 +391,30 @@ public final class TrieMapByte {
         //go through nodes (with compression because (key<<8)+value is inside "int" range now)
         for (int i = 1;  i < this.nodeNumber;  ++i) {
             final int nodeIndex = nodeArray[nidx];
-            key >>>= this.nodeBits;
             if (0 == nodeIndex) {
                 // -> node index is null = unused
                 return DEFAULT_VALUE;
             } else if (0 > nodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
-                final int prevKey = (~nodeIndex) >> 8;
-                final byte prevVal = (byte)nodeIndex;
-                return ((prevKey == (int)key) ? prevVal : DEFAULT_VALUE);   //(int)
+                return ((((~nodeIndex) >> 8) == (int)(key >>> this.nodeBits)) ? (byte)nodeIndex : DEFAULT_VALUE);   //(int)
             } else {
                 // -> node index is positive = go to next node
+                key >>>= this.nodeBits;
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
                 nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.nodeMask);  //(int)
             }
         }
         //get leaf (with compression)
         final int leafIndex = nodeArray[nidx];
-        key >>>= this.nodeBits;
         if (0 == leafIndex) {
             // -> leaf index is null = unused
             return DEFAULT_VALUE;
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
-            final int prevKey = (~leafIndex) >> 8;
-            final byte prevVal = (byte)leafIndex;
-            return ((prevKey == (int)key) ? prevVal : DEFAULT_VALUE);   //(int)
+            return ((((~leafIndex) >> 8) == (int)(key >>> this.nodeBits)) ? (byte)leafIndex : DEFAULT_VALUE);   //(int)
         }
         final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
-        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)key & this.leafMask);    //(int)
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)(key >>> this.nodeBits) & this.leafMask);    //(int)
         return leafArray[lidx];
     }
     
@@ -474,6 +462,11 @@ public final class TrieMapByte {
     
     
     
+    /**
+     * Returns the number of bytes that are allocated by this map's internal data structures.
+     * 
+     * @return number of bytes allocated by this map.
+     */
     public final long getBytesAllocated() {
         long result = 0;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
@@ -492,7 +485,7 @@ public final class TrieMapByte {
 //     * @param args not used
 //     */
 //    public static final void main(String[] args) {
-//        final TrieMapUByte t = new TrieMapUByte(28);
+//        final TrieMapByte t = new TrieMapByte(28);
 //        for (long i = 0;  i < 0x01000000L;  ++i) {
 //            final byte get0 = t.get((int)i);
 //            final byte putA = t.put((int)i, (byte)0x42);
@@ -504,11 +497,11 @@ public final class TrieMapByte {
 //            if ((DEFAULT_VALUE != get0) || (get0 != putA) || ((byte)0x42 != getA)
 //                    || (getA != putB) || ((byte)42 != getB)
 //                    || (getB != putC) || ((byte)0x42 != getC)) {
-//                System.out.println("TrieMapUByte BUG! " + i);   //debugger breakpoint here
+//                System.out.println("TrieMapByte BUG! " + i);    //debugger breakpoint here
 //            }
 //        }
 //        t.allValuesOr128();
-//        System.out.println("TrieMapUByte TEST done.");
+//        System.out.println("TrieMapByte TEST done.");
 //    }
 
 }
