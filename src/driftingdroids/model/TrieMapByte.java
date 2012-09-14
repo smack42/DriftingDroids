@@ -438,12 +438,12 @@ public final class TrieMapByte {
     private void allValuesOr128Nodes(final int thisNodeDepth, final int thisNodeIndex) {
         assert 0 < thisNodeIndex : thisNodeIndex;
         final int[] nodeArray = this.nodeArrays[thisNodeIndex >>> NODE_ARRAY_SHIFT];
-        final int nidx = thisNodeIndex & NODE_ARRAY_MASK;
-        for(int i = 0;  this.nodeSize > i;  ++i) {
-            final int nextNodeIndex = nodeArray[nidx + i];
+        int nidx = thisNodeIndex & NODE_ARRAY_MASK;
+        for(int i = 0;  this.nodeSize > i;  ++i, ++nidx) {
+            final int nextNodeIndex = nodeArray[nidx];
             if (0 > nextNodeIndex) {
                 // -> node index is negative = used by a single "compressed branch"
-                nodeArray[nidx + i] |= 128;
+                nodeArray[nidx] |= 128;
             } else if (0 < nextNodeIndex) {
                 if (thisNodeDepth < this.nodeNumber) {
                     // -> node index is positive = go to next node
@@ -451,9 +451,9 @@ public final class TrieMapByte {
                 } else {
                     // -> node index is positive = go to leaf node
                     final byte[] leafArray = this.leafArrays[nextNodeIndex >>> LEAF_ARRAY_SHIFT];
-                    final int lidx = nextNodeIndex & LEAF_ARRAY_MASK;
+                    int lidx = nextNodeIndex & LEAF_ARRAY_MASK;
                     for (int j = 0;  this.leafSize > j;  ++j) {
-                        leafArray[lidx + j] |= (byte)128;
+                        leafArray[lidx++] |= (byte)128;
                     }
                 }
             }

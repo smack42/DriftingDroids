@@ -97,14 +97,15 @@ public class SolverIDDFS extends Solver {
     
     
     private void dfsRecursion(final int depth) throws InterruptedException {
-        if (Thread.interrupted()) { throw new InterruptedException(); }
+        //if (Thread.interrupted()) { throw new InterruptedException(); }
         final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] oldState = this.states[depth - 1];
         final int depth1 = depth + 1;
         for (int pos : oldState) { expandRobotPositions[pos] = true; }
         //move all robots
-        for (int robo = 0;  robo < oldState.length;  ++robo) {
-            final int oldRoboPos = oldState[robo];
+        int robo = -1;
+        for (int oldRoboPos : oldState) {
+            ++robo;
             int dir = -1;
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
@@ -139,6 +140,7 @@ public class SolverIDDFS extends Solver {
     
     
     private void dfsLast(final int depth) throws InterruptedException {
+        if (Thread.interrupted()) { throw new InterruptedException(); }
         final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] oldState = this.states[depth - 1];
         for (int pos : oldState) { expandRobotPositions[pos] = true; }
@@ -224,14 +226,14 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
-                final int prevDepth = 0xff & this.theMap.get(key);
-                if (128 == (prevDepth & 128)) {
-                    if (depth <= (prevDepth ^ 128)) {
+                final byte prevDepth = this.theMap.get(key);
+                if (0x80 == (0x80 & prevDepth)) {
+                    if (depth <= (0x7f & prevDepth)) {
                         this.theMap.put(key, (byte)depth);
                         ++this.size;
                         return true;
                     }
-                } else if (depth < prevDepth) {
+                } else if (depth < (0x7f & prevDepth)) {
                     this.theMap.put(key, (byte)depth);
                     ++this.size;
                     return true;
@@ -249,14 +251,14 @@ public class SolverIDDFS extends Solver {
             @Override
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
-                final int prevDepth = 0xff & this.theMap.get(key);
-                if (128 == (prevDepth & 128)) {
-                    if (depth <= (prevDepth ^ 128)) {
+                final byte prevDepth = this.theMap.get(key);
+                if (0x80 == (0x80 & prevDepth)) {
+                    if (depth <= (0x7f & prevDepth)) {
                         this.theMap.put(key, (byte)depth);
                         ++this.size;
                         return true;
                     }
-                } else if (depth < prevDepth) {
+                } else if (depth < (0x7f & prevDepth)) {
                     this.theMap.put(key, (byte)depth);
                     ++this.size;
                     return true;
