@@ -756,16 +756,7 @@ public class SwingGUI implements ActionListener {
             this.jbutPrevMove.setEnabled(true);
             this.jbutAllMoves.setEnabled(true);
             this.jbutNoMoves.setEnabled(true);
-            if (this.board.getGoal().robotNumber < 0) {
-                for (int pos : this.currentPosition) {
-                    if ((pos == this.board.getGoal().position) || (this.computedSolutionList.get(this.computedSolutionIndex).size() < 1)) {
-                        this.jbutNextMove.setEnabled(false);
-                        this.jbutAllMoves.setEnabled(false);
-                        break;
-                    }
-                }
-            } else if ((this.currentPosition[this.board.getGoal().robotNumber] == this.board.getGoal().position)
-                    || (this.computedSolutionList.get(this.computedSolutionIndex).size() < 1)){
+            if (this.moves.size() == this.computedSolutionList.get(this.computedSolutionIndex).size()) {
                 this.jbutNextMove.setEnabled(false);
                 this.jbutAllMoves.setEnabled(false);
             }
