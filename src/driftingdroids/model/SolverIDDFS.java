@@ -34,6 +34,9 @@ public class SolverIDDFS extends Solver {
     private KnownStates knownStates;
     private final int goalPosition;
     private final int minRobotLast;
+    private final int goalRobot;
+    private final boolean isSolution01;
+    
     private int depthLimit;
     
 
@@ -46,7 +49,9 @@ public class SolverIDDFS extends Solver {
         this.states = new int[MAX_DEPTH][this.board.getRobotPositions().length];
         this.directions = new int[MAX_DEPTH][this.board.getRobotPositions().length];
         this.goalPosition = this.board.getGoal().position;
-        this.minRobotLast = (this.isBoardGoalWildcard ? 0 : this.states[0].length - 1);
+        this.minRobotLast = (this.isBoardGoalWildcard ? 0 : this.states[0].length - 1); //swapGoalLast
+        this.goalRobot = (this.isBoardGoalWildcard ? this.board.getGoal().robotNumber : this.minRobotLast); //swapGoalLast
+        this.isSolution01 = this.board.isSolution01();
     }
     
     
@@ -105,9 +110,11 @@ public class SolverIDDFS extends Solver {
         //if (Thread.interrupted()) { throw new InterruptedException(); }
         final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] oldState = this.states[depth - 1];
+        final int[] newState = this.states[depth];
         final int[] oldDirs = this.directions[depth - 1];
         final int depth1 = depth + 1;
         for (int pos : oldState) { expandRobotPositions[pos] = true; }
+        System.arraycopy(oldState, 0, newState, 0, oldState.length);
         //move all robots
         int robo = -1;
         for (int oldRoboPos : oldState) {
@@ -126,11 +133,16 @@ public class SolverIDDFS extends Solver {
                             break;
                         }
                     }
-                    if (oldRoboPos != newRoboPos) { //the robot has actually moved
-                        oldState[robo] = newRoboPos;
-                        if (true == this.knownStates.add(oldState, depth)) {    //the new state is not already known
-                            System.arraycopy(oldState, 0, this.states[depth], 0, oldState.length);
-                            oldState[robo] = oldRoboPos;
+                    //the robot has actually moved
+                    //special case (isSolution01): the goal robot has _NOT_ arrived at the goal
+                    if ((oldRoboPos != newRoboPos)
+                            && ((false == this.isSolution01)
+                                    || !((this.goalPosition == newRoboPos) && ((this.goalRobot == robo) || (this.goalRobot < 0))))
+                            ) {
+                        newState[robo] = newRoboPos;
+                        //special case (isSolution01): we must be able to visit states more than once, so we don't add them to knownStates
+                        //the new state is not already known (i.e. stored in knownStates)
+                        if ((true == this.isSolution01) || true == this.knownStates.add(newState, depth)) {
                             final int[] newDirs = this.directions[depth];
                             System.arraycopy(oldDirs, 0, newDirs, 0, oldDirs.length);
                             newDirs[robo] = dir;
@@ -139,12 +151,11 @@ public class SolverIDDFS extends Solver {
                             } else {
                                 dfsLast(depth1);
                             }
-                        } else {
-                            oldState[robo] = oldRoboPos;
                         }
                     }
                 }
             }
+            newState[robo] = oldRoboPos;
         }
         for (int pos : oldState) { expandRobotPositions[pos] = false; }
     }
@@ -175,7 +186,8 @@ public class SolverIDDFS extends Solver {
                         }
                     }
                     //the robot has actually moved and has arrived at the goal
-                    if ((this.goalPosition == newRoboPos) && (oldRoboPos != newRoboPos)) {
+                    if ((this.goalPosition == newRoboPos) && (oldRoboPos != newRoboPos)
+                            && hasPerpendicularMove(depth, robo, dir)) {
                         oldState[robo] = newRoboPos;
                         if (true == this.knownStates.add(oldState, depth)) {    //the new state is not already known
                             System.arraycopy(oldState, 0, this.states[depth], 0, oldState.length);
@@ -189,6 +201,23 @@ public class SolverIDDFS extends Solver {
             }
         }
         for (int pos : oldState) { expandRobotPositions[pos] = false; }
+    }
+    
+    
+    
+    private boolean hasPerpendicularMove(final int depth, final int robot, final int lastDir) {
+        int prevDir = this.directions[0][robot];
+        for (int i = 1;  depth > i;  ++i) {
+            final int thisDir = this.directions[i][robot];
+            if ((((thisDir + 1) & 3) == prevDir) || (((thisDir + 3) & 3) == prevDir)) {
+                return true;
+            }
+            prevDir = thisDir;
+        }
+        if ((((lastDir + 1) & 3) == prevDir) || (((lastDir + 3) & 3) == prevDir)) {
+            return true;
+        }
+        return false;
     }
     
     
