@@ -285,12 +285,12 @@ public class SolverBFS extends Solver {
         final List<int[]> result = new ArrayList<int[]>();
         final int depth = knownStates.depth();
         if (depth > 0) {
-            final int[][] tmpStates = new int[depth][this.boardNumRobots];
+            final int[][] tmpStates = new int[depth][this.board.getNumRobots()];
             final boolean haveResult;
             if (true == this.optAllowRebounds) {
                 haveResult = this.doPathDFS(finalState.clone(), knownStates, depth-1, result, tmpStates);
             } else {
-                final int[] tmpDirs = new int[this.boardNumRobots];
+                final int[] tmpDirs = new int[this.board.getNumRobots()];
                 haveResult = this.doPathDFSNoRebound(finalState.clone(), knownStates, depth-1, result, tmpStates, tmpDirs);
             }
             if (true == haveResult) {
@@ -440,8 +440,8 @@ public class SolverBFS extends Solver {
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
         private final class AllKeysInt extends AllKeys {
-            private final TrieSet theSet = new TrieSet(Math.max(12, boardNumRobots * boardSizeNumBits));
-            private final KeyMakerInt keyMaker = KeyMakerInt.createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+            private final TrieSet theSet = new TrieSet(Math.max(12, board.getNumRobots() * board.sizeNumBits));
+            private final KeyMakerInt keyMaker = KeyMakerInt.createInstance(board.getNumRobots(), board.sizeNumBits, isBoardGoalWildcard);
             @Override
             public final boolean add(final int[] state) {
                 final int key = this.keyMaker.run(state);
@@ -455,8 +455,8 @@ public class SolverBFS extends Solver {
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
         private final class AllKeysLong extends AllKeys {
-            private final TrieSet theSet = new TrieSet(boardNumRobots * boardSizeNumBits);
-            private final KeyMakerLong keyMaker = KeyMakerLong.createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+            private final TrieSet theSet = new TrieSet(board.getNumRobots() * board.sizeNumBits);
+            private final KeyMakerLong keyMaker = KeyMakerLong.createInstance(board.getNumRobots(), board.sizeNumBits, isBoardGoalWildcard);
             @Override
             public final boolean add(final int[] state) {
                 final long key = this.keyMaker.run(state);
@@ -490,8 +490,8 @@ public class SolverBFS extends Solver {
                     this.iterStart = depthBegin.get(depth).intValue();
                     this.iterEnd = ((depth + 1 < depthBegin.size()) ? depthBegin.get(depth + 1).intValue() : numStates);
                     this.iterCurrent = this.iterStart;
-                    this.iterArrayNum = (this.iterStart * boardNumRobots) / ARRAY_SIZE;
-                    this.iterOffset = (this.iterStart * boardNumRobots) % ARRAY_SIZE;
+                    this.iterArrayNum = (this.iterStart * board.getNumRobots()) / ARRAY_SIZE;
+                    this.iterOffset = (this.iterStart * board.getNumRobots()) % ARRAY_SIZE;
                 }
                 public int size() {
                     return this.iterEnd - this.iterStart;
@@ -507,7 +507,7 @@ public class SolverBFS extends Solver {
             private byte[] addArray = null;
             @Override
             public final void add(final int[] state) {
-                assert 8 >= boardSizeNumBits : boardSizeNumBits;
+                assert 8 >= board.sizeNumBits : board.sizeNumBits;
                 //if necessary, allocate an additional array and append it to the list
                 if (this.addOffset >= this.ARRAY_SIZE) {
                     if (this.allStatesArrays.length <= this.addArrayNum) {
@@ -663,13 +663,13 @@ public class SolverBFS extends Solver {
                 return this.allStatesIter.size();
             }
             public boolean next(final int[] resultState) {
-                assert resultState.length == boardNumRobots : resultState.length;
+                assert resultState.length == board.getNumRobots() : resultState.length;
                 return this.allStatesIter.next(resultState);
             }
             public boolean next(final int[] resultState, final int[] resultDirs) {
                 assert this.allStatesIter.size() == this.allDirsIter.size();
-                assert resultState.length == boardNumRobots : resultState.length;
-                assert resultDirs.length == boardNumRobots : resultDirs.length;
+                assert resultState.length == board.getNumRobots() : resultState.length;
+                assert resultDirs.length == board.getNumRobots() : resultDirs.length;
                 this.allDirsIter.next(resultDirs);
                 return this.allStatesIter.next(resultState);
             }
@@ -683,17 +683,17 @@ public class SolverBFS extends Solver {
         }
         
         public final boolean addKey(final int[] state) {
-            assert state.length == boardNumRobots : state.length;
+            assert state.length == board.getNumRobots() : state.length;
             return this.allKeys.add(state);
         }
         
         public final void addState(final int[] state) {
-            assert state.length == boardNumRobots : state.length;
+            assert state.length == board.getNumRobots() : state.length;
             this.allStates.add(state);
         }
         
         public final void addDirection(final int[] dirs) {
-            assert dirs.length == boardNumRobots : dirs.length;
+            assert dirs.length == board.getNumRobots() : dirs.length;
             this.allDirections.add(dirs);
         }
         

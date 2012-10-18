@@ -135,6 +135,7 @@ public class Board {
     public final int width;
     public final int height;
     public final int size;      // width * height
+    public final int sizeNumBits;   //number of bits required to store any board position (size - 1)
 
     public static final int NORTH = 0;  // up
     public static final int EAST  = 1;  // right
@@ -177,6 +178,7 @@ public class Board {
         this.width = width;
         this.height = height;
         this.size = width * height;
+        this.sizeNumBits = 32 - Integer.numberOfLeadingZeros(this.size - 1);   //ceil(log2(x))
         this.directionIncrement = new int[4];
         this.directionIncrement[NORTH] = -width;
         this.directionIncrement[EAST]  = 1;
@@ -666,5 +668,9 @@ public class Board {
     }
     public static String getGoalShapeL10N(int shape) {
         return L10N.getString("board.shape." + GOAL_SHAPE_NAMES[shape] + ".text");
+    }
+    
+    public int getNumRobots() {
+        return this.robots.length;
     }
 }

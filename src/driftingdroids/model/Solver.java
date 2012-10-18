@@ -36,9 +36,7 @@ public abstract class Solver {
     
     protected final Board board;
     protected final byte[][] boardWalls;
-    protected final int boardSizeNumBits;
     protected final int boardSizeBitMask;
-    protected final int boardNumRobots;
     protected final boolean isBoardStateInt32;
     protected final boolean isBoardGoalWildcard;
     
@@ -64,12 +62,10 @@ public abstract class Solver {
     protected Solver(final Board board) {
         this.board = board;
         this.boardWalls = this.board.getWalls();
-        this.boardSizeNumBits = 32 - Integer.numberOfLeadingZeros(this.board.size - 1); //ceil(log2(x))
         int bitMask = 0;
-        for (int i = 0;  i < this.boardSizeNumBits;  ++i) { bitMask += bitMask + 1; }
+        for (int i = 0;  i < this.board.sizeNumBits;  ++i) { bitMask += bitMask + 1; }
         this.boardSizeBitMask = bitMask;
-        this.boardNumRobots = this.board.getRobotPositions().length;
-        this.isBoardStateInt32 = (this.boardSizeNumBits * this.boardNumRobots <= 32);
+        this.isBoardStateInt32 = (this.board.sizeNumBits * this.board.getNumRobots() <= 32);
         this.isBoardGoalWildcard = (this.board.getGoal().robotNumber < 0);
     }
 

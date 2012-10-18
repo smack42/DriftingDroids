@@ -253,7 +253,7 @@ public class SolverIDDFS extends Solver {
             protected AllKeys(final KnownStates previousKnownStates) {
                 this.size = 0;
                 if (null == previousKnownStates) {
-                    this.theMap = new TrieMapByte(Math.max(12, boardNumRobots * boardSizeNumBits));
+                    this.theMap = new TrieMapByte(Math.max(12, board.getNumRobots() * board.sizeNumBits));
                 } else {
                     this.theMap = previousKnownStates.allKeys.theMap;
                     this.theMap.allValuesOr128();
@@ -269,7 +269,7 @@ public class SolverIDDFS extends Solver {
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
         private final class AllKeysInt extends AllKeys {
-            private final KeyMakerInt keyMaker = KeyMakerInt.createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+            private final KeyMakerInt keyMaker = KeyMakerInt.createInstance(board.getNumRobots(), board.sizeNumBits, isBoardGoalWildcard);
             public AllKeysInt(final KnownStates previousKnownStates) {
                 super(previousKnownStates);
             }
@@ -294,7 +294,7 @@ public class SolverIDDFS extends Solver {
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
         private final class AllKeysLong extends AllKeys {
-            private final KeyMakerLong keyMaker = KeyMakerLong.createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+            private final KeyMakerLong keyMaker = KeyMakerLong.createInstance(board.getNumRobots(), board.sizeNumBits, isBoardGoalWildcard);
             public AllKeysLong(final KnownStates previousKnownStates) {
                 super(previousKnownStates);
             }
