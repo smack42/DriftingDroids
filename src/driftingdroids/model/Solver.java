@@ -51,6 +51,12 @@ public abstract class Solver {
     
     
     
+    public static Solver createInstance(final Board board) {
+        return (board.isSolution01() ? new SolverIDDFS(board) : new SolverBFS(board));
+    }
+    
+    
+    
     public abstract List<Solution> execute() throws InterruptedException;
     
     

@@ -23,7 +23,7 @@ import java.util.Date;
 
 import driftingdroids.model.Board;
 import driftingdroids.model.Solution;
-import driftingdroids.model.SolverBFS;
+import driftingdroids.model.Solver;
 
 
 
@@ -31,7 +31,7 @@ import driftingdroids.model.SolverBFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids 1.1");
+        new SwingGUI("DriftingDroids 1.2 __WIP_2012-10-18__");
         //runTestRandom1000();
     }
     
@@ -49,7 +49,7 @@ public class Starter {
         for (int i = 1; i <= numGames; ++i) {
             
             theBoard.setRobotsRandom();
-            final SolverBFS theSolver = new SolverBFS(theBoard);
+            final Solver theSolver = Solver.createInstance(theBoard);
             final Solution theSolution = theSolver.execute().get(0);
             final int moves = theSolution.size();
             

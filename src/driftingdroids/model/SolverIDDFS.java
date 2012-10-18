@@ -40,7 +40,7 @@ public class SolverIDDFS extends Solver {
     private int depthLimit;
     
 
-    public SolverIDDFS(final Board board) {
+    protected SolverIDDFS(final Board board) {
         super(board);
         for (int i = 0;  i < this.expandRobotPositions.length;  ++i) {
             this.expandRobotPositions[i] = new boolean[board.size];

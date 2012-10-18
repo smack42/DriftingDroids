@@ -27,7 +27,7 @@ import java.util.List;
 public class SolverBFS extends Solver {
     private final boolean[] expandRobotPositions;
 
-    public SolverBFS(final Board board) {
+    protected SolverBFS(final Board board) {
         super(board);
         this.expandRobotPositions = new boolean[this.board.size];
         Arrays.fill(this.expandRobotPositions, false);
