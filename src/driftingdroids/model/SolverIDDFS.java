@@ -55,7 +55,6 @@ public class SolverIDDFS extends Solver {
     }
     
     
-    //TODO comply with special cases in the rules (solutions with zero or one moves are not allowed, instead a longer solution must be found because the goal robot has to ricochet at least once)
     
     @Override
     public List<Solution> execute() throws InterruptedException {
@@ -85,9 +84,6 @@ public class SolverIDDFS extends Solver {
     
     private void iddfs() throws InterruptedException {
         this.knownStates = null;
-        
-        //TODO if goal is already reached in startState, then do not add startState to knownStates
-        
         long totalStates = 0;
         for (this.depthLimit = 1;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
             this.knownStates = new KnownStates(this.knownStates);
