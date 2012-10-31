@@ -19,7 +19,6 @@ package driftingdroids.model;
 
 import java.util.Arrays;
 
-//TODO implement add(long)
 //TODO use the obstacle positions (4) on the board to reduce memory usage further
 
 
@@ -51,7 +50,7 @@ public final class KeyTrieSet {
     private int[][] leafArrays;
     private int numLeafArrays, nextLeaf, nextLeafArray;
     
-    private final int nodeNumber, nodeShift, nodeMask;
+    private final int nodeNumber, nodeNumberLong31, nodeShift, nodeMask;
     private final int leafShift, leafSize, leafMask;
     
     private final int[] nodeSizes;
@@ -66,6 +65,7 @@ public final class KeyTrieSet {
      */
     public KeyTrieSet(final int boardNumRobots, final int boardSize, final int boardSizeNumBits) {
         this.nodeNumber = boardNumRobots - 1;
+        this.nodeNumberLong31 = (boardNumRobots*boardSizeNumBits - 31 + (boardSizeNumBits - 1)) / boardSizeNumBits;
         this.nodeShift = boardSizeNumBits;
         this.nodeMask = (1 << boardSizeNumBits) - 1;
         this.leafShift = boardSizeNumBits - 5;
@@ -148,13 +148,13 @@ public final class KeyTrieSet {
         key >>>= this.nodeShift;
         if (0 == leafIndex) {
             // -> leaf index is null = unused
-            //write current value as a "compressed branch" (negative leaf index)
+            //write current key as a "compressed branch" (negative leaf index)
             //exit immediately because no leaf needs to be stored
             nodeArray[nidx] = ~key; //negative
             return true;    //added
         } else if (0 > leafIndex) {
             // -> leaf index is negative = used by a single "compressed branch"
-            //exit immediately if previous and current values are equal (duplicate)
+            //exit immediately if previous and current keys are equal (duplicate)
             final int prevKey = ~leafIndex;
             if (prevKey == key) {
                 return false;   //not added
@@ -179,6 +179,127 @@ public final class KeyTrieSet {
         //set bit in leaf
         final int oldBits = leafArray[lidx];
         final int newBits = oldBits | (1 << (key >>> this.leafShift));
+        if (oldBits != newBits) {
+            leafArray[lidx] = newBits;
+            return true;    //added
+        } else {
+            return false;   //not added
+        }
+    }
+    
+    
+    
+    /**
+     * Adds the specified <tt>long</tt> key to this set if it is not already present.
+     * 
+     * @param key to be added to this set
+     * @return <code>true</code> if this set did not already contain the specified key
+     */
+    public final boolean add(long key) {
+        //root node
+        int[] nodeArray = this.rootNode;
+        int nidx = (int)key & this.nodeMask;
+        int i;  //used by both for() loops
+        //go through nodes (without compression because key is greater than "int")
+        for (i = 1;  i < this.nodeNumberLong31;  ++i) {
+            final int element = (int)key & this.nodeMask;
+            int nodeIndex = nodeArray[nidx];
+            key >>>= this.nodeShift;
+            if (0 == nodeIndex) {
+                //create a new node
+                final int nodeSize = this.nodeSizes[element];
+                if (this.nextNode + nodeSize >= this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += nodeSize;
+                nodeArray[nidx] = nodeIndex;
+            }
+            nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.nodeMask) - element - 1;
+        }
+        //go through nodes (with compression because key is inside "int" range now)
+        for ( ;  i < this.nodeNumber;  ++i) {
+            final int element = (int)key & this.nodeMask;
+            int nodeIndex = nodeArray[nidx];
+            key >>>= this.nodeShift;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current key as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                nodeArray[nidx] = ~((int)key);  //negative
+                return true;    //added
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                //exit immediately if previous and current keys are equal (duplicate)
+                final int prevKey = ~nodeIndex;
+                if (prevKey == (int)key) {
+                    return false;   //not added
+                }
+                //create a new node
+                final int nodeSize = this.nodeSizes[element];
+                if (this.nextNode + nodeSize >= this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += nodeSize;
+                nodeArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.nodeMask) - element - 1;
+                nodeArray[nidx] = ~(prevKey >>> this.nodeShift);
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.nodeMask) - element - 1;
+        }
+        //get leaf (with compression)
+        int leafIndex = nodeArray[nidx];
+        key >>>= this.nodeShift;
+        if (0 == leafIndex) {
+            // -> leaf index is null = unused
+            //write current key as a "compressed branch" (negative leaf index)
+            //exit immediately because no leaf needs to be stored
+            nodeArray[nidx] = ~((int)key);  //negative
+            return true;    //added
+        } else if (0 > leafIndex) {
+            // -> leaf index is negative = used by a single "compressed branch"
+            //exit immediately if previous and current keys are equal (duplicate)
+            final int prevKey = ~leafIndex;
+            if (prevKey == (int)key) {
+                return false;   //not added
+            }
+            //create a new leaf
+            if (this.nextLeaf >= this.nextLeafArray) {
+                if (this.leafArrays.length <= this.numLeafArrays) {
+                    this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                }
+                this.leafArrays[this.numLeafArrays++] = new int[LEAF_ARRAY_SIZE];
+                this.nextLeafArray += LEAF_ARRAY_SIZE;
+            }
+            leafIndex = this.nextLeaf;
+            this.nextLeaf += this.leafSize;
+            nodeArray[nidx] = leafIndex;
+            //push the previous "compressed branch" further to the leaf
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevKey & this.leafMask);
+            this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (1 << (prevKey >>> this.leafShift));
+        }
+        final int[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+        final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)key & this.leafMask);
+        //set bit in leaf
+        final int oldBits = leafArray[lidx];
+        final int newBits = oldBits | (1 << ((int)key >>> this.leafShift));
         if (oldBits != newBits) {
             leafArray[lidx] = newBits;
             return true;    //added
