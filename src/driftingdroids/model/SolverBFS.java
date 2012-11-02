@@ -440,7 +440,7 @@ public class SolverBFS extends Solver {
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
         private final class AllKeysInt extends AllKeys {
-            private final KeyTrieSet theSet = new KeyTrieSet(board.getNumRobots(), board.size, board.sizeNumBits);
+            private final KeyTrieSet theSet = new KeyTrieSet(board);
             private final KeyMakerInt keyMaker = KeyMakerInt.createInstance(board.getNumRobots(), board.sizeNumBits, isBoardGoalWildcard);
             @Override
             public final boolean add(final int[] state) {
@@ -455,7 +455,7 @@ public class SolverBFS extends Solver {
         //store the unique keys of all known states in 64-bit longs
         //supports more than 4 robots and/or board sizes larger than 256
         private final class AllKeysLong extends AllKeys {
-            private final KeyTrieSet theSet = new KeyTrieSet(board.getNumRobots(), board.size, board.sizeNumBits);
+            private final KeyTrieSet theSet = new KeyTrieSet(board);
             private final KeyMakerLong keyMaker = KeyMakerLong.createInstance(board.getNumRobots(), board.sizeNumBits, isBoardGoalWildcard);
             @Override
             public final boolean add(final int[] state) {

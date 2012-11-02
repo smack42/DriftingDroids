@@ -522,7 +522,7 @@ public class Board {
         return (this.walls[direction][position] != 0);
     }
     
-    private boolean isObstacle(int position) {
+    public boolean isObstacle(int position) {
         return (this.isWall(position, NORTH) &&
                 this.isWall(position, EAST) &&
                 this.isWall(position, SOUTH) &&

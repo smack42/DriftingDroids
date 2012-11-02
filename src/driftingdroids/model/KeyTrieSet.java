@@ -19,7 +19,6 @@ package driftingdroids.model;
 
 import java.util.Arrays;
 
-//TODO use the obstacle positions (4) on the board to reduce memory usage further
 
 
 /**
@@ -53,7 +52,9 @@ public final class KeyTrieSet {
     private final int nodeNumber, nodeNumberLong31, nodeShift, nodeMask;
     private final int leafShift, leafSize, leafMask;
     
-    private final int[] nodeSizes;
+    private final int[] nodeSizeLookup;
+    private final int[] elementLookup;
+    
     
     
     /**
@@ -63,12 +64,12 @@ public final class KeyTrieSet {
      * @param boardSize width*height of the board
      * @param boardSizeNumBits number of bits required to represent any position on the board (size - 1)
      */
-    public KeyTrieSet(final int boardNumRobots, final int boardSize, final int boardSizeNumBits) {
-        this.nodeNumber = boardNumRobots - 1;
-        this.nodeNumberLong31 = (boardNumRobots*boardSizeNumBits - 31 + (boardSizeNumBits - 1)) / boardSizeNumBits;
-        this.nodeShift = boardSizeNumBits;
-        this.nodeMask = (1 << boardSizeNumBits) - 1;
-        this.leafShift = boardSizeNumBits - 5;
+    public KeyTrieSet(final Board board) {
+        this.nodeNumber = board.getNumRobots() - 1;
+        this.nodeNumberLong31 = (board.getNumRobots()*board.sizeNumBits - 31 + (board.sizeNumBits - 1)) / board.sizeNumBits;
+        this.nodeShift = board.sizeNumBits;
+        this.nodeMask = (1 << board.sizeNumBits) - 1;
+        this.leafShift = board.sizeNumBits - 5;
         this.leafSize = 1 << this.leafShift;
         this.leafMask = this.leafSize - 1;
         
@@ -76,7 +77,7 @@ public final class KeyTrieSet {
         this.rootNode = new int[NODE_ARRAY_SIZE];
         this.nodeArrays[0] = this.rootNode;
         this.numNodeArrays = 1;
-        this.nextNode = boardSize;              //root node already exists
+        this.nextNode = board.size;             //root node already exists
         this.nextNodeArray = NODE_ARRAY_SIZE;   //first array already exists
         
         this.leafArrays = new int[32][];
@@ -84,9 +85,23 @@ public final class KeyTrieSet {
         this.nextLeaf = this.leafSize;  //no leaves yet, but skip leaf "0" because this is the special value
         this.nextLeafArray = 0;         //no leaf arrays yet
         
-        this.nodeSizes = new int[boardSize];
-        for (int i = 0;  i < boardSize;  ++i) {
-            this.nodeSizes[i] = boardSize - 1 - i;
+        this.nodeSizeLookup = new int[board.size];
+        for (int i = 0;  i < this.nodeSizeLookup.length;  ++i) {
+            this.nodeSizeLookup[i] = board.size - 1 - i;
+        }
+        this.elementLookup = new int[board.size];
+        for (int i = 0;  i < this.elementLookup.length;  ++i) {
+            this.elementLookup[i] = i;
+        }
+        for (int i = 0;  i < board.size;  ++i) {
+            if (true == board.isObstacle(i)) {
+                for (int j = 0;  j < i;  ++j) {
+                    this.nodeSizeLookup[j] -= 1;
+                }
+                for (int j = i;  j < this.elementLookup.length;  ++j) {
+                    this.elementLookup[j] -= 1;
+                }
+            }
         }
     }
     
@@ -104,7 +119,7 @@ public final class KeyTrieSet {
         int nidx = key & this.nodeMask;
         //go through nodes (with compression)
         for (int nodeIndex, i = 1;  i < this.nodeNumber;  ++i) {
-            final int element = key & this.nodeMask;
+            final int elementThis = key & this.nodeMask;
             nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
@@ -121,7 +136,7 @@ public final class KeyTrieSet {
                     return false;   //not added
                 }
                 //create a new node
-                final int nodeSize = this.nodeSizes[element];
+                final int nodeSize = this.nodeSizeLookup[elementThis];
                 if (this.nextNode + nodeSize >= this.nextNodeArray) {
                     if (this.nodeArrays.length <= this.numNodeArrays) {
                         this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
@@ -135,13 +150,15 @@ public final class KeyTrieSet {
                 nodeArray[nidx] = nodeIndex;
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.nodeMask) - element - 1;
+                final int elementNext = prevKey & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
                 nodeArray[nidx] = ~(prevKey >>> this.nodeShift);
             } else {
                 // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             }
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + (key & this.nodeMask) - element - 1;
+            final int elementNext = key & this.nodeMask;
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
         }
         //get leaf (with compression)
         int leafIndex = nodeArray[nidx];
@@ -202,12 +219,12 @@ public final class KeyTrieSet {
         int i;  //used by both for() loops
         //go through nodes (without compression because key is greater than "int")
         for (i = 1;  i < this.nodeNumberLong31;  ++i) {
-            final int element = (int)key & this.nodeMask;
+            final int elementThis = (int)key & this.nodeMask;
             int nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
                 //create a new node
-                final int nodeSize = this.nodeSizes[element];
+                final int nodeSize = this.nodeSizeLookup[elementThis];
                 if (this.nextNode + nodeSize >= this.nextNodeArray) {
                     if (this.nodeArrays.length <= this.numNodeArrays) {
                         this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
@@ -221,11 +238,12 @@ public final class KeyTrieSet {
                 nodeArray[nidx] = nodeIndex;
             }
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.nodeMask) - element - 1;
+            final int elementNext = (int)key & this.nodeMask;
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
         }
         //go through nodes (with compression because key is inside "int" range now)
         for ( ;  i < this.nodeNumber;  ++i) {
-            final int element = (int)key & this.nodeMask;
+            final int elementThis = (int)key & this.nodeMask;
             int nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
@@ -242,7 +260,7 @@ public final class KeyTrieSet {
                     return false;   //not added
                 }
                 //create a new node
-                final int nodeSize = this.nodeSizes[element];
+                final int nodeSize = this.nodeSizeLookup[elementThis];
                 if (this.nextNode + nodeSize >= this.nextNodeArray) {
                     if (this.nodeArrays.length <= this.numNodeArrays) {
                         this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
@@ -256,13 +274,15 @@ public final class KeyTrieSet {
                 nodeArray[nidx] = nodeIndex;
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.nodeMask) - element - 1;
+                final int elementNext = (int)prevKey & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
                 nodeArray[nidx] = ~(prevKey >>> this.nodeShift);
             } else {
                 // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
             }
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.nodeMask) - element - 1;
+            final int elementNext = (int)key & this.nodeMask;
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
         }
         //get leaf (with compression)
         int leafIndex = nodeArray[nidx];
