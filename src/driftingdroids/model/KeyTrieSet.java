@@ -150,15 +150,17 @@ public final class KeyTrieSet {
                 nodeArray[nidx] = nodeIndex;
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                final int elementNext = prevKey & this.nodeMask;
-                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
-                nodeArray[nidx] = ~(prevKey >>> this.nodeShift);
+                final int elementPrev = prevKey & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - this.elementLookup[elementThis] - 1;
+                nodeArray[nidx + this.elementLookup[elementPrev]] = ~(prevKey >>> this.nodeShift);
+                final int elementNext = key & this.nodeMask;
+                nidx += this.elementLookup[elementNext];
             } else {
                 // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                final int elementNext = key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
             }
-            final int elementNext = key & this.nodeMask;
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
         }
         //get leaf (with compression)
         int leafIndex = nodeArray[nidx];
@@ -274,15 +276,17 @@ public final class KeyTrieSet {
                 nodeArray[nidx] = nodeIndex;
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                final int elementNext = (int)prevKey & this.nodeMask;
-                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
-                nodeArray[nidx] = ~(prevKey >>> this.nodeShift);
+                final int elementPrev = prevKey & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - this.elementLookup[elementThis] - 1;
+                nodeArray[nidx + this.elementLookup[elementPrev]] = ~(prevKey >>> this.nodeShift);
+                final int elementNext = (int)key & this.nodeMask;
+                nidx += this.elementLookup[elementNext];
             } else {
                 // -> node index is positive = go to next node
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                final int elementNext = (int)key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
             }
-            final int elementNext = (int)key & this.nodeMask;
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
         }
         //get leaf (with compression)
         int leafIndex = nodeArray[nidx];
