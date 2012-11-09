@@ -493,29 +493,46 @@ public class Board {
     }
 
     private Board addWall(int x, int y, String str) {
-        if (str.contains("N")) {
-            this.addWall(x, y,     NORTH);
-            this.addWall(x, y - 1, SOUTH);
-        }
-        if (str.contains("E")) {
-            this.addWall(x,     y, EAST);
-            this.addWall(x + 1, y, WEST);
-        }
-        if (str.contains("S")) {
-            this.addWall(x, y,     SOUTH);
-            this.addWall(x, y + 1, NORTH);
-        }
-        if (str.contains("W")) {
-            this.addWall(x,     y, WEST);
-            this.addWall(x - 1, y, EAST);
-        }
+        this.setWalls(x, y, str, 1);
         return this;
     }
-
-    private void addWall(int x, int y, int direction) {
-        if ((x >= 0) && (x < this.width) && (y >= 0) && (y < this.height)) {
-            this.walls[direction][x + y * this.width] = 1;
+    
+    private void setWalls(int x, int y, String str, int value) {
+        if (str.contains("N")) {
+            this.setWall(x, y,     NORTH,  value);
+            this.setWall(x, y - 1, SOUTH,  value);
         }
+        if (str.contains("E")) {
+            this.setWall(x,     y, EAST,   value);
+            this.setWall(x + 1, y, WEST,   value);
+        }
+        if (str.contains("S")) {
+            this.setWall(x, y,     SOUTH,  value);
+            this.setWall(x, y + 1, NORTH,  value);
+        }
+        if (str.contains("W")) {
+            this.setWall(x,     y, WEST,   value);
+            this.setWall(x - 1, y, EAST,   value);
+        }
+    }
+
+    private void setWall(int x, int y, int direction, int value) {
+        if ((x >= 0) && (x < this.width) && (y >= 0) && (y < this.height)) {
+            this.walls[direction][x + y * this.width] = (byte)value;
+        }
+    }
+    
+    public void setWall(int position, String direction, boolean doSet) {
+        final int x = position % this.width;
+        final int y = position / this.width;
+        if (false == doSet) {
+            //prevent removal of outer walls
+            if (0 == x)                 { direction = direction.replace('W', ' '); }
+            if (this.width - 1 == x)    { direction = direction.replace('E', ' '); }
+            if (0 == y)                 { direction = direction.replace('N', ' '); }
+            if (this.height - 1 == y)   { direction = direction.replace('S', ' '); }
+        }
+        this.setWalls(x, y, direction, (doSet ? 1 : 0));
     }
 
     public boolean isWall(int position, int direction) {

@@ -38,6 +38,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.geom.Area;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
@@ -82,8 +83,6 @@ import driftingdroids.model.Board;
 import driftingdroids.model.Move;
 import driftingdroids.model.Solution;
 import driftingdroids.model.Solver;
-import driftingdroids.model.SolverBFS;
-import driftingdroids.model.SolverIDDFS;
 
 
 
@@ -834,30 +833,34 @@ public class SwingGUI implements ActionListener {
         }
     }
     
-    private class BoardCell extends JPanel implements MouseListener {
+    private class BoardCell extends JPanel implements MouseListener, MouseMotionListener {
         private static final long serialVersionUID = 1L;
-        
         private static final int PREF_WIDTH = 33;       // preferred width
         private static final int PREF_HEIGHT = 33;      // preferred height
         private static final int H_WALL_DIVISOR = 12;   // horizontal walls: height / H_WALL_DIVISOR
         private static final int V_WALL_DIVISOR = 12;   // vertical walls: width / vWallDivisor
         
-        
         private final int boardPosition;
+        
+        private boolean isMouseInside;
+        private boolean isMouseNorth, isMouseEast, isMouseSouth, isMouseWest;
         
         public BoardCell(int boardPosition) {
             super();
             this.boardPosition = boardPosition;
+            this.isMouseInside = false;
             this.setPreferredSize(new Dimension(PREF_WIDTH, PREF_HEIGHT));
             this.setMinimumSize(new Dimension(10, 10));
             this.addMouseListener(this);
+            this.addMouseMotionListener(this);
         }
         
         @Override
         protected void paintComponent(Graphics graphics) {
             final Graphics2D g2d = (Graphics2D) graphics.create();
-            final int height = this.getSize().height;
-            final int width  = this.getSize().width;
+            final Dimension size = this.getSize();
+            final int height = size.height;
+            final int width  = size.width;
             final int hWallWidth = height / H_WALL_DIVISOR;
             final int vWallWidth = width / V_WALL_DIVISOR;
             
@@ -885,6 +888,23 @@ public class SwingGUI implements ActionListener {
             }
             if (true == board.isWall(this.boardPosition, Board.WEST)) {
                 g2d.fillRect(0, 0, vWallWidth, height);
+            }
+            
+            // fill walls highlighted by mouse
+            if (true == this.isMouseInside) {   //TODO condition "edit walls"
+                g2d.setColor(Color.WHITE);
+                if (true == this.isMouseNorth) {
+                    g2d.fillRect(0, 0, width, hWallWidth);
+                }
+                if (true == this.isMouseEast) {
+                    g2d.fillRect(width - vWallWidth, 0, width, height);
+                }
+                if (true == this.isMouseSouth) {
+                    g2d.fillRect(0, height - hWallWidth, width, height);
+                }
+                if (true == this.isMouseWest) {
+                    g2d.fillRect(0, 0, vWallWidth, height);
+                }
             }
             
             // paint the goal
@@ -1015,9 +1035,27 @@ public class SwingGUI implements ActionListener {
             }
         }
         
+        private void repaintOther(final int boardPos) {
+            if ((boardPos >= 0) && (boardPos < boardCells.length)) {
+                boardCells[boardPos].repaint();
+            }
+        }
+        
         //implements MouseListener
         @Override
-        public void mouseClicked(MouseEvent e) {
+        public void mouseClicked(MouseEvent e) { /* NO-OP */ }
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            this.isMouseInside = true;
+            this.repaint();
+        }
+        @Override
+        public void mouseExited(MouseEvent e) {
+            this.isMouseInside = false;
+            this.repaint();
+        }
+        @Override
+        public void mousePressed(MouseEvent e) {
             if (placeRobot >= 0) {
                 board.setRobots(currentPosition);
                 if (board.setRobot(placeRobot, this.boardPosition, true)) {
@@ -1033,15 +1071,54 @@ public class SwingGUI implements ActionListener {
                     updateBoardGetRobots();
                 }
             }
+            if (true == this.isMouseInside) {   //TODO condition "edit walls"
+                final boolean setWall = (e.getButton() == MouseEvent.BUTTON1);
+                if (true == this.isMouseNorth) {
+                    board.setWall(this.boardPosition, "N", setWall);
+                    this.repaintOther(this.boardPosition - board.width);
+                }
+                if (true == this.isMouseEast) {
+                    board.setWall(this.boardPosition, "E", setWall);
+                    this.repaintOther(this.boardPosition + 1);
+                }
+                if (true == this.isMouseSouth) {
+                    board.setWall(this.boardPosition, "S", setWall);
+                    this.repaintOther(this.boardPosition + board.width);
+                }
+                if (true == this.isMouseWest) {
+                    board.setWall(this.boardPosition, "W", setWall);
+                    this.repaintOther(this.boardPosition - 1);
+                }
+                this.repaint();
+            }
         }
         @Override
-        public void mouseEntered(MouseEvent e) { /* NO-OP */ }
-        @Override
-        public void mouseExited(MouseEvent e) { /* NO-OP */ }
-        @Override
-        public void mousePressed(MouseEvent e) { /* NO-OP */ }
-        @Override
         public void mouseReleased(MouseEvent e) { /* NO-OP */ }
+        @Override
+        public void mouseDragged(MouseEvent e) { /* NO-OP */ }
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            if (true == this.isMouseInside) {   //TODO condition "edit walls"
+                final Dimension size = this.getSize();
+                final int mouseX = e.getX();
+                this.isMouseWest = false;
+                this.isMouseEast = false;
+                if (mouseX <= (size.width >> 2)) {
+                    this.isMouseWest = true;
+                } else if (mouseX >= ((size.width * 3) >> 2)) {
+                    this.isMouseEast = true;
+                }
+                final int mouseY = e.getY();
+                this.isMouseNorth = false;
+                this.isMouseSouth = false;
+                if (mouseY <= (size.height >> 2)) {
+                    this.isMouseNorth = true;
+                } else if (mouseY >= ((size.height * 3) >> 2)) {
+                    this.isMouseSouth = true;
+                }
+                this.repaint();
+            }
+        }
     }
 
 }
