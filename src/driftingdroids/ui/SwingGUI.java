@@ -397,6 +397,9 @@ public class SwingGUI implements ActionListener {
         final JFrame frame = new JFrame(windowTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
+        final JPanel preparePanel = new JPanel();   //-----------------------------------------------
+        final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
+        
         final JButton jbutRandomLayout = new JButton(L10N.getString("btn.RandomLayout.text"));
         this.addKeyBindingTooltip(jbutRandomLayout,
                 L10N.getString("btn.RandomLayout.acceleratorkey"),
@@ -424,6 +427,18 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.setActionCommand(AC_BOARD_QUADRANTS);
         this.jcomboRobots.addActionListener(this);
         this.refreshJcomboRobots();
+
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text"))).addMulti(this.jcomboRobots);
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JSeparator());
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.BoardTiles.text")));
+        prepareLayout.row().grid().addMulti(this.jcomboQuadrants[0], this.jcomboQuadrants[1]).add(jbutRandomLayout);
+        prepareLayout.row().grid().addMulti(this.jcomboQuadrants[3], this.jcomboQuadrants[2]).empty();
+        
+        
+        final JPanel optionsPanel = new JPanel();   //-----------------------------------------------
+        final DesignGridLayout optionsLayout = new DesignGridLayout(optionsPanel);
         
         final Solver.SOLUTION_MODE[] solModes = Solver.SOLUTION_MODE.values();
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
@@ -439,30 +454,23 @@ public class SwingGUI implements ActionListener {
 
         this.jcheckOptShowSolutions.setText(L10N.getString("chk.ShowSolutions.text"));
         this.jcheckOptShowSolutions.setSelected(false);
-
-        final JPanel preparePanel = new JPanel();
-        final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.BoardTiles.text")));
-        prepareLayout.row().grid().addMulti(this.jcomboQuadrants[0], this.jcomboQuadrants[1]).add(jbutRandomLayout);
-        prepareLayout.row().grid().addMulti(this.jcomboQuadrants[3], this.jcomboQuadrants[2]).empty();
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text"))).addMulti(this.jcomboRobots);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.PreferSolutionWith.text"))).addMulti(this.jcomboOptSolutionMode);
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
-        prepareLayout.row().grid().add(new JLabel(" "));
-        prepareLayout.row().grid().add(this.jcheckOptAllowRebounds);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jcheckOptShowColorNames);
-        prepareLayout.row().grid().add(this.jcheckOptShowSolutions);
+        
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
+        optionsLayout.emptyRow();
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.PreferSolutionWith.text"))).addMulti(this.jcomboOptSolutionMode);
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
+        optionsLayout.row().grid().add(new JLabel(" "));
+        optionsLayout.row().grid().add(this.jcheckOptAllowRebounds);
+        optionsLayout.emptyRow();
+        optionsLayout.row().grid().add(new JSeparator());
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
+        optionsLayout.emptyRow();
+        optionsLayout.row().grid().add(this.jcheckOptShowColorNames);
+        optionsLayout.row().grid().add(this.jcheckOptShowSolutions);
+        
+        
+        final JPanel playPanel = new JPanel();      //-----------------------------------------------
+        final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
         
         final JButton jbutRandomRobots = new JButton(L10N.getString("btn.RandomRobots.text"));
         this.addKeyBindingTooltip(jbutRandomRobots,
@@ -620,8 +628,6 @@ public class SwingGUI implements ActionListener {
         scrollSolutionText.setPreferredSize(new Dimension(10, 10)); //workaround for layout problem ?!?!
         scrollSolutionText.setMinimumSize(new Dimension(10, 10));   //workaround for layout problem ?!?!
         
-        final JPanel playPanel = new JPanel();
-        final DesignGridLayout playLayout = new DesignGridLayout(playPanel);
         playLayout.row().grid().addMulti(new JLabel(L10N.getString("lbl.SetStartingPosition.text")), jbutPlaceRobot);
         playLayout.row().grid().add(jbutRandomRobots).add(jbutRandomGoal);
         playLayout.row().grid().add(this.jcomboPlaceRobot).add(jbutSelectGoal);
@@ -633,9 +639,11 @@ public class SwingGUI implements ActionListener {
         playLayout.row().grid().add(this.jbutNoMoves).add(this.jbutPrevMove).add(this.jbutNextMove).add(this.jbutAllMoves);
         playLayout.row().grid().add(scrollSolutionText);
         
-        this.jtabPreparePlay.addTab(L10N.getString("tab.PrepareBoardOptions.text"), preparePanel);
+        
+        this.jtabPreparePlay.addTab(L10N.getString("tab.PrepareBoard.text"), preparePanel);
+        this.jtabPreparePlay.addTab(L10N.getString("tab.Options.text"), optionsPanel);
         this.jtabPreparePlay.addTab(L10N.getString("tab.PlayGame.text"), playPanel);
-        this.jtabPreparePlay.setSelectedIndex(1);   //Play
+        this.jtabPreparePlay.setSelectedIndex(2);   //Play
         this.jtabPreparePlay.addChangeListener(new TabListener());
         
         final JPanel boardPanel = new JPanel(new GridLayout(this.board.height, this.board.width));
@@ -678,7 +686,11 @@ public class SwingGUI implements ActionListener {
     }
     
     private boolean isModePlay() {
-        return (this.jtabPreparePlay.getSelectedIndex() == 1);
+        return (this.jtabPreparePlay.getSelectedIndex() == 2);
+    }
+    
+    private boolean isModeEditBoard() {
+        return (this.jtabPreparePlay.getSelectedIndex() == 0);  //TODO radiobutton: original or freestyle board
     }
     
     private void refreshJcomboRobots() {
@@ -891,7 +903,7 @@ public class SwingGUI implements ActionListener {
             }
             
             // fill walls highlighted by mouse
-            if (true == this.isMouseInside) {   //TODO condition "edit walls"
+            if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
                 g2d.setColor(Color.WHITE);
                 if (true == this.isMouseNorth) {
                     g2d.fillRect(0, 0, width, hWallWidth);
@@ -1071,7 +1083,7 @@ public class SwingGUI implements ActionListener {
                     updateBoardGetRobots();
                 }
             }
-            if (true == this.isMouseInside) {   //TODO condition "edit walls"
+            if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
                 final boolean setWall = (e.getButton() == MouseEvent.BUTTON1);
                 if (true == this.isMouseNorth) {
                     board.setWall(this.boardPosition, "N", setWall);
@@ -1098,7 +1110,7 @@ public class SwingGUI implements ActionListener {
         public void mouseDragged(MouseEvent e) { /* NO-OP */ }
         @Override
         public void mouseMoved(MouseEvent e) {
-            if (true == this.isMouseInside) {   //TODO condition "edit walls"
+            if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
                 final Dimension size = this.getSize();
                 final int mouseX = e.getX();
                 this.isMouseWest = false;
