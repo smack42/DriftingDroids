@@ -147,7 +147,7 @@ public class Board {
     private static final Random RANDOM = new Random();
     
     private final int[] quadrants;      // quadrants used for this board (indexes in QUADRANTS) 
-    private final byte[][] walls;       // [4][width*height] 4 directions
+    private final boolean[][] walls;    // [4][width*height] 4 directions
     private final int[] robots;         // index=robot, value=position
     private final List<Goal> goals;     // all possible goals on the board
     private final List<Goal> randomGoals;
@@ -185,7 +185,7 @@ public class Board {
         this.directionIncrement[SOUTH] = width;
         this.directionIncrement[WEST]  = -1;
         this.quadrants = new int[4];
-        this.walls = new byte[4][width * height];
+        this.walls = new boolean[4][width * height];    //filled with "false"
         this.robots = new int[numRobots];
         this.goals = new ArrayList<Goal>();
         this.randomGoals = new ArrayList<Goal>();
@@ -379,7 +379,7 @@ public class Board {
                 for (int dirIncr : this.directionIncrement) {
                     ++dir;
                     int newRoboPos = oldRoboPos;
-                    while (0 == this.walls[dir][newRoboPos]) {  //move the robot until it reaches a wall or another robot.
+                    while (false == this.walls[dir][newRoboPos]) {  //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
                         if (expandRobotPositions[newRoboPos]) { //by outer walls. without the outer walls we would need
                             newRoboPos -= dirIncr;              //some additional boundary checking here.
@@ -493,11 +493,11 @@ public class Board {
     }
 
     private Board addWall(int x, int y, String str) {
-        this.setWalls(x, y, str, 1);
+        this.setWalls(x, y, str, true);
         return this;
     }
     
-    private void setWalls(int x, int y, String str, int value) {
+    private void setWalls(int x, int y, String str, boolean value) {
         if (str.contains("N")) {
             this.setWall(x, y,     NORTH,  value);
             this.setWall(x, y - 1, SOUTH,  value);
@@ -516,9 +516,9 @@ public class Board {
         }
     }
 
-    private void setWall(int x, int y, int direction, int value) {
+    private void setWall(int x, int y, int direction, boolean value) {
         if ((x >= 0) && (x < this.width) && (y >= 0) && (y < this.height)) {
-            this.walls[direction][x + y * this.width] = (byte)value;
+            this.walls[direction][x + y * this.width] = value;
         }
     }
     
@@ -532,11 +532,11 @@ public class Board {
             if (0 == y)                 { direction = direction.replace('N', ' '); }
             if (this.height - 1 == y)   { direction = direction.replace('S', ' '); }
         }
-        this.setWalls(x, y, direction, (doSet ? 1 : 0));
+        this.setWalls(x, y, direction, doSet);
     }
 
     public boolean isWall(int position, int direction) {
-        return (this.walls[direction][position] != 0);
+        return this.walls[direction][position];
     }
     
     public boolean isObstacle(int position) {
@@ -648,7 +648,7 @@ public class Board {
         return this.quadrants[qPos];
     }
     
-    public byte[][] getWalls() {
+    public boolean[][] getWalls() {
         return this.walls;
     }
     

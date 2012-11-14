@@ -35,7 +35,7 @@ public abstract class Solver {
     
     
     protected final Board board;
-    protected final byte[][] boardWalls;
+    protected final boolean[][] boardWalls;
     protected final int boardSizeBitMask;
     protected final boolean isBoardStateInt32;
     protected final boolean isBoardGoalWildcard;

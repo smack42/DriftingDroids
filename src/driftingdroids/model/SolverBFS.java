@@ -135,8 +135,8 @@ public class SolverBFS extends Solver {
                 for (int dirIncr : this.board.directionIncrement) {
                     ++dir;
                     int newRoboPos = oldRoboPos;
-                    final byte[] walls = this.boardWalls[dir];
-                    while (0 == walls[newRoboPos]) {                    //move the robot until it reaches a wall or another robot.
+                    final boolean[] walls = this.boardWalls[dir];
+                    while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
                         if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
                             newRoboPos -= dirIncr;                      //some additional boundary checking here.
@@ -173,8 +173,8 @@ public class SolverBFS extends Solver {
                     for (int dirIncr : this.board.directionIncrement) {
                         ++dir;
                         int newRoboPos = oldRoboPos;
-                        final byte[] walls = this.boardWalls[dir];
-                        while (0 == walls[newRoboPos]) {                    //move the robot until it reaches a wall or another robot.
+                        final boolean[] walls = this.boardWalls[dir];
+                        while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
                             newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
                             if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
                                 newRoboPos -= dirIncr;                      //some additional boundary checking here.
@@ -245,8 +245,8 @@ public class SolverBFS extends Solver {
                         //don't allow rebound moves
                         if ((oldRoboDir != dir) && (oldRoboDir != ((dir + 2) & 3))) {
                             int newRoboPos = oldRoboPos;
-                            final byte[] walls = this.boardWalls[dir];
-                            while (0 == walls[newRoboPos]) {                    //move the robot until it reaches a wall or another robot.
+                            final boolean[] walls = this.boardWalls[dir];
+                            while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
                                 newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
                                 if (this.expandRobotPositions[newRoboPos]) {    //by outer walls. without the outer walls we would need
                                     newRoboPos -= dirIncr;                      //some additional boundary checking here.
@@ -333,7 +333,8 @@ public class SolverBFS extends Solver {
                     final int dir = this.board.getDirection(diffPos);
                     //check if the move would go though obstacles (walls or robots).
                     final int dirIncr = this.board.directionIncrement[dir];
-                    while (0 == this.boardWalls[dir][prevPos]) {
+                    final boolean[] walls = this.boardWalls[dir];
+                    while (false == walls[prevPos]) {
                         prevPos += dirIncr;
                         if (this.expandRobotPositions[prevPos]) {
                             prevPos -= dirIncr;
@@ -390,7 +391,8 @@ public class SolverBFS extends Solver {
                         for (int pos : tmpStatesAtDepth) { this.expandRobotPositions[pos] = true; }
                         //check if the move would go though obstacles (walls or robots).
                         final int dirIncr = this.board.directionIncrement[dir];
-                        while (0 == this.boardWalls[dir][prevPos]) {
+                        final boolean[] walls = this.boardWalls[dir];
+                        while (false == walls[prevPos]) {
                             prevPos += dirIncr;
                             if (this.expandRobotPositions[prevPos]) {
                                 prevPos -= dirIncr;

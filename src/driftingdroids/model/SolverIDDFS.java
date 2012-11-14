@@ -121,8 +121,8 @@ public class SolverIDDFS extends Solver {
                 ++dir;
                 if ((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3)))) {
                     int newRoboPos = oldRoboPos;
-                    final byte[] walls = this.boardWalls[dir];
-                    while (0 == walls[newRoboPos]) {                    //move the robot until it reaches a wall or another robot.
+                    final boolean[] walls = this.boardWalls[dir];
+                    while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
                         if (expandRobotPositions[newRoboPos]) {         //by outer walls. without the outer walls we would need
                             newRoboPos -= dirIncr;                      //some additional boundary checking here.
@@ -173,8 +173,8 @@ public class SolverIDDFS extends Solver {
                 ++dir;
                 if ((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3)))) {
                     int newRoboPos = oldRoboPos;
-                    final byte[] walls = this.boardWalls[dir];
-                    while (0 == walls[newRoboPos]) {                    //move the robot until it reaches a wall or another robot.
+                    final boolean[] walls = this.boardWalls[dir];
+                    while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
                         if (expandRobotPositions[newRoboPos]) {         //by outer walls. without the outer walls we would need
                             newRoboPos -= dirIncr;                      //some additional boundary checking here.
