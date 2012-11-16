@@ -53,6 +53,7 @@ import java.util.concurrent.CancellationException;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -61,6 +62,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
@@ -119,7 +121,10 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean selectGoal = false;
     
+    private final JRadioButton jradioOriginalBoard = new JRadioButton();
+    private final JRadioButton jradioFreestyleBoard = new JRadioButton();
     private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
+    private final JButton jbutRandomLayout = new JButton();
     private final JComboBox jcomboRobots = new JComboBox();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
@@ -400,8 +405,37 @@ public class SwingGUI implements ActionListener {
         final JPanel preparePanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         
-        final JButton jbutRandomLayout = new JButton(L10N.getString("btn.RandomLayout.text"));
-        this.addKeyBindingTooltip(jbutRandomLayout,
+        
+        this.jradioOriginalBoard.setText(L10N.getString("btn.OriginalBoard.text"));
+        this.jradioOriginalBoard.setSelected(true);
+        //TODO this.jradioOriginalBoard.setToolTipText(text);
+        this.jradioOriginalBoard.addActionListener(
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        for (JComboBox jc : jcomboQuadrants) { jc.setEnabled(true); }
+                        jbutRandomLayout.setEnabled(true);
+                    }
+                }
+        );
+        
+        this.jradioFreestyleBoard.setText(L10N.getString("btn.FreestyleBoard.text"));
+        this.jradioFreestyleBoard.setSelected(false);
+        //TODO this.jradioFreestyleBoard.setToolTipText(text);
+        this.jradioFreestyleBoard.addActionListener(
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        for (JComboBox jc : jcomboQuadrants) { jc.setEnabled(false); }
+                        jbutRandomLayout.setEnabled(false);
+                    }
+                }
+        );
+        
+        final ButtonGroup radioButtonGroup = new ButtonGroup();
+        radioButtonGroup.add(this.jradioOriginalBoard);
+        radioButtonGroup.add(this.jradioFreestyleBoard);
+        
+        this.jbutRandomLayout.setText(L10N.getString("btn.RandomLayout.text"));
+        this.addKeyBindingTooltip(this.jbutRandomLayout,
                 L10N.getString("btn.RandomLayout.acceleratorkey"),
                 L10N.getString("btn.RandomLayout.tooltip"),
                 new AbstractAction() {
@@ -432,10 +466,16 @@ public class SwingGUI implements ActionListener {
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(this.jradioOriginalBoard);
+        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.BoardTiles.text")));
-        prepareLayout.row().grid().addMulti(this.jcomboQuadrants[0], this.jcomboQuadrants[1]).add(jbutRandomLayout);
+        prepareLayout.row().grid().addMulti(this.jcomboQuadrants[0], this.jcomboQuadrants[1]).add(this.jbutRandomLayout);
         prepareLayout.row().grid().addMulti(this.jcomboQuadrants[3], this.jcomboQuadrants[2]).empty();
-        
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JSeparator());
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(this.jradioFreestyleBoard);
+
         
         final JPanel optionsPanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout optionsLayout = new DesignGridLayout(optionsPanel);
@@ -690,7 +730,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private boolean isModeEditBoard() {
-        return (this.jtabPreparePlay.getSelectedIndex() == 0);  //TODO radiobutton: original or freestyle board
+        return ((this.jtabPreparePlay.getSelectedIndex() == 0) && (true == this.jradioFreestyleBoard.isSelected()));
     }
     
     private void refreshJcomboRobots() {
