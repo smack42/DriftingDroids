@@ -202,11 +202,11 @@ public class Board {
         b.addQuadrant(quadrantSW, 3);
         b.addOuterWalls();
         //place the robots
-        b.setRobot(0, 14 +  2 * 16, false); //R
-        b.setRobot(1,  1 +  2 * 16, false); //G
-        b.setRobot(2, 13 + 11 * 16, false); //B
-        b.setRobot(3, 15 +  0 * 16, false); //Y
-        b.setRobot(4, 15 +  7 * 16, false); //W
+        b.setRobot(0, 14 +  2 * b.width, false); //R
+        b.setRobot(1,  1 +  2 * b.width, false); //G
+        b.setRobot(2, 13 + 11 * b.width, false); //B
+        b.setRobot(3, 15 +  0 * b.width, false); //Y
+        b.setRobot(4, 15 +  7 * b.width, false); //S
         //choose a goal
         b.setGoalRandom();
         return b;
@@ -297,6 +297,47 @@ public class Board {
         }
         fmt.format("+%02X", Integer.valueOf(this.goal.position));
         return fmt.toString();
+    }
+    
+    
+    public Board rotate90(final boolean clockwise) {
+        final Board newBoard = new Board(this.height, this.width, this.robots.length);
+        //quadrants
+        for (int q = 0;  q < 4;  ++q) {
+            newBoard.quadrants[(q + (clockwise ? 1 : -1)) & 3] = this.quadrants[q];
+        }
+        //walls
+        for (int d = 0;  d < 4;  ++d) {
+            for (int pos = 0;  pos < this.size;  ++pos) {
+                newBoard.walls[(d + (clockwise ? 1 : -1)) & 3][this.rotatePosition90(pos, clockwise)] = this.walls[d][pos];
+            }
+        }
+        //robots
+        for (int i = 0;  i < this.robots.length;  ++i) {
+            newBoard.robots[i] = this.rotatePosition90(this.robots[i], clockwise);
+        }
+        //goals
+        for (Goal g : this.goals) {
+            newBoard.addGoal(this.rotatePosition90(g.position, clockwise), g.robotNumber, g.shape);
+        }
+        //goal
+        newBoard.setGoal(this.rotatePosition90(this.goal.position, clockwise));
+        return newBoard;
+    }
+    
+    
+    private int rotatePosition90(final int pos, final boolean clockwise) {
+        final int x = pos % this.width;
+        final int y = pos / this.width;
+        final int newx, newy;
+        if (clockwise) {
+            newx = this.height - 1 - y;
+            newy = x;
+        } else {
+            newx = y;
+            newy = this.width - 1 - x;
+        }
+        return newx + newy * this.height;
     }
     
     
@@ -473,6 +514,11 @@ public class Board {
             }
         }
         return result;
+    }
+    
+    private Board addGoal(int pos, int robot, int shape) {
+        this.goals.add(new Goal(pos%this.width, pos/this.width, robot, shape));
+        return this;
     }
     
     private Board addGoal(int x, int y, int robot, int shape) {

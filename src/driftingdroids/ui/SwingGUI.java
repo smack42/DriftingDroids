@@ -126,6 +126,8 @@ public class SwingGUI implements ActionListener {
     private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
     private final JButton jbutRandomLayout = new JButton();
     private final JComboBox jcomboRobots = new JComboBox();
+    private final JButton jbutRotateBoardLeft = new JButton();
+    private final JButton jbutRotateBoardRight = new JButton();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
@@ -178,7 +180,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private void updateBoardRandomGoal() {
-        this.board.setRobots(this.currentPosition);
+        //TODO before: this.board.setRobots(this.currentPosition);
         this.board.setGoalRandom();
         this.updateBoardGetRobots();
     }
@@ -362,7 +364,7 @@ public class SwingGUI implements ActionListener {
             refreshBoard(); //repaint the entire board
             if (isModePlay()) {
                 if (this.oldBoard != board) {
-                    updateBoardRandomGoal();    //set random goal and start solver thread
+                    updateBoardGetRobots();     //TODO before: updateBoardRandomGoal()
                 } else {
                     updateBoardGetRobots();     //start solver thread
                 }
@@ -408,7 +410,7 @@ public class SwingGUI implements ActionListener {
         
         this.jradioOriginalBoard.setText(L10N.getString("btn.OriginalBoard.text"));
         this.jradioOriginalBoard.setSelected(true);
-        //TODO this.jradioOriginalBoard.setToolTipText(text);
+        this.jradioOriginalBoard.setToolTipText(L10N.getString("btn.OriginalBoard.tooltip"));
         this.jradioOriginalBoard.addActionListener(
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
@@ -420,7 +422,7 @@ public class SwingGUI implements ActionListener {
         
         this.jradioFreestyleBoard.setText(L10N.getString("btn.FreestyleBoard.text"));
         this.jradioFreestyleBoard.setSelected(false);
-        //TODO this.jradioFreestyleBoard.setToolTipText(text);
+        this.jradioFreestyleBoard.setToolTipText(L10N.getString("btn.FreestyleBoard.tooltip"));
         this.jradioFreestyleBoard.addActionListener(
                 new AbstractAction() {
                     public void actionPerformed(ActionEvent e) {
@@ -461,6 +463,34 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.setActionCommand(AC_BOARD_QUADRANTS);
         this.jcomboRobots.addActionListener(this);
         this.refreshJcomboRobots();
+        
+        this.jbutRotateBoardLeft.setText(L10N.getString("btn.RotateBoardLeft.text"));
+        this.addKeyBindingTooltip(this.jbutRotateBoardLeft,
+                L10N.getString("btn.RotateBoardLeft.acceleratorkey"),
+                L10N.getString("btn.RotateBoardLeft.tooltip"),
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        board = board.rotate90(false);
+                        refreshBoard();
+                        refreshJComboPlaceRobot();
+                        refreshJcomboQuadrants();
+                    }
+                }
+        );
+
+        this.jbutRotateBoardRight.setText(L10N.getString("btn.RotateBoardRight.text"));
+        this.addKeyBindingTooltip(this.jbutRotateBoardRight,
+                L10N.getString("btn.RotateBoardRight.acceleratorkey"),
+                L10N.getString("btn.RotateBoardRight.tooltip"),
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        board = board.rotate90(true);
+                        refreshBoard();
+                        refreshJComboPlaceRobot();
+                        refreshJcomboQuadrants();
+                    }
+                }
+        );
 
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text"))).addMulti(this.jcomboRobots);
         prepareLayout.emptyRow();
@@ -475,6 +505,10 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jradioFreestyleBoard);
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JSeparator());
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text"))).addMulti(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
 
         
         final JPanel optionsPanel = new JPanel();   //-----------------------------------------------
@@ -729,8 +763,12 @@ public class SwingGUI implements ActionListener {
         return (this.jtabPreparePlay.getSelectedIndex() == 2);
     }
     
+    private boolean isFreestyleBoard() {
+        return (true == this.jradioFreestyleBoard.isSelected());
+    }
+    
     private boolean isModeEditBoard() {
-        return ((this.jtabPreparePlay.getSelectedIndex() == 0) && (true == this.jradioFreestyleBoard.isSelected()));
+        return ((this.jtabPreparePlay.getSelectedIndex() == 0) && this.isFreestyleBoard());
     }
     
     private void refreshJcomboRobots() {
