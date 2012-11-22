@@ -36,6 +36,7 @@ public class SolverIDDFS extends Solver {
     private final int minRobotLast;
     private final int goalRobot;
     private final boolean isSolution01;
+    private final int[] minimumMovesToGoal;
     
     private int depthLimit;
     
@@ -52,6 +53,7 @@ public class SolverIDDFS extends Solver {
         this.minRobotLast = (this.isBoardGoalWildcard ? 0 : this.states[0].length - 1); //swapGoalLast
         this.goalRobot = (this.isBoardGoalWildcard ? this.board.getGoal().robotNumber : this.minRobotLast); //swapGoalLast
         this.isSolution01 = this.board.isSolution01();
+        this.minimumMovesToGoal = new int[board.size];
     }
     
     
@@ -82,7 +84,40 @@ public class SolverIDDFS extends Solver {
     
     
     
+    private void precomputeMinimumMovesToGoal() {
+        final boolean status[] = new boolean[this.minimumMovesToGoal.length];
+        Arrays.fill(this.minimumMovesToGoal, Integer.MAX_VALUE);
+        this.minimumMovesToGoal[this.goalPosition] = 0;
+        status[this.goalPosition] = true;
+        boolean done = false;
+        while (false == done) {
+            done = true;
+            for (int pos = 0;  pos < status.length;  ++pos) {
+                if (true == status[pos]) {
+                    status[pos] = false;
+                    final int depth = this.minimumMovesToGoal[pos] + 1;
+                    int dir = -1;
+                    for (int dirIncr : this.board.directionIncrement) {
+                        int newPos = pos;
+                        final boolean[] walls = this.boardWalls[++dir];
+                        while (false == walls[newPos]) {    //move the robot until it reaches a wall.
+                            newPos += dirIncr;              //NOTE: we rely on the fact that all boards are surrounded by outer walls.
+                            if (depth < this.minimumMovesToGoal[newPos]) {
+                                this.minimumMovesToGoal[newPos] = depth;
+                                status[newPos] = true;
+                                done = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
     private void iddfs() throws InterruptedException {
+        this.precomputeMinimumMovesToGoal();
         this.knownStates = null;
         long totalStates = 0;
         for (this.depthLimit = 1;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
@@ -104,8 +139,23 @@ public class SolverIDDFS extends Solver {
     
     private void dfsRecursion(final int depth) throws InterruptedException {
         //if (Thread.interrupted()) { throw new InterruptedException(); }
-        final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] oldState = this.states[depth - 1];
+        final int height = this.depthLimit - depth + 1;
+        final int minMovesToGoal;
+        if (true == this.isBoardGoalWildcard) {
+            int min = Integer.MAX_VALUE;
+            for (int pos : oldState) {
+                final int tmp = this.minimumMovesToGoal[pos];
+                if (min > tmp) { min = tmp; }
+            }
+            minMovesToGoal = min;
+        } else {
+            minMovesToGoal = this.minimumMovesToGoal[oldState[this.goalRobot]];
+        }
+        if (minMovesToGoal > height) {
+            return; //useless to move any robot: can't reach goal
+        }
+        final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] newState = this.states[depth];
         final int[] oldDirs = this.directions[depth - 1];
         final int depth1 = depth + 1;
@@ -115,6 +165,10 @@ public class SolverIDDFS extends Solver {
         int robo = -1;
         for (int oldRoboPos : oldState) {
             ++robo;
+            final boolean isGoalRobot = (this.goalRobot == robo) || (this.goalRobot < 0);
+            if ((minMovesToGoal == height) && (false == isGoalRobot)) {
+                continue;   //useless to move this robot: can't reach goal
+            }
             final int oldDir = oldDirs[robo];
             int dir = -1;
             for (int dirIncr : this.board.directionIncrement) {
@@ -133,7 +187,7 @@ public class SolverIDDFS extends Solver {
                     //special case (isSolution01): the goal robot has _NOT_ arrived at the goal
                     if ((oldRoboPos != newRoboPos)
                             && ((false == this.isSolution01)
-                                    || !((this.goalPosition == newRoboPos) && ((this.goalRobot == robo) || (this.goalRobot < 0))))
+                                    || !((this.goalPosition == newRoboPos) && (true == isGoalRobot)))
                             ) {
                         newState[robo] = newRoboPos;
                         //special case (isSolution01): we must be able to visit states more than once, so we don't add them to knownStates

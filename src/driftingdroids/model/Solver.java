@@ -50,7 +50,7 @@ public abstract class Solver {
     
     
     public static Solver createInstance(final Board board) {
-        return (board.isSolution01() ? new SolverIDDFS(board) : new SolverBFS(board));
+        return new SolverIDDFS(board);
     }
     
     
