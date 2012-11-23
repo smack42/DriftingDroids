@@ -30,7 +30,8 @@ public class SolverIDDFS extends Solver {
     private final int[][] states;
     private final int[][] directions;
     private static final int DIRECTION_NOT_MOVED_YET = 7;
-    private final boolean[][] expandRobotPositions = new boolean[MAX_DEPTH][];
+    private final int[][] obstacles = new int[MAX_DEPTH][];
+    private static final int OBSTACLE_ROBOT = (1 << 4);
     private KnownStates knownStates;
     private final int goalPosition;
     private final int minRobotLast;
@@ -43,10 +44,7 @@ public class SolverIDDFS extends Solver {
 
     protected SolverIDDFS(final Board board) {
         super(board);
-        for (int i = 0;  i < this.expandRobotPositions.length;  ++i) {
-            this.expandRobotPositions[i] = new boolean[board.size];
-            Arrays.fill(this.expandRobotPositions[i], false);
-        }
+        this.initObstacles();
         this.states = new int[MAX_DEPTH][this.board.getRobotPositions().length];
         this.directions = new int[MAX_DEPTH][this.board.getRobotPositions().length];
         this.goalPosition = this.board.getGoal().position;
@@ -54,6 +52,22 @@ public class SolverIDDFS extends Solver {
         this.goalRobot = (this.isBoardGoalWildcard ? this.board.getGoal().robotNumber : this.minRobotLast); //swapGoalLast
         this.isSolution01 = this.board.isSolution01();
         this.minimumMovesToGoal = new int[board.size];
+    }
+    
+    
+    
+    private void initObstacles() {
+        this.obstacles[0] = new int[board.size];
+        for (int pos = 0;  pos < this.obstacles[0].length;  ++pos) {
+            int obstacle = 0;
+            for (int dir = 0;  dir < 4;  ++dir) {
+                if (true == this.boardWalls[dir][pos]) { obstacle |= (1 << dir); }
+            }
+            this.obstacles[0][pos] = obstacle;
+        }
+        for (int depth = 1;  depth < this.obstacles.length;  ++depth) {
+            this.obstacles[depth] = this.obstacles[0].clone();
+        }
     }
     
     
@@ -155,11 +169,11 @@ public class SolverIDDFS extends Solver {
         if (minMovesToGoal > height) {
             return; //useless to move any robot: can't reach goal
         }
-        final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] newState = this.states[depth];
         final int[] oldDirs = this.directions[depth - 1];
         final int depth1 = depth + 1;
-        for (int pos : oldState) { expandRobotPositions[pos] = true; }
+        final int[] obstacles = this.obstacles[depth];
+        for (int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
         System.arraycopy(oldState, 0, newState, 0, oldState.length);
         //move all robots
         int robo = -1;
@@ -175,11 +189,13 @@ public class SolverIDDFS extends Solver {
                 ++dir;
                 if ((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3)))) {
                     int newRoboPos = oldRoboPos;
-                    final boolean[] walls = this.boardWalls[dir];
-                    while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
-                        newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
-                        if (expandRobotPositions[newRoboPos]) {         //by outer walls. without the outer walls we would need
-                            newRoboPos -= dirIncr;                      //some additional boundary checking here.
+                    int obstacle = obstacles[newRoboPos];
+                    final int wallMask = (1 << dir);
+                    while (0 == (obstacle & wallMask)) {        //move the robot until it reaches a wall or another robot.
+                        newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
+                        obstacle = obstacles[newRoboPos];       //by outer walls. without the outer walls we would need
+                        if (0 != (obstacle & OBSTACLE_ROBOT)) { //some additional boundary checking here.
+                            newRoboPos -= dirIncr;
                             break;
                         }
                     }
@@ -207,17 +223,17 @@ public class SolverIDDFS extends Solver {
             }
             newState[robo] = oldRoboPos;
         }
-        for (int pos : oldState) { expandRobotPositions[pos] = false; }
+        for (int pos : oldState) { obstacles[pos] ^= OBSTACLE_ROBOT; }  //unset robot positions
     }
     
     
     
     private void dfsLast(final int depth) throws InterruptedException {
         if (Thread.interrupted()) { throw new InterruptedException(); }
-        final boolean[] expandRobotPositions = this.expandRobotPositions[depth];
         final int[] oldState = this.states[depth - 1];
         final int[] oldDirs = this.directions[depth - 1];
-        for (int pos : oldState) { expandRobotPositions[pos] = true; }
+        final int[] obstacles = this.obstacles[depth];
+        for (int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
         //move goal robot(s) only
         for (int robo = this.minRobotLast;  robo < oldState.length;  ++robo) {
             final int oldRoboPos = oldState[robo];
@@ -227,11 +243,13 @@ public class SolverIDDFS extends Solver {
                 ++dir;
                 if ((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3)))) {
                     int newRoboPos = oldRoboPos;
-                    final boolean[] walls = this.boardWalls[dir];
-                    while (false == walls[newRoboPos]) {                //move the robot until it reaches a wall or another robot.
-                        newRoboPos += dirIncr;                          //NOTE: we rely on the fact that all boards are surrounded
-                        if (expandRobotPositions[newRoboPos]) {         //by outer walls. without the outer walls we would need
-                            newRoboPos -= dirIncr;                      //some additional boundary checking here.
+                    int obstacle = obstacles[newRoboPos];
+                    final int wallMask = (1 << dir);
+                    while (0 == (obstacle & wallMask)) {        //move the robot until it reaches a wall or another robot.
+                        newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
+                        obstacle = obstacles[newRoboPos];       //by outer walls. without the outer walls we would need
+                        if (0 != (obstacle & OBSTACLE_ROBOT)) { //some additional boundary checking here.
+                            newRoboPos -= dirIncr;
                             break;
                         }
                     }
@@ -250,7 +268,7 @@ public class SolverIDDFS extends Solver {
                 }
             }
         }
-        for (int pos : oldState) { expandRobotPositions[pos] = false; }
+        for (int pos : oldState) { obstacles[pos] ^= OBSTACLE_ROBOT; }  //unset robot positions
     }
     
     
