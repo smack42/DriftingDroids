@@ -46,9 +46,8 @@ public final class TrieMapByte {
     private byte[][] leafArrays;
     private int numLeafArrays, nextLeaf, nextLeafArray;
     
-    private final int nodeBits, leafBits;
-    private final int nodeNumber, nodeNumberUnCompr, nodeSize, nodeMask;
-    private final int leafShift, leafSize, leafMask;
+    private final int nodeBits, nodeNumber, nodeNumberUnCompr, nodeSize, nodeMask;
+    private final int leafBits, leafSize, leafMask;
     
     
     
@@ -67,8 +66,7 @@ public final class TrieMapByte {
         this.nodeNumberUnCompr = (keyBits + 8 - 31 + (this.nodeBits - 1)) / this.nodeBits;
         this.nodeSize = 1 << this.nodeBits;
         this.nodeMask = this.nodeSize - 1;
-        this.leafShift = this.leafBits;
-        this.leafSize = 1 << this.leafShift;
+        this.leafSize = 1 << this.leafBits;
         this.leafMask = this.leafSize - 1;
         
         this.nodeArrays = new int[32][];

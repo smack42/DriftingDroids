@@ -99,16 +99,15 @@ public class SolverIDDFS extends Solver {
     
     
     private void precomputeMinimumMovesToGoal() {
-        final boolean status[] = new boolean[this.minimumMovesToGoal.length];
+        final boolean posToDo[] = new boolean[this.minimumMovesToGoal.length];
         Arrays.fill(this.minimumMovesToGoal, Integer.MAX_VALUE);
         this.minimumMovesToGoal[this.goalPosition] = 0;
-        status[this.goalPosition] = true;
-        boolean done = false;
-        while (false == done) {
+        posToDo[this.goalPosition] = true;
+        for (boolean done = false;  false == done;  ) {
             done = true;
-            for (int pos = 0;  pos < status.length;  ++pos) {
-                if (true == status[pos]) {
-                    status[pos] = false;
+            for (int pos = 0;  pos < posToDo.length;  ++pos) {
+                if (true == posToDo[pos]) {
+                    posToDo[pos] = false;
                     final int depth = this.minimumMovesToGoal[pos] + 1;
                     int dir = -1;
                     for (int dirIncr : this.board.directionIncrement) {
@@ -118,7 +117,7 @@ public class SolverIDDFS extends Solver {
                             newPos += dirIncr;              //NOTE: we rely on the fact that all boards are surrounded by outer walls.
                             if (depth < this.minimumMovesToGoal[newPos]) {
                                 this.minimumMovesToGoal[newPos] = depth;
-                                status[newPos] = true;
+                                posToDo[newPos] = true;
                                 done = false;
                             }
                         }
@@ -134,13 +133,9 @@ public class SolverIDDFS extends Solver {
         this.precomputeMinimumMovesToGoal();
         this.knownStates = null;
         long totalStates = 0;
-        for (this.depthLimit = 1;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
+        for (this.depthLimit = 2;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
             this.knownStates = new KnownStates(this.knownStates);
-            if (this.depthLimit > 1) {
-                dfsRecursion(1);
-            } else {
-                dfsLast(1);
-            }
+            this.dfsRecursion(1);
             totalStates += this.knownStates.size();
             System.out.println("iddfs: " + this.knownStates.infoString() + " totalStates=" + totalStates);
             if (false == this.lastResultSolutions.isEmpty()) {
@@ -213,9 +208,9 @@ public class SolverIDDFS extends Solver {
                             System.arraycopy(oldDirs, 0, newDirs, 0, oldDirs.length);
                             newDirs[robo] = dir;
                             if (this.depthLimit > depth1) {
-                                dfsRecursion(depth1);
+                                this.dfsRecursion(depth1);
                             } else {
-                                dfsLast(depth1);
+                                this.dfsLast(depth1);
                             }
                         }
                     }
@@ -260,7 +255,7 @@ public class SolverIDDFS extends Solver {
                         if (true == this.knownStates.add(oldState, depth)) {    //the new state is not already known
                             System.arraycopy(oldState, 0, this.states[depth], 0, oldState.length);
                             oldState[robo] = oldRoboPos;
-                            buildSolution(depth);
+                            this.buildSolution(depth);
                         } else {
                             oldState[robo] = oldRoboPos;
                         }
@@ -345,13 +340,8 @@ public class SolverIDDFS extends Solver {
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
                 final byte prevDepth = this.theMap.get(key);
-                if (0x80 == (0x80 & prevDepth)) {
-                    if (depth <= (0x7f & prevDepth)) {
-                        this.theMap.put(key, (byte)depth);
-                        ++this.size;
-                        return true;
-                    }
-                } else if (depth < (0x7f & prevDepth)) {
+                final int prevDepth7f = (0x7f & prevDepth);
+                if ((depth < prevDepth7f) || ((depth == prevDepth7f) && (0x80 == (0x80 & prevDepth)))) {
                     this.theMap.put(key, (byte)depth);
                     ++this.size;
                     return true;
@@ -370,13 +360,8 @@ public class SolverIDDFS extends Solver {
             public final boolean add(final int[] state, final int depth) {
                 final long key = this.keyMaker.run(state);
                 final byte prevDepth = this.theMap.get(key);
-                if (0x80 == (0x80 & prevDepth)) {
-                    if (depth <= (0x7f & prevDepth)) {
-                        this.theMap.put(key, (byte)depth);
-                        ++this.size;
-                        return true;
-                    }
-                } else if (depth < (0x7f & prevDepth)) {
+                final int prevDepth7f = (0x7f & prevDepth);
+                if ((depth < prevDepth7f) || ((depth == prevDepth7f) && (0x80 == (0x80 & prevDepth)))) {
                     this.theMap.put(key, (byte)depth);
                     ++this.size;
                     return true;
