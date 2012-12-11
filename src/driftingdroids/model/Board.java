@@ -17,6 +17,7 @@
 
 package driftingdroids.model;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,6 +25,11 @@ import java.util.Formatter;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
+import java.util.zip.CRC32;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+
+import javax.xml.bind.DatatypeConverter;
 
 
 
@@ -299,6 +305,196 @@ public class Board {
         return fmt.toString();
     }
     
+    
+    /**
+     * Creates a new Board object based on the state information contained in the input string.
+     * 
+     * @param a String that represents the state of a Board object.
+     * @return a new Board object.
+     */
+    public static Board createBoardGameDump(final String dump) {
+        final byte[] data = unb64unzip(dump);
+        if (null == data) {
+            return null;    //invalid input String
+        }
+        int didx = 0;
+        // 0. data structure version
+        final int version = data[didx++];
+        if (0 != version) {
+            return null;    //unknown data structure version
+        }
+        // 1. board size
+        final int width = getInteger(data, didx);               didx += 4;
+        final int height = getInteger(data, didx);              didx += 4;
+        // 2. robots
+        final int numRobots = 0xff & data[didx++];
+        final Board board = new Board(width, height, numRobots);
+        for (int i = 0;  numRobots > i;  ++i) {
+            board.setRobot(i, getInteger(data, didx), false);   didx += 4;
+        }
+        // 3. quadrants
+        for (int i = 0;  board.quadrants.length > i;  ++i) {
+            board.quadrants[i] = 0xff & data[didx++];
+        }
+        // 4. walls
+        for (int dir = 0;  dir < board.walls.length;  ++dir) {
+            for (int pos = 0;  pos < board.walls[dir].length;  ++pos) {
+                board.walls[dir][pos] = (0 != data[didx++] ? true : false);
+            }
+        }
+        // 5. list of goals
+        final int numGoals = getInteger(data, didx);            didx += 4;
+        for (int i = 0;  numGoals > i;  ++i) {
+            final int pos = getInteger(data, didx);             didx += 4;
+            final int robot = 0xff & data[didx++];
+            final int shape = 0xff & data[didx++];
+            board.addGoal(pos, (255 == robot ? -1 : robot), shape);
+        }
+        // 6. active goal
+        final int pos = getInteger(data, didx);                 didx += 4;
+        final int robot = 0xff & data[didx++];
+        final int shape = 0xff & data[didx++];
+        final boolean setGoalResult = board.setGoal(pos);
+        final Goal goal = board.getGoal();
+        if ((false == setGoalResult) || (goal.position != pos) || (goal.robotNumber != (255 == robot ? -1 : robot)) || (goal.shape != shape)) {
+            return null;    //invalid active goal
+        }
+        return board;
+    }
+    
+    
+    /**
+     * Creates a specific text representation of this Board object. This is printable
+     * text which is suitable for copy&paste into e-mails, internet forums etc.
+     * 
+     * @return a String that represents the state of this Board object.
+     */
+    public String getGameDump() {
+        final List<Byte> data = new ArrayList<Byte>();
+        // 0. data structure version
+        data.add(Byte.valueOf((byte)0));
+        // 1. board size
+        putInteger(this.width, data);
+        putInteger(this.height, data);
+        // 2. robots
+        data.add(Byte.valueOf((byte)this.robots.length));
+        for (int robot : this.robots) {
+            putInteger(robot, data);
+        }
+        // 3. quadrants
+        for (int quadrant : this.quadrants) {
+            data.add(Byte.valueOf((byte)quadrant));
+        }
+        // 4. walls
+        for (int dir = 0;  dir < this.walls.length;  ++dir) {
+            for (int pos = 0;  pos < this.walls[dir].length;  ++pos) {
+                data.add(this.walls[dir][pos] ? Byte.valueOf((byte)1) : Byte.valueOf((byte)0));
+            }
+        }
+        // 5. list of goals
+        putInteger(this.goals.size(), data);
+        for (Goal goal : this.goals) {  //6 bytes
+            putInteger(goal.position, data);
+            data.add(Byte.valueOf((byte)goal.robotNumber));
+            data.add(Byte.valueOf((byte)goal.shape));
+        }
+        // 6. active goal
+        putInteger(this.goal.position, data);
+        data.add(Byte.valueOf((byte)this.goal.robotNumber));
+        data.add(Byte.valueOf((byte)this.goal.shape));
+        //convert data to String
+        final byte[] dataArray = new byte[data.size()];
+        int i = 0;
+        for (Byte dat : data) {
+            dataArray[i++] = dat.byteValue();
+        }
+        final String str = zipb64(dataArray);
+        return str;
+    }
+    
+    
+    private static void putInteger(final int value, final List<Byte> data) {
+        data.add(Byte.valueOf((byte)(0xff & (value >> 24))));
+        data.add(Byte.valueOf((byte)(0xff & (value >> 16))));
+        data.add(Byte.valueOf((byte)(0xff & (value >> 8))));
+        data.add(Byte.valueOf((byte)(0xff & value)));
+    }
+    
+    
+    private static int getInteger(final byte[] data, int didx) {
+        int result = data[didx++];
+        result = (result << 8) | (0xff & data[didx++]);
+        result = (result << 8) | (0xff & data[didx++]);
+        result = (result << 8) | (0xff & data[didx]);
+        return result;
+    }
+    
+    
+    private static String zipb64(final byte[] input) {
+        //store uncompressed length
+        final byte[] zipOutput = new byte[input.length * 2 + 128];  //large enough?!
+        for (int i = 0, rshift = 24;  i < 4;  rshift -= 8, i++) {
+            zipOutput[i] = (byte)((input.length >>> rshift) & 0xff);
+        }
+        //zip/deflate data
+        final Deflater zip = new Deflater(9);
+        zip.setInput(input);
+        zip.finish();
+        final int zipOutLen = 4 + zip.deflate(zipOutput, 4, zipOutput.length-4);    //skip uncompressed length
+        //encode base64
+        final byte[] b64Input = Arrays.copyOf(zipOutput, zipOutLen);
+        final String b64Output = DatatypeConverter.printBase64Binary(b64Input);
+        //compute CRC of encoded data
+        final CRC32 crc32 = new CRC32();
+        try {
+            crc32.update(b64Output.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException ignored) { }
+        final long crc32Value = crc32.getValue();
+        final String crc32String = new Formatter().format("%08X", crc32Value).toString();
+        //build output string:  starts and ends with "!", to be split at "!"
+        final String result = "!DriftingDroids_game!" + crc32String + "!" + b64Output + "!";
+        return result;
+    }
+    
+    
+    private static byte[] unb64unzip(final String input) {
+        byte[] result = null;
+        try {
+            //split input string and first validation
+            final String[] inputSplit = input.split("!");
+            if ((4 != inputSplit.length) || (!inputSplit[1].equals("DriftingDroids_game")) ||
+                    ('!' != input.charAt(0)) || ('!' != input.charAt(input.length()-1))) {
+                throw new IllegalArgumentException("input string has wrong format");
+            }
+            //validate data
+            final long b64crc = Long.parseLong(inputSplit[2], 16);      //throws NumberFormatException
+            final CRC32 crc32 = new CRC32();
+            crc32.update(inputSplit[3].getBytes("UTF-8"));
+            if (crc32.getValue() != b64crc) {
+                throw new IllegalArgumentException("data CRC mismatch");
+            }
+            //parse base64 string
+            final byte[] b64Output = DatatypeConverter.parseBase64Binary(inputSplit[3]);    //throws IllegalArgumentException
+            //unzip/inflate data
+            int unzipLen = 0;
+            for (int i = 0;  i < 4;  ++i) {
+                unzipLen = (unzipLen << 8) | (0xff & b64Output[i]);
+            }
+            result = new byte[unzipLen];
+            final Inflater unzip = new Inflater();
+            unzip.setInput(b64Output, 4, b64Output.length-4);
+            final int unzipLenActual = unzip.inflate(result);   //throws DataFormatException
+            //validate unzip
+            if (unzipLen != unzipLenActual) {
+                throw new IllegalArgumentException("uncompressed data length mismatch");
+            }
+        } catch(Exception e) {
+            System.out.println("error in unb64unzip: " + e.toString());
+            result = null;
+        }
+        return result;
+    }
+
     
     public Board rotate90(final boolean clockwise) {
         final Board newBoard = new Board(this.height, this.width, this.robots.length);

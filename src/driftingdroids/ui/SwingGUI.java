@@ -33,6 +33,8 @@ import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -61,6 +63,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -128,6 +131,8 @@ public class SwingGUI implements ActionListener {
     private final JComboBox jcomboRobots = new JComboBox();
     private final JButton jbutRotateBoardLeft = new JButton();
     private final JButton jbutRotateBoardRight = new JButton();
+    private final JButton jbutCopyBoardDumpToClipboard = new JButton();
+    private final JButton jbutCreateBoardFromDump = new JButton();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
@@ -464,6 +469,62 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.addActionListener(this);
         this.refreshJcomboRobots();
         
+        this.jbutCopyBoardDumpToClipboard.setText(L10N.getString("btn.CopyBoardDumpToClipboard.text"));
+        this.addKeyBindingTooltip(this.jbutCopyBoardDumpToClipboard,
+                L10N.getString("btn.CopyBoardDumpToClipboard.acceleratorkey"),
+                L10N.getString("btn.CopyBoardDumpToClipboard.tooltip"),
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        try {
+                            final Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
+                            String data = board.getGameDump();
+                            clip.setContents(new StringSelection(data), null);
+                            JOptionPane.showMessageDialog(frame,
+                                    L10N.getString("msg.CopyBoardDumpToClipboard.OK.message"),
+                                    L10N.getString("msg.CopyBoardDumpToClipboard.OK.title"),
+                                    JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(frame,
+                                    L10N.getString("msg.CopyBoardDumpToClipboard.Error.message") + "\n" + ex.toString(),
+                                    L10N.getString("msg.CopyBoardDumpToClipboard.Error.title"),
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }
+        );
+
+        this.jbutCreateBoardFromDump.setText(L10N.getString("btn.CreateBoardFromDump.text"));
+        this.addKeyBindingTooltip(this.jbutCreateBoardFromDump,
+                L10N.getString("btn.CreateBoardFromDump.acceleratorkey"),
+                L10N.getString("btn.CreateBoardFromDump.tooltip"),
+                new AbstractAction() {
+                    public void actionPerformed(ActionEvent e) {
+                        try {
+                            final String data = JOptionPane.showInputDialog(frame,
+                                    L10N.getString("msg.CreateBoardFromDump.input.message"),
+                                    L10N.getString("msg.CreateBoardFromDump.input.title"),
+                                    JOptionPane.PLAIN_MESSAGE);
+                            if ((null != data) && (0 != data.length())) {
+                                final Board newBoard = Board.createBoardGameDump(data);
+                                if (null != newBoard) {
+                                    board = newBoard;
+                                    refreshBoard();
+                                    refreshJComboPlaceRobot();
+                                    refreshJcomboQuadrants();
+                                } else {
+                                    throw new IllegalArgumentException();   //show error message
+                                }
+                            }
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(frame,
+                                    L10N.getString("msg.CreateBoardFromDump.Error.message"),
+                                    L10N.getString("msg.CreateBoardFromDump.Error.title"),
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }
+        );
+
         this.jbutRotateBoardLeft.setText(L10N.getString("btn.RotateBoardLeft.text"));
         this.addKeyBindingTooltip(this.jbutRotateBoardLeft,
                 L10N.getString("btn.RotateBoardLeft.acceleratorkey"),
@@ -509,6 +570,8 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text"))).addMulti(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
+        prepareLayout.row().grid().add(this.jbutCopyBoardDumpToClipboard);
+        prepareLayout.row().grid().add(this.jbutCreateBoardFromDump);
 
         
         final JPanel optionsPanel = new JPanel();   //-----------------------------------------------
