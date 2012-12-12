@@ -47,9 +47,9 @@ public class SolverIDDFS extends Solver {
         this.initObstacles();
         this.states = new int[MAX_DEPTH][this.board.getRobotPositions().length];
         this.directions = new int[MAX_DEPTH][this.board.getRobotPositions().length];
-        this.goalPosition = this.board.getGoal().position;
+        this.goalPosition = (null == this.board.getGoal() ? 0 : this.board.getGoal().position);
         this.minRobotLast = (this.isBoardGoalWildcard ? 0 : this.states[0].length - 1); //swapGoalLast
-        this.goalRobot = (this.isBoardGoalWildcard ? this.board.getGoal().robotNumber : this.minRobotLast); //swapGoalLast
+        this.goalRobot = (this.isBoardGoalWildcard ? (null == this.board.getGoal() ? 0 : this.board.getGoal().robotNumber) : this.minRobotLast); //swapGoalLast
         this.isSolution01 = this.board.isSolution01();
         this.minimumMovesToGoal = new int[board.size];
     }
@@ -80,18 +80,22 @@ public class SolverIDDFS extends Solver {
         System.out.println("***** " + this.getClass().getSimpleName() + " *****");
         System.out.println("options: " + this.getOptionsAsString());
         
-        this.states[0] = this.board.getRobotPositions().clone();
-        swapGoalLast(this.states[0]);   //goal robot is always the last one.
-        System.out.println("startState=" + this.stateString(this.states[0]));
-        
-        Arrays.fill(this.directions[0], DIRECTION_NOT_MOVED_YET);
-        
-        this.iddfs();
-        
-        this.solutionStoredStates = this.knownStates.size();
-        this.knownStates = null;    //allow garbage collection
-        
+        if (null == this.board.getGoal()) {
+            System.out.println("no goal is set - nothing to solve!");
+        } else {
+            this.states[0] = this.board.getRobotPositions().clone();
+            swapGoalLast(this.states[0]);   //goal robot is always the last one.
+            System.out.println("startState=" + this.stateString(this.states[0]));
+            
+            Arrays.fill(this.directions[0], DIRECTION_NOT_MOVED_YET);
+            
+            this.iddfs();
+            
+            this.solutionStoredStates = this.knownStates.size();
+            this.knownStates = null;    //allow garbage collection
+        }
         this.sortSolutions();
+        
         this.solutionMilliSeconds = (System.nanoTime() - startExecute) / 1000000L;
         return this.lastResultSolutions;
     }

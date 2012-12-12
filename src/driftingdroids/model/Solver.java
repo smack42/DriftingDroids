@@ -66,7 +66,7 @@ public abstract class Solver {
         for (int i = 0;  i < this.board.sizeNumBits;  ++i) { bitMask += bitMask + 1; }
         this.boardSizeBitMask = bitMask;
         this.isBoardStateInt32 = (this.board.sizeNumBits * this.board.getNumRobots() <= 32);
-        this.isBoardGoalWildcard = (this.board.getGoal().robotNumber < 0);
+        this.isBoardGoalWildcard = ((null != this.board.getGoal()) && (this.board.getGoal().robotNumber < 0));
     }
 
     protected final String stateString(final int[] state) {

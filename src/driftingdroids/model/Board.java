@@ -154,10 +154,12 @@ public class Board {
     
     private final int[] quadrants;      // quadrants used for this board (indexes in QUADRANTS) 
     private final boolean[][] walls;    // [4][width*height] 4 directions
-    private final int[] robots;         // index=robot, value=position
     private final List<Goal> goals;     // all possible goals on the board
     private final List<Goal> randomGoals;
     private Goal goal;                  // the current goal
+    
+    private int[] robots;               // index=robot, value=position
+    private boolean isFreestyleBoard;
 
     public class Goal {
         public final int x, y, position, robotNumber, shape;
@@ -192,10 +194,11 @@ public class Board {
         this.directionIncrement[WEST]  = -1;
         this.quadrants = new int[4];
         this.walls = new boolean[4][width * height];    //filled with "false"
-        this.robots = new int[numRobots];
+        this.setRobots(numRobots);
         this.goals = new ArrayList<Goal>();
         this.randomGoals = new ArrayList<Goal>();
         this.goal = new Goal(0, 0, 0, 0); //dummy
+        this.isFreestyleBoard = false;
     }
 
     
@@ -207,12 +210,7 @@ public class Board {
         b.addQuadrant(quadrantSE, 2);
         b.addQuadrant(quadrantSW, 3);
         b.addOuterWalls();
-        //place the robots
-        b.setRobot(0, 14 +  2 * b.width, false); //R
-        b.setRobot(1,  1 +  2 * b.width, false); //G
-        b.setRobot(2, 13 + 11 * b.width, false); //B
-        b.setRobot(3, 15 +  0 * b.width, false); //Y
-        b.setRobot(4, 15 +  7 * b.width, false); //S
+        //place the robots ->  done by constructor / setRobots(num)
         //choose a goal
         b.setGoalRandom();
         return b;
@@ -292,6 +290,9 @@ public class Board {
      * @return ID string of this board configuration
      */
     public String getGameID() {
+        if (this.isFreestyleBoard()) {
+            return "freestyle";
+        }
         final Formatter fmt = new Formatter();
         final int quad01 = (this.getQuadrantNum(0) << 4) | this.getQuadrantNum(1);
         final int quad23 = (this.getQuadrantNum(2) << 4) | this.getQuadrantNum(3);
@@ -313,7 +314,7 @@ public class Board {
      * @return a new Board object.
      */
     public static Board createBoardGameDump(final String dump) {
-        final byte[] data = unb64unzip(dump);
+        final byte[] data = unb64unzip(dump.replaceAll("\\s", "")); //remove whitespace
         if (null == data) {
             return null;    //invalid input String
         }
@@ -354,11 +355,17 @@ public class Board {
         final int pos = getInteger(data, didx);                 didx += 4;
         final int robot = 0xff & data[didx++];
         final int shape = 0xff & data[didx++];
-        final boolean setGoalResult = board.setGoal(pos);
-        final Goal goal = board.getGoal();
-        if ((false == setGoalResult) || (goal.position != pos) || (goal.robotNumber != (255 == robot ? -1 : robot)) || (goal.shape != shape)) {
-            return null;    //invalid active goal
+        if (-1 == pos) {
+            board.goal = null;
+        } else {
+            final boolean setGoalResult = board.setGoal(pos);
+            final Goal goal = board.getGoal();
+            if ((false == setGoalResult) || (goal.position != pos) || (goal.robotNumber != (255 == robot ? -1 : robot)) || (goal.shape != shape)) {
+                return null;    //invalid active goal
+            }
         }
+        // 7. isFreestyleBoard
+        board.isFreestyleBoard = (0 != data[didx++]);
         return board;
     }
     
@@ -388,7 +395,7 @@ public class Board {
         // 4. walls
         for (int dir = 0;  dir < this.walls.length;  ++dir) {
             for (int pos = 0;  pos < this.walls[dir].length;  ++pos) {
-                data.add(this.walls[dir][pos] ? Byte.valueOf((byte)1) : Byte.valueOf((byte)0));
+                data.add(Byte.valueOf(this.walls[dir][pos] ? (byte)1 : (byte)0));
             }
         }
         // 5. list of goals
@@ -399,9 +406,11 @@ public class Board {
             data.add(Byte.valueOf((byte)goal.shape));
         }
         // 6. active goal
-        putInteger(this.goal.position, data);
-        data.add(Byte.valueOf((byte)this.goal.robotNumber));
-        data.add(Byte.valueOf((byte)this.goal.shape));
+        putInteger((null == this.goal ? -1 : this.goal.position), data);
+        data.add(Byte.valueOf((byte)(null == this.goal ? 0 : this.goal.robotNumber)));
+        data.add(Byte.valueOf((byte)(null == this.goal ? 0 : this.goal.shape)));
+        // 7. isFreestyleBoard
+        data.add(Byte.valueOf(this.isFreestyleBoard() ? (byte)1 : (byte)0));
         //convert data to String
         final byte[] dataArray = new byte[data.size()];
         int i = 0;
@@ -593,6 +602,9 @@ public class Board {
     
     
     public boolean isSolution01() {
+        if (null == this.goal) {
+            return false;
+        }
         boolean result = false;
         //is this a zero-move solution?
         if (this.goal.robotNumber < 0) {
@@ -633,6 +645,20 @@ public class Board {
         return result;
     }
     
+    
+    public void setRobots(final int numRobots) {
+        this.robots = new int[numRobots];
+        if (this.isFreestyleBoard()) {
+            this.setRobotsRandom();
+        } else {
+            //original board / made out of quadrants
+            this.setRobot(0, 14 +  2 * this.width, false); //R
+            this.setRobot(1,  1 +  2 * this.width, false); //G
+            this.setRobot(2, 13 + 11 * this.width, false); //B
+            this.setRobot(3, 15 +  0 * this.width, false); //Y
+            this.setRobot(4, 15 +  7 * this.width, false); //S
+        }
+    }
     
     public void setRobotsRandom() {
         do {
@@ -683,6 +709,9 @@ public class Board {
     }
     
     public void setGoalRandom() {
+        if (this.goals.isEmpty()) {
+            return;
+        }
         if (this.randomGoals.size() == 0) {
             this.randomGoals.addAll(this.goals);
             Collections.shuffle(this.randomGoals, RANDOM);
@@ -720,6 +749,11 @@ public class Board {
     private Board addGoal(int x, int y, int robot, int shape) {
         this.goals.add(new Goal(x, y, robot, shape));
         return this;
+    }
+    
+    public void removeGoals() {
+        this.goals.clear();
+        this.goal = null;
     }
 
     private Board addOuterWalls() {
@@ -775,6 +809,13 @@ public class Board {
             if (this.height - 1 == y)   { direction = direction.replace('S', ' '); }
         }
         this.setWalls(x, y, direction, doSet);
+    }
+    
+    public void removeWalls() {
+        for (boolean[] w : this.walls) {
+            Arrays.fill(w, false);
+        }
+        this.addOuterWalls();
     }
 
     public boolean isWall(int position, int direction) {
@@ -931,5 +972,12 @@ public class Board {
     
     public int getNumRobots() {
         return this.robots.length;
+    }
+    
+    public void setFreestyleBoard() {
+        this.isFreestyleBoard = true;
+    }
+    public boolean isFreestyleBoard() {
+        return this.isFreestyleBoard;
     }
 }
