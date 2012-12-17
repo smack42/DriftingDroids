@@ -70,6 +70,7 @@ public abstract class Solver {
     }
 
     protected final String stateString(final int[] state) {
+        @SuppressWarnings("resource")
         final Formatter formatter = new Formatter();
         this.swapGoalLast(state);
         for (int i = 0;  i < state.length;  i++) {

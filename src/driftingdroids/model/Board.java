@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Formatter;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
@@ -293,6 +294,7 @@ public class Board {
         if (this.isFreestyleBoard()) {
             return "freestyle";
         }
+        @SuppressWarnings("resource")
         final Formatter fmt = new Formatter();
         final int quad01 = (this.getQuadrantNum(0) << 4) | this.getQuadrantNum(1);
         final int quad23 = (this.getQuadrantNum(2) << 4) | this.getQuadrantNum(3);
@@ -459,6 +461,7 @@ public class Board {
             crc32.update(b64Output.getBytes("UTF-8"));
         } catch (UnsupportedEncodingException ignored) { }
         final long crc32Value = crc32.getValue();
+        @SuppressWarnings("resource")
         final String crc32String = new Formatter().format("%08X", crc32Value).toString();
         //build output string:  starts and ends with "!", to be split at "!"
         final String result = "!DriftingDroids_game!" + crc32String + "!" + b64Output + "!";
@@ -710,6 +713,7 @@ public class Board {
     
     public void setGoalRandom() {
         if (this.goals.isEmpty()) {
+            this.goal = null;
             return;
         }
         if (this.randomGoals.size() == 0) {
@@ -741,14 +745,35 @@ public class Board {
         return result;
     }
     
-    private Board addGoal(int pos, int robot, int shape) {
-        this.goals.add(new Goal(pos%this.width, pos/this.width, robot, shape));
-        return this;
+    public Board addGoal(int pos, int robot, int shape) {
+        this.removeGoal(pos);
+        return this.addGoal(pos%this.width, pos/this.width, robot, shape);
     }
     
     private Board addGoal(int x, int y, int robot, int shape) {
-        this.goals.add(new Goal(x, y, robot, shape));
+        final Goal g = new Goal(x, y, robot, shape);
+        this.goals.add(g);
+        if (null == this.goal) {
+            this.goal = g;
+        }
         return this;
+    }
+    
+    public boolean removeGoal(final int position) {
+        boolean result = false;
+        final Iterator<Goal> iter = this.goals.iterator();
+        while (iter.hasNext()) {
+            final Goal g = iter.next();
+            if (g.position == position) {
+                iter.remove();
+                this.randomGoals.remove(g);
+                result = true;
+                if (g.equals(this.goal)) {
+                    this.setGoalRandom();
+                }
+            }
+        }
+        return result;
     }
     
     public void removeGoals() {

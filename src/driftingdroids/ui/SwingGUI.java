@@ -37,6 +37,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.CancellationException;
 
 import javax.swing.AbstractAction;
@@ -63,6 +65,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -71,6 +74,7 @@ import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -127,13 +131,18 @@ public class SwingGUI implements ActionListener {
     
     private final JRadioButton jradioOriginalBoard = new JRadioButton();
     private final JRadioButton jradioFreestyleBoard = new JRadioButton();
-    private final JComboBox[] jcomboQuadrants = { new JComboBox(), new JComboBox(), new JComboBox(), new JComboBox() };
+    private final JLabel jlabelBoardTiles = new JLabel(L10N.getString("lbl.BoardTiles.text"));
+    private final List<JComboBox> jcomboQuadrants = new ArrayList<JComboBox>();
     private final JButton jbutRandomLayout = new JButton();
     private final JComboBox jcomboRobots = new JComboBox();
     private final JButton jbutRotateBoardLeft = new JButton();
     private final JButton jbutRotateBoardRight = new JButton();
     private final JButton jbutRemoveWalls = new JButton();
     private final JButton jbutRemoveGoals = new JButton();
+    private final JLabel jlabelListGoalColors = new JLabel(L10N.getString("lbl.ListGoalColors.text"));
+    private final JLabel jlabelListGoalShapes = new JLabel(L10N.getString("lbl.ListGoalShapes.text"));
+    private final JList jlistGoalRobots = new JList();
+    private final JList jlistGoalShapes = new JList();
     private final JButton jbutCopyBoardDumpToClipboard = new JButton();
     private final JButton jbutCreateBoardFromDump = new JButton();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
@@ -169,10 +178,10 @@ public class SwingGUI implements ActionListener {
     
     private void makeBoardQuadrants() {
         this.board = Board.createBoardQuadrants(
-                this.jcomboQuadrants[0].getSelectedIndex(),
-                this.jcomboQuadrants[1].getSelectedIndex(),
-                this.jcomboQuadrants[2].getSelectedIndex(),
-                this.jcomboQuadrants[3].getSelectedIndex(),
+                this.jcomboQuadrants.get(0).getSelectedIndex(),
+                this.jcomboQuadrants.get(1).getSelectedIndex(),
+                this.jcomboQuadrants.get(2).getSelectedIndex(),
+                this.jcomboQuadrants.get(3).getSelectedIndex(),
                 this.jcomboRobots.getSelectedIndex() + 1 );
         this.refreshBoard();
     }
@@ -188,6 +197,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private void updateBoardRandomGoal() {
+        this.board.setRobots(this.currentPosition);
         this.board.setGoalRandom();
         this.updateBoardGetRobots();
     }
@@ -389,10 +399,15 @@ public class SwingGUI implements ActionListener {
             final boolean isModeFreestyle = isModeEditBoard();
             final boolean isModeOriginal = !isModeFreestyle;
             //enable/disable controls
+            jlabelBoardTiles.setEnabled(isModeOriginal);
             for (JComboBox jc : jcomboQuadrants) { jc.setEnabled(isModeOriginal); }
             jbutRandomLayout.setEnabled(isModeOriginal);
             jbutRemoveWalls.setEnabled(isModeFreestyle);
             jbutRemoveGoals.setEnabled(isModeFreestyle);
+            jlabelListGoalColors.setEnabled(isModeFreestyle);
+            jlabelListGoalShapes.setEnabled(isModeFreestyle);
+            jlistGoalRobots.setEnabled(isModeFreestyle);
+            jlistGoalShapes.setEnabled(isModeFreestyle);
         }
     }
 
@@ -457,11 +472,13 @@ public class SwingGUI implements ActionListener {
         );
         
         for (int i = 0;  i < 4;  ++i) {
-            this.jcomboQuadrants[i].setModel(new DefaultComboBoxModel(Board.QUADRANT_NAMES));
-            this.jcomboQuadrants[i].setEditable(false);
-            this.jcomboQuadrants[i].setSelectedIndex(this.board.getQuadrantNum(i));
-            this.jcomboQuadrants[i].setActionCommand(AC_BOARD_QUADRANTS);
-            this.jcomboQuadrants[i].addActionListener(this);
+            final JComboBox jc = new JComboBox();
+            jc.setModel(new DefaultComboBoxModel(Board.QUADRANT_NAMES));
+            jc.setEditable(false);
+            jc.setSelectedIndex(this.board.getQuadrantNum(i));
+            jc.setActionCommand(AC_BOARD_QUADRANTS);
+            jc.addActionListener(this);
+            this.jcomboQuadrants.add(jc);
         }
         
         final String[] strRobots = { "1", "2", "3", "4", "5" };
@@ -584,16 +601,40 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
+        
+        final Vector<String> dataGoalRobots = new Vector<String>();
+        for (int color = -1;  color < 4;  ++color) {
+            dataGoalRobots.add(Board.getColorLongL10N(color));
+        }
+        this.jlistGoalRobots.setListData(dataGoalRobots);
+        this.jlistGoalRobots.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        this.jlistGoalRobots.setSelectedIndex(0 + 1);
+        this.jlistGoalRobots.setVisibleRowCount(dataGoalRobots.size());
+        final JScrollPane jscrollGoalRobots = new JScrollPane(this.jlistGoalRobots);
 
+        final Vector<String> dataGoalShapes = new Vector<String>();
+        for (int shape = 0;  shape < 4;  ++shape) {
+            dataGoalShapes.add(Board.getGoalShapeL10N(shape));
+        }
+        this.jlistGoalShapes.setListData(dataGoalShapes);
+        this.jlistGoalShapes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        this.jlistGoalShapes.setSelectedIndex(0);
+        this.jlistGoalShapes.setVisibleRowCount(dataGoalShapes.size());
+        final JScrollPane jscrollGoalShapes = new JScrollPane(this.jlistGoalShapes);
+        
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text")), 2).add(this.jcomboRobots).empty();
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JSeparator());
+        prepareLayout.emptyRow();
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jradioOriginalBoard);
         prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.BoardTiles.text")));
-        prepareLayout.row().grid().add(this.jcomboQuadrants[0], this.jcomboQuadrants[1]).add(this.jbutRandomLayout, 2);
-        prepareLayout.row().grid().add(this.jcomboQuadrants[3], this.jcomboQuadrants[2]).empty(2);
+        prepareLayout.row().grid().add(this.jlabelBoardTiles);
+        prepareLayout.row().grid().add(this.jcomboQuadrants.get(0), this.jcomboQuadrants.get(1)).add(this.jbutRandomLayout, 2);
+        prepareLayout.row().grid().add(this.jcomboQuadrants.get(3), this.jcomboQuadrants.get(2)).empty(2);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
@@ -601,9 +642,8 @@ public class SwingGUI implements ActionListener {
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jbutRemoveWalls).add(this.jbutRemoveGoals);
         prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
+        prepareLayout.row().grid().add(this.jlabelListGoalColors).add(this.jlabelListGoalShapes);
+        prepareLayout.row().grid().add(jscrollGoalRobots).add(jscrollGoalShapes);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
@@ -879,10 +919,11 @@ public class SwingGUI implements ActionListener {
 
     private void refreshJcomboQuadrants() {
         for (int i = 0;  i < 4;  ++i) {
-            final String tmp = this.jcomboQuadrants[i].getActionCommand();
-            this.jcomboQuadrants[i].setActionCommand("");
-            this.jcomboQuadrants[i].setSelectedIndex(this.board.getQuadrantNum(i));
-            this.jcomboQuadrants[i].setActionCommand(tmp);
+            final JComboBox jc = this.jcomboQuadrants.get(i);
+            final String tmp = jc.getActionCommand();
+            jc.setActionCommand("");
+            jc.setSelectedIndex(this.board.getQuadrantNum(i));
+            jc.setActionCommand(tmp);
         }
     }
 
@@ -1264,26 +1305,35 @@ public class SwingGUI implements ActionListener {
                 }
             }
             if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
-                final boolean setWall = (e.getButton() == MouseEvent.BUTTON1);
+                // set wall/goal : mouse button 1 and NOT shift key down
+                // remove wall/goal : other mouse button or shift key down
+                final boolean doSet = ((e.getButton() == MouseEvent.BUTTON1) && (0 == (e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK)));
                 if (true == this.isMouseNorth) {
-                    board.setWall(this.boardPosition, "N", setWall);
+                    board.setWall(this.boardPosition, "N", doSet);
                     board.setFreestyleBoard();
                     this.repaintOther(this.boardPosition - board.width);
                 }
                 if (true == this.isMouseEast) {
-                    board.setWall(this.boardPosition, "E", setWall);
+                    board.setWall(this.boardPosition, "E", doSet);
                     board.setFreestyleBoard();
                     this.repaintOther(this.boardPosition + 1);
                 }
                 if (true == this.isMouseSouth) {
-                    board.setWall(this.boardPosition, "S", setWall);
+                    board.setWall(this.boardPosition, "S", doSet);
                     board.setFreestyleBoard();
                     this.repaintOther(this.boardPosition + board.width);
                 }
                 if (true == this.isMouseWest) {
-                    board.setWall(this.boardPosition, "W", setWall);
+                    board.setWall(this.boardPosition, "W", doSet);
                     board.setFreestyleBoard();
                     this.repaintOther(this.boardPosition - 1);
+                }
+                if ((false == this.isMouseNorth) && (false == this.isMouseEast) && (false == this.isMouseSouth) && (false == this.isMouseWest)) {
+                    if (true == doSet) {
+                        board.addGoal(this.boardPosition, jlistGoalRobots.getSelectedIndex()-1, jlistGoalShapes.getSelectedIndex());
+                    } else {
+                        board.removeGoal(this.boardPosition);
+                    }
                 }
                 this.repaint();
             }
