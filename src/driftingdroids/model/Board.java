@@ -462,7 +462,7 @@ public class Board {
         } catch (UnsupportedEncodingException ignored) { }
         final long crc32Value = crc32.getValue();
         @SuppressWarnings("resource")
-        final String crc32String = new Formatter().format("%08X", crc32Value).toString();
+        final String crc32String = new Formatter().format("%08X", Long.valueOf(crc32Value)).toString();
         //build output string:  starts and ends with "!", to be split at "!"
         final String result = "!DriftingDroids_game!" + crc32String + "!" + b64Output + "!";
         return result;
