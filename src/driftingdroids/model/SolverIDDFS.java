@@ -140,7 +140,7 @@ public class SolverIDDFS extends Solver {
         this.knownStates = new KnownStates();
         for (this.depthLimit = 2;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
             final long nanoDfs = System.nanoTime();
-            this.dfsRecursion(1);
+            this.dfsRecursion(1, -1, -1);
             final long nanoEnd = System.nanoTime();
             System.out.println("iddfs:  finished depthLimit=" + this.depthLimit +
                     " megaBytes=" + this.knownStates.getMegaBytesAllocated() +
@@ -154,7 +154,7 @@ public class SolverIDDFS extends Solver {
     
     
     
-    private void dfsRecursion(final int depth) throws InterruptedException {
+    private void dfsRecursion(final int depth, final int lastRobo, final int lastDirReverse) throws InterruptedException {
         //if (Thread.interrupted()) { throw new InterruptedException(); }
         final int[] oldState = this.states[depth - 1];
         final int height = this.depthLimit - depth + 1;
@@ -190,7 +190,8 @@ public class SolverIDDFS extends Solver {
             int dir = -1;
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
-                if ((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3)))) {
+                if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3))))
+                        && ((lastRobo != robo) || (lastDirReverse != dir))) {
                     int newRoboPos = oldRoboPos;
                     int obstacle = obstacles[newRoboPos];
                     final int wallMask = (1 << dir);
@@ -216,9 +217,9 @@ public class SolverIDDFS extends Solver {
                             System.arraycopy(oldDirs, 0, newDirs, 0, oldDirs.length);
                             newDirs[robo] = dir;
                             if (this.depthLimit > depth1) {
-                                this.dfsRecursion(depth1);
+                                this.dfsRecursion(depth1, robo, ((dir + 2) & 3));
                             } else {
-                                this.dfsLast(depth1);
+                                this.dfsLast(depth1, robo, ((dir + 2) & 3));
                             }
                         }
                     }
@@ -231,7 +232,7 @@ public class SolverIDDFS extends Solver {
     
     
     
-    private void dfsLast(final int depth) throws InterruptedException {
+    private void dfsLast(final int depth, final int lastRobo, final int lastDirReverse) throws InterruptedException {
         if (Thread.interrupted()) { throw new InterruptedException(); }
         final int[] oldState = this.states[depth - 1];
         final int[] oldDirs = this.directions[depth - 1];
@@ -244,7 +245,8 @@ public class SolverIDDFS extends Solver {
             int dir = -1;
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
-                if ((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3)))) {
+                if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3))))
+                    && ((lastRobo != robo) || (lastDirReverse != dir))) {
                     int newRoboPos = oldRoboPos;
                     int obstacle = obstacles[newRoboPos];
                     final int wallMask = (1 << dir);
