@@ -191,7 +191,7 @@ public class SolverIDDFS extends Solver {
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
                 if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3))))
-                        && ((lastRobo != robo) || (lastDirReverse != dir))) {
+                        && ((true == this.isSolution01) || (lastRobo != robo) || (lastDirReverse != dir))) {
                     int newRoboPos = oldRoboPos;
                     int obstacle = obstacles[newRoboPos];
                     final int wallMask = (1 << dir);
@@ -206,9 +206,7 @@ public class SolverIDDFS extends Solver {
                     //the robot has actually moved
                     //special case (isSolution01): the goal robot has _NOT_ arrived at the goal
                     if ((oldRoboPos != newRoboPos)
-                            && ((false == this.isSolution01)
-                                    || !((this.goalPosition == newRoboPos) && (true == isGoalRobot)))
-                            ) {
+                            && ((false == this.isSolution01) || !((this.goalPosition == newRoboPos) && (true == isGoalRobot)))) {
                         newState[robo] = newRoboPos;
                         //special case (isSolution01): we must be able to visit states more than once, so we don't add them to knownStates
                         //the new state is not already known (i.e. stored in knownStates)
@@ -246,7 +244,7 @@ public class SolverIDDFS extends Solver {
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
                 if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3))))
-                    && ((lastRobo != robo) || (lastDirReverse != dir))) {
+                    && ((true == this.isSolution01) || (lastRobo != robo) || (lastDirReverse != dir))) {
                     int newRoboPos = oldRoboPos;
                     int obstacle = obstacles[newRoboPos];
                     final int wallMask = (1 << dir);
