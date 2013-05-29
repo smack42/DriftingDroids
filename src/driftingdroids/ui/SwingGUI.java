@@ -129,8 +129,7 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean selectGoal = false;
     
-    private final JRadioButton jradioOriginalBoard = new JRadioButton();
-    private final JRadioButton jradioFreestyleBoard = new JRadioButton();
+    private final JTabbedPane jtabEditBoard = new JTabbedPane();
     private final JLabel jlabelBoardTiles = new JLabel(L10N.getString("lbl.BoardTiles.text"));
     private final List<JComboBox> jcomboQuadrants = new ArrayList<JComboBox>();
     private final JButton jbutRandomLayout = new JButton();
@@ -374,24 +373,6 @@ public class SwingGUI implements ActionListener {
         }
     }
     
-    private class TabListener implements ChangeListener {
-        private Board oldBoard = null;
-        @Override
-        public void stateChanged(ChangeEvent e) {
-            refreshBoard(); //repaint the entire board
-            if (isModePlay()) {
-                if (this.oldBoard != board) {
-                    updateBoardGetRobots();
-                } else {
-                    updateBoardGetRobots();     //start solver thread
-                }
-            } else {
-                removeSolution();   //stop solver thread
-                this.oldBoard = board;
-            }
-        }
-    }
-    
     private class BoardEditModeAction extends AbstractAction {
         private static final long serialVersionUID = 1L;
         @Override
@@ -443,20 +424,6 @@ public class SwingGUI implements ActionListener {
         
         final JPanel preparePanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
-        
-        
-        this.jradioOriginalBoard.setText(L10N.getString("btn.OriginalBoard.text"));
-        this.jradioOriginalBoard.setToolTipText(L10N.getString("btn.OriginalBoard.tooltip"));
-        this.jradioOriginalBoard.addActionListener(new BoardEditModeAction());
-        
-        this.jradioFreestyleBoard.setText(L10N.getString("btn.FreestyleBoard.text"));
-        this.jradioFreestyleBoard.setToolTipText(L10N.getString("btn.FreestyleBoard.tooltip"));
-        this.jradioFreestyleBoard.addActionListener(new BoardEditModeAction());
-        
-        final ButtonGroup radioButtonGroup = new ButtonGroup();
-        radioButtonGroup.add(this.jradioOriginalBoard);
-        radioButtonGroup.add(this.jradioFreestyleBoard);
-        this.jradioOriginalBoard.doClick(); //setSelected(true)
         
         this.jbutRandomLayout.setText(L10N.getString("btn.RandomLayout.text"));
         this.addKeyBindingTooltip(this.jbutRandomLayout,
@@ -554,7 +521,7 @@ public class SwingGUI implements ActionListener {
                                 if (null != newBoard) {
                                     board = newBoard;
                                     if (board.isFreestyleBoard()) {
-                                        jradioFreestyleBoard.doClick(); //setSelected(true)
+                                        jtabEditBoard.setSelectedIndex(1);
                                     }
                                     refreshBoard();
                                     refreshJcomboRobots();
@@ -621,6 +588,25 @@ public class SwingGUI implements ActionListener {
         this.jlistGoalShapes.setSelectedIndex(0);
         this.jlistGoalShapes.setVisibleRowCount(dataGoalShapes.size());
         final JScrollPane jscrollGoalShapes = new JScrollPane(this.jlistGoalShapes);
+
+
+        final JPanel editBoardOriginalPanel = new JPanel();
+        final DesignGridLayout editBoardOriginalLayout = new DesignGridLayout(editBoardOriginalPanel);
+        editBoardOriginalLayout.row().grid().add(this.jlabelBoardTiles);
+        editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(0), this.jcomboQuadrants.get(1)).add(this.jbutRandomLayout, 2);
+        editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(3), this.jcomboQuadrants.get(2)).empty(2);
+
+        final JPanel editBoardFreestylePanel = new JPanel();
+        final DesignGridLayout editBoardFreestyleLayout = new DesignGridLayout(editBoardFreestylePanel);
+        editBoardFreestyleLayout.row().grid().add(this.jbutRemoveWalls).add(this.jbutRemoveGoals);
+        editBoardFreestyleLayout.emptyRow();
+        editBoardFreestyleLayout.row().grid().add(this.jlabelListGoalColors).add(this.jlabelListGoalShapes);
+        editBoardFreestyleLayout.row().grid().add(jscrollGoalRobots).add(jscrollGoalShapes);
+
+        this.jtabEditBoard.addTab(L10N.getString("tab.OriginalBoard.text"),
+                null, editBoardOriginalPanel, L10N.getString("tab.OriginalBoard.tooltip"));
+        this.jtabEditBoard.addTab(L10N.getString("tab.FreestyleBoard.text"),
+                null, editBoardFreestylePanel, L10N.getString("tab.FreestyleBoard.tooltip"));
         
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text")), 2).add(this.jcomboRobots).empty();
         prepareLayout.emptyRow();
@@ -628,28 +614,13 @@ public class SwingGUI implements ActionListener {
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
         prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jradioOriginalBoard);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jlabelBoardTiles);
-        prepareLayout.row().grid().add(this.jcomboQuadrants.get(0), this.jcomboQuadrants.get(1)).add(this.jbutRandomLayout, 2);
-        prepareLayout.row().grid().add(this.jcomboQuadrants.get(3), this.jcomboQuadrants.get(2)).empty(2);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jradioFreestyleBoard);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jbutRemoveWalls).add(this.jbutRemoveGoals);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jlabelListGoalColors).add(this.jlabelListGoalShapes);
-        prepareLayout.row().grid().add(jscrollGoalRobots).add(jscrollGoalShapes);
+        prepareLayout.row().grid().add(this.jtabEditBoard);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JSeparator());
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jbutCopyBoardDumpToClipboard).add(this.jbutCreateBoardFromDump);
 
-        
+
         final JPanel optionsPanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout optionsLayout = new DesignGridLayout(optionsPanel);
         
@@ -676,6 +647,7 @@ public class SwingGUI implements ActionListener {
         optionsLayout.row().grid().add(this.jcheckOptAllowRebounds);
         optionsLayout.emptyRow();
         optionsLayout.row().grid().add(new JSeparator());
+        optionsLayout.emptyRow();
         optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
         optionsLayout.emptyRow();
         optionsLayout.row().grid().add(this.jcheckOptShowColorNames);
@@ -857,8 +829,19 @@ public class SwingGUI implements ActionListener {
         this.jtabPreparePlay.addTab(L10N.getString("tab.Options.text"), optionsPanel);
         this.jtabPreparePlay.addTab(L10N.getString("tab.PlayGame.text"), playPanel);
         this.jtabPreparePlay.setSelectedIndex(2);   //Play
-        this.jtabPreparePlay.addChangeListener(new TabListener());
+        this.jtabPreparePlay.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                refreshBoard(); // repaint the entire board
+                if (isModePlay()) {
+                    SwingGUI.this.updateBoardGetRobots(); // start solver thread
+                } else {
+                    SwingGUI.this.removeSolution(); // stop solver thread
+                }
+            }
+        });
         
+
         final JPanel boardPanel = new JPanel(new GridLayout(this.board.height, this.board.width));
         for (int i = 0; i < this.board.size; ++i) {
             boardPanel.add(this.boardCells[i]);
@@ -903,7 +886,7 @@ public class SwingGUI implements ActionListener {
     }
     
     private boolean isFreestyleBoard() {
-        return (true == this.jradioFreestyleBoard.isSelected());
+        return (this.jtabEditBoard.getSelectedIndex() == 1);
     }
     
     private boolean isModeEditBoard() {
