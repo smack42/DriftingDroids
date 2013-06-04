@@ -604,6 +604,7 @@ public class SwingGUI implements ActionListener {
         editBoardFreestyleLayout.emptyRow();
         editBoardFreestyleLayout.row().grid().add(this.jlabelListGoalColors).add(this.jlabelListGoalShapes);
         editBoardFreestyleLayout.row().grid().add(jscrollGoalRobots).add(jscrollGoalShapes);
+        editBoardFreestyleLayout.row().grid().add(this.jbutCopyBoardDumpToClipboard).add(this.jbutCreateBoardFromDump);
 
         this.jtabEditBoard.addTab(L10N.getString("tab.OriginalBoard.text"),
                 null, editBoardOriginalPanel, L10N.getString("tab.OriginalBoard.tooltip"));
@@ -617,10 +618,6 @@ public class SwingGUI implements ActionListener {
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
         prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jtabEditBoard);
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(this.jbutCopyBoardDumpToClipboard).add(this.jbutCreateBoardFromDump);
 
 
         final JPanel optionsPanel = new JPanel();   //-----------------------------------------------
