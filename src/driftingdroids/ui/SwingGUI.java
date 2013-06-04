@@ -68,6 +68,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
@@ -129,6 +130,7 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean selectGoal = false;
     
+    private final JPopupMenu popupMenu = new JPopupMenu();
     private final JTabbedPane jtabEditBoard = new JTabbedPane();
     private final JLabel jlabelBoardTiles = new JLabel(L10N.getString("lbl.BoardTiles.text"));
     private final List<JComboBox> jcomboQuadrants = new ArrayList<JComboBox>();
@@ -1272,20 +1274,12 @@ public class SwingGUI implements ActionListener {
         }
         @Override
         public void mousePressed(MouseEvent e) {
+            this.maybeShowPopup(e);
             if (placeRobot >= 0) {
-                board.setRobots(currentPosition);
-                if (board.setRobot(placeRobot, this.boardPosition, true)) {
-                    updateBoardGetRobots();
-                }
-                placeRobot = -1;
-                refreshJComboPlaceRobot();
+                this.doPlaceRobot(placeRobot);
             }
             if (true == selectGoal) {
-                if (board.setGoal(this.boardPosition)) {
-                    selectGoal = false;
-                    board.setRobots(currentPosition);
-                    updateBoardGetRobots();
-                }
+                this.doSelectGoal();
             }
             if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
                 // set wall/goal : mouse button 1 and NOT shift key down
@@ -1322,7 +1316,9 @@ public class SwingGUI implements ActionListener {
             }
         }
         @Override
-        public void mouseReleased(MouseEvent e) { /* NO-OP */ }
+        public void mouseReleased(MouseEvent e) {
+            this.maybeShowPopup(e);
+        }
         @Override
         public void mouseDragged(MouseEvent e) { /* NO-OP */ }
         @Override
@@ -1346,6 +1342,62 @@ public class SwingGUI implements ActionListener {
                     this.isMouseSouth = true;
                 }
                 this.repaint();
+            }
+        }
+        
+        private void maybeShowPopup(MouseEvent e) {
+            if (isModePlay() && e.isPopupTrigger()) {
+                popupMenu.removeAll();
+                final int numRobots = board.getNumRobots();
+                for (int i = 0;  i < numRobots;  ++i) {
+                    final int robot = i;
+                    final Action action = new AbstractAction(
+                            L10N.getString("txt.Place.text") + " "
+                                    + L10N.getString("txt.Robot.text") + " - "
+                                    + Board.getColorLongL10N(i)) {
+                        private static final long serialVersionUID = 5584260141986571387L;
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            doPlaceRobot(robot);
+                        }
+                    };
+                    popupMenu.add(action);
+                }
+                final Board.Goal goal = board.getGoalAt(this.boardPosition);
+                if (null != goal) {
+                    popupMenu.addSeparator();
+                    final Action action = new AbstractAction(
+                            L10N.getString("txt.Select.text") + " "
+                                    + L10N.getString("txt.Goal.text") + " - "
+                                    + Board.getColorLongL10N(goal.robotNumber)
+                                    + " - "
+                                    + Board.getGoalShapeL10N(goal.shape)) {
+                        private static final long serialVersionUID = 2813443733253766305L;
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            doSelectGoal();
+                        }
+                    };
+                    popupMenu.add(action);
+                }
+                popupMenu.show(e.getComponent(), e.getX(), e.getY());
+            }
+        }
+
+        private void doPlaceRobot(final int robot) {
+            board.setRobots(currentPosition);
+            if (board.setRobot(robot, this.boardPosition, true)) {
+                updateBoardGetRobots();
+            }
+            placeRobot = -1;
+            refreshJComboPlaceRobot();
+        }
+
+        private void doSelectGoal() {
+            if (board.setGoal(this.boardPosition)) {
+                selectGoal = false;
+                board.setRobots(currentPosition);
+                updateBoardGetRobots();
             }
         }
     }
