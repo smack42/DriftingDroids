@@ -610,6 +610,12 @@ public class SwingGUI implements ActionListener {
                 null, editBoardOriginalPanel, L10N.getString("tab.OriginalBoard.tooltip"));
         this.jtabEditBoard.addTab(L10N.getString("tab.FreestyleBoard.text"),
                 null, editBoardFreestylePanel, L10N.getString("tab.FreestyleBoard.tooltip"));
+        this.jtabEditBoard.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                jcomboGameIDs.setEnabled( ! SwingGUI.this.isFreestyleBoard());
+            }
+        });
         
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text")), 2).add(this.jcomboRobots).empty();
         prepareLayout.emptyRow();
@@ -915,32 +921,34 @@ public class SwingGUI implements ActionListener {
         for (JComponent comp : this.boardCells) {
             comp.repaint();
         }
-        //manipulate combobox of game IDs
-        final String ac = this.jcomboGameIDs.getActionCommand();
-        this.jcomboGameIDs.setActionCommand("");
-        String newGameID = this.board.getGameID();
-        if (this.jcomboGameIDs.getSelectedIndex() < 0) {    //not a list item
-            Object item = this.jcomboGameIDs.getSelectedItem();
-            if (null != item) {
-                if (null != Board.createBoardGameID(item.toString())) {
-                    newGameID = item.toString();
+        if ( ! this.isFreestyleBoard()) {
+            //manipulate combobox of game IDs
+            final String ac = this.jcomboGameIDs.getActionCommand();
+            this.jcomboGameIDs.setActionCommand("");
+            String newGameID = this.board.getGameID();
+            if (this.jcomboGameIDs.getSelectedIndex() < 0) {    //not a list item
+                Object item = this.jcomboGameIDs.getSelectedItem();
+                if (null != item) {
+                    if (null != Board.createBoardGameID(item.toString())) {
+                        newGameID = item.toString();
+                    }
                 }
             }
-        }
-        final int itemCount = this.jcomboGameIDs.getItemCount();
-        boolean itemInList = false;
-        for (int i = 0;  i < itemCount;  ++i) {
-            final String itemStr =  this.jcomboGameIDs.getItemAt(i).toString();
-            if (itemStr.equals(newGameID)) {
-                itemInList = true;
-                break;
+            final int itemCount = this.jcomboGameIDs.getItemCount();
+            boolean itemInList = false;
+            for (int i = 0;  i < itemCount;  ++i) {
+                final String itemStr =  this.jcomboGameIDs.getItemAt(i).toString();
+                if (itemStr.equals(newGameID)) {
+                    itemInList = true;
+                    break;
+                }
             }
+            if (false == itemInList) {
+                this.jcomboGameIDs.addItem(newGameID);
+            }
+            this.jcomboGameIDs.setSelectedItem(newGameID);
+            this.jcomboGameIDs.setActionCommand(ac);
         }
-        if (false == itemInList) {
-            this.jcomboGameIDs.addItem(newGameID);
-        }
-        this.jcomboGameIDs.setSelectedItem(newGameID);
-        this.jcomboGameIDs.setActionCommand(ac);
     }
     
     
