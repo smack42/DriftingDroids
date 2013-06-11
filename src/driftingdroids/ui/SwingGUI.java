@@ -20,6 +20,7 @@ package driftingdroids.ui;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
@@ -59,6 +60,7 @@ import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -66,6 +68,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -108,7 +111,9 @@ public class SwingGUI implements ActionListener {
         new Color(245, 245, 99),//Color.YELLOW,
         Color.WHITE
     };
-    
+
+    private static final int ICON_SIZE = 29;
+
     private static final String AC_BOARD_QUADRANTS= "quadrants";
     private static final String AC_BOARD_ROBOTS   = "robots";
     private static final String AC_PLACE_ROBOT    = "placerobot";
@@ -1058,8 +1063,8 @@ public class SwingGUI implements ActionListener {
     
     private class BoardCell extends JPanel implements MouseListener, MouseMotionListener {
         private static final long serialVersionUID = 1L;
-        private static final int PREF_WIDTH = 33;       // preferred width
-        private static final int PREF_HEIGHT = 33;      // preferred height
+        private static final int PREF_WIDTH = SwingGUI.ICON_SIZE + 2 + 2;   // preferred width
+        private static final int PREF_HEIGHT = SwingGUI.ICON_SIZE + 2 + 2;  // preferred height
         private static final int H_WALL_DIVISOR = 12;   // horizontal walls: height / H_WALL_DIVISOR
         private static final int V_WALL_DIVISOR = 12;   // vertical walls: width / vWallDivisor
         
@@ -1139,62 +1144,12 @@ public class SwingGUI implements ActionListener {
                     goal = board.getGoalAt(this.boardPosition);
                 }
                 if (null != goal) {
-                    final Paint thePaint;
-                    if (goal.robotNumber < 0) {
-                        final float fStep = 1.0f / (COL_ROBOT.length-1);
-                        final float[] fractions = new float[COL_ROBOT.length];
-                        for (int i = 1; i < fractions.length; ++i) {
-                            fractions[i] = fractions[i - 1] + fStep;
-                        }
-                        thePaint = new LinearGradientPaint(vWallWidth*2, hWallWidth*2, vWallWidth*2, height-1-hWallWidth*2, fractions, COL_ROBOT, MultipleGradientPaint.CycleMethod.REPEAT);
-                    } else {
-                        thePaint = new GradientPaint(0, 0, COL_ROBOT[goal.robotNumber], 0, height-1, Color.DARK_GRAY);
-                    }
-                    g2d.setPaint(thePaint);
-                    final Shape outerShape = new Rectangle2D.Double(
-                            vWallWidth, hWallWidth,
-                            width-vWallWidth-vWallWidth, height-hWallWidth-hWallWidth);
-                    final Shape innerShape;
-                    switch (goal.shape) {
-                    case Board.GOAL_SQUARE:
-                        innerShape = new Rectangle2D.Double(
-                                Math.round(width * (1.0d/4.0d)), Math.round(height * (1.0d/4.0d)),
-                                Math.round(width * (2.0d/4.0d) - 1), Math.round(height * (2.0d/4.0d) - 1) );
-                        break;
-                    case Board.GOAL_TRIANGLE:
-                        final Polygon triangle = new Polygon();
-                        triangle.addPoint(width     / 5, height * 4 / 5);
-                        triangle.addPoint(width * 4 / 5, height * 4 / 5);
-                        triangle.addPoint(width    >> 1, height     / 5);
-                        innerShape = triangle;
-                        break;
-                    case Board.GOAL_HEXAGON:
-                        final Polygon hexagon = new Polygon();
-                        hexagon.addPoint(width     / 6, height >> 1);
-                        hexagon.addPoint(width * 2 / 6, height     / 5);
-                        hexagon.addPoint(width * 4 / 6, height     / 5);
-                        hexagon.addPoint(width * 5 / 6, height >> 1);
-                        hexagon.addPoint(width * 4 / 6, height * 4 / 5);
-                        hexagon.addPoint(width * 2 / 6, height * 4 / 5);
-                        innerShape = hexagon;
-                        break;
-                    default:    //case Board.GOAL_CIRCLE:
-                        innerShape = new Ellipse2D.Double(
-                                width * (1.0d/5.0d), height * (1.0d/5.0d),
-                                width * (3.0d/5.0d), height * (3.0d/5.0d) );
-                        break;
-                    }
-                    final Area area = new Area(outerShape);
-                    area.subtract(new Area(innerShape));
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2d.fill(area);
-                    if (jcheckOptShowColorNames.isSelected()) {
-                        final String goalColorShort = Board.getColorShortL10N(goal.robotNumber);
-                        g2d.setColor(Color.BLACK);
-                        g2d.drawChars(goalColorShort.toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
-                        final String goalColorLong = Board.getColorLongL10N(goal.robotNumber);
-                        this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + goalColorLong + " - " + Board.getGoalShapeL10N(goal.shape));
-                    }
+                    final Icon goalIcon = new GoalIcon(
+                            width - 2 * vWallWidth,
+                            height - 2 * hWallWidth,
+                            goal, jcheckOptShowColorNames.isSelected());
+                    goalIcon.paintIcon(this, g2d, vWallWidth, hWallWidth);
+                    this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + Board.getColorLongL10N(goal.robotNumber) + " - " + Board.getGoalShapeL10N(goal.shape));
                 }
             }
             
@@ -1231,31 +1186,17 @@ public class SwingGUI implements ActionListener {
             if (isModePlay()) {
                 for (int i = 0; i < currentPosition.length; ++i) {
                     if (currentPosition[i] == this.boardPosition) {
-                        final Paint fillPaint = new GradientPaint(0, 0, COL_ROBOT[i], 0, height-1, Color.DARK_GRAY);
-                        final Color outlineColor = Color.BLACK;
-                        Polygon shapeFoot = new Polygon();
-                        shapeFoot.addPoint(width / 2 - 1, height * 3 / 4 - 1);
-                        shapeFoot.addPoint(vWallWidth, height - 1 - hWallWidth);
-                        shapeFoot.addPoint(width - 1 - vWallWidth, height - 1 - hWallWidth);
-                        final Ellipse2D.Double shapeBody = new Ellipse2D.Double(
-                                vWallWidth * 3, hWallWidth,
-                                width - 1 - vWallWidth * 6,
-                                height - 1 - hWallWidth * 2
-                                );
-                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2d.setPaint(fillPaint);    g2d.fill(shapeFoot);
-                        g2d.setColor(outlineColor); g2d.draw(shapeFoot);
-                        g2d.setPaint(fillPaint);    g2d.fill(shapeBody);
-                        g2d.setColor(outlineColor); g2d.draw(shapeBody);
-                        if (jcheckOptShowColorNames.isSelected()) {
-                            g2d.setColor(Color.WHITE);
-                            g2d.drawChars(Board.getColorShortL10N(i).toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
-                            this.setToolTipText(L10N.getString("txt.Robot.text") + " - " + Board.getColorLongL10N(i));
-                        }
+                        final Icon robotIcon = new RobotIcon(
+                                width - 2 * vWallWidth,
+                                height - 2 * hWallWidth,
+                                i, jcheckOptShowColorNames.isSelected());
+                        robotIcon.paintIcon(this, g2d, vWallWidth, hWallWidth);
+                        this.setToolTipText(L10N.getString("txt.Robot.text") + " - " + Board.getColorLongL10N(i));
                         break;
                     }
                 }
             }
+            g2d.dispose();
         }
         
         private void repaintOther(final int boardPos) {
@@ -1359,7 +1300,8 @@ public class SwingGUI implements ActionListener {
                     final Action action = new AbstractAction(
                             L10N.getString("txt.Place.text") + " "
                                     + L10N.getString("txt.Robot.text") + " - "
-                                    + Board.getColorLongL10N(i)) {
+                                    + Board.getColorLongL10N(i),
+                            new RobotIcon(robot, jcheckOptShowColorNames.isSelected())) {
                         private static final long serialVersionUID = 5584260141986571387L;
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -1376,7 +1318,8 @@ public class SwingGUI implements ActionListener {
                                     + L10N.getString("txt.Goal.text") + " - "
                                     + Board.getColorLongL10N(goal.robotNumber)
                                     + " - "
-                                    + Board.getGoalShapeL10N(goal.shape)) {
+                                    + Board.getGoalShapeL10N(goal.shape),
+                            new GoalIcon(goal, jcheckOptShowColorNames.isSelected())) {
                         private static final long serialVersionUID = 2813443733253766305L;
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -1404,6 +1347,140 @@ public class SwingGUI implements ActionListener {
                 board.setRobots(currentPosition);
                 updateBoardGetRobots();
             }
+        }
+    }
+
+    public static class GoalIcon implements Icon {
+        private final int width, height;
+        private final Board.Goal goal;
+        private final boolean drawColorNames;
+
+        public GoalIcon(final Board.Goal goal, final boolean drawColorNames) {
+            this(SwingGUI.ICON_SIZE, SwingGUI.ICON_SIZE, goal, drawColorNames);
+        }
+
+        public GoalIcon(final int width, final int height, final Board.Goal goal, final boolean drawColorNames) {
+            this.width = width;
+            this.height = height;
+            this.goal = goal;
+            this.drawColorNames = drawColorNames;
+        }
+
+        @Override
+        public void paintIcon(final Component c, final Graphics g, final int x, final int y) {
+            final Graphics2D g2d = (Graphics2D) g.create();
+            g2d.translate(x, y);
+            final Paint thePaint;
+            if (this.goal.robotNumber < 0) {
+                final float fStep = 1.0f / (COL_ROBOT.length-1);
+                final float[] fractions = new float[COL_ROBOT.length];
+                for (int i = 1; i < fractions.length; ++i) {
+                    fractions[i] = fractions[i - 1] + fStep;
+                }
+                thePaint = new LinearGradientPaint(0, 0, 0, this.height, fractions, COL_ROBOT, MultipleGradientPaint.CycleMethod.REPEAT);
+            } else {
+                thePaint = new GradientPaint(0, 0, COL_ROBOT[this.goal.robotNumber], 0, this.height, Color.DARK_GRAY);
+            }
+            g2d.setPaint(thePaint);
+            final Shape outerShape = new Rectangle2D.Double(0, 0, this.width, this.height);
+            final Shape innerShape;
+            switch (goal.shape) {
+            case Board.GOAL_SQUARE:
+                innerShape = new Rectangle2D.Double(
+                        Math.round(this.width * (1.0d/4.0d)), Math.round(this.height * (1.0d/4.0d)),
+                        Math.round(this.width * (2.0d/4.0d) - 1), Math.round(this.height * (2.0d/4.0d) - 1) );
+                break;
+            case Board.GOAL_TRIANGLE:
+                final Polygon triangle = new Polygon();
+                triangle.addPoint(this.width     / 5, this.height * 4 / 5);
+                triangle.addPoint(this.width * 4 / 5, this.height * 4 / 5);
+                triangle.addPoint(this.width    >> 1, this.height     / 5);
+                innerShape = triangle;
+                break;
+            case Board.GOAL_HEXAGON:
+                final Polygon hexagon = new Polygon();
+                hexagon.addPoint(this.width     / 6, this.height >> 1);
+                hexagon.addPoint(this.width * 2 / 6, this.height     / 5);
+                hexagon.addPoint(this.width * 4 / 6, this.height     / 5);
+                hexagon.addPoint(this.width * 5 / 6, this.height >> 1);
+                hexagon.addPoint(this.width * 4 / 6, this.height * 4 / 5);
+                hexagon.addPoint(this.width * 2 / 6, this.height * 4 / 5);
+                innerShape = hexagon;
+                break;
+            default:    //case Board.GOAL_CIRCLE:
+                innerShape = new Ellipse2D.Double(
+                        this.width * (1.0d/5.0d), this.height * (1.0d/5.0d),
+                        this.width * (3.0d/5.0d), this.height * (3.0d/5.0d) );
+                break;
+            }
+            final Area area = new Area(outerShape);
+            area.subtract(new Area(innerShape));
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.fill(area);
+            if (this.drawColorNames) {
+                final String goalColorShort = Board.getColorShortL10N(goal.robotNumber);
+                g2d.setColor(Color.BLACK);
+                g2d.drawChars(goalColorShort.toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
+            }
+            g2d.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return this.width;
+        }
+        @Override
+        public int getIconHeight() {
+            return this.height;
+        }
+    }
+
+    public static class RobotIcon implements Icon {
+        private final int width, height, robot;
+        private final boolean drawColorNames;
+
+        public RobotIcon(final int robot, final boolean drawColorNames) {
+            this(SwingGUI.ICON_SIZE, SwingGUI.ICON_SIZE, robot, drawColorNames);
+        }
+
+        public RobotIcon(final int width, final int height, final int robot, final boolean drawColorNames) {
+            this.width = width;
+            this.height = height;
+            this.robot = robot;
+            this.drawColorNames = drawColorNames;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            final Graphics2D g2d = (Graphics2D) g.create();
+            g2d.translate(x, y);
+            final Paint fillPaint = new GradientPaint(0, 0, COL_ROBOT[this.robot], 0, height-1, Color.DARK_GRAY);
+            final Color outlineColor = Color.BLACK;
+            Polygon shapeFoot = new Polygon();
+            shapeFoot.addPoint(this.width / 2 - 1, this.height * 3 / 4 - 1);
+            shapeFoot.addPoint(0, this.height - 1);
+            shapeFoot.addPoint(this.width - 1, this.height - 1);
+            final Ellipse2D.Double shapeBody = new Ellipse2D.Double(
+                    this.width / 5.5,  0,  this.width / 5.5 * 3.5,  this.height - 1);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setPaint(fillPaint);    g2d.fill(shapeFoot);
+            g2d.setColor(outlineColor); g2d.draw(shapeFoot);
+            g2d.setPaint(fillPaint);    g2d.fill(shapeBody);
+            g2d.setColor(outlineColor); g2d.draw(shapeBody);
+            if (this.drawColorNames) {
+                g2d.setColor(Color.WHITE);
+                g2d.drawChars(Board.getColorShortL10N(this.robot).toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
+            }
+            g2d.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return this.width;
+        }
+        @Override
+        public int getIconHeight() {
+            return this.height;
         }
     }
 
