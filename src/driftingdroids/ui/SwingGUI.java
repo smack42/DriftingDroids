@@ -346,8 +346,8 @@ public class SwingGUI implements ActionListener {
             }
             this.appendSolutionText(L10N.getString("msg.Hint.4.LastMove.text") + " ", null);
             final Move lastMove = this.computedSolutionList.get(this.computedSolutionIndex).getLastMove();
-            this.appendSolutionText(lastMove.strRobotDirectionL10N(), COL_ROBOT[lastMove.robotNumber]);
-            this.appendSolutionText(".\n", null);
+            this.appendSolutionText(Board.getColorShortL10N(lastMove.robotNumber), COL_ROBOT[lastMove.robotNumber]);
+            this.appendSolutionText(lastMove.strDirectionL10N() + ".\n", null);
         }
         ++this.hintCounter;
     }
@@ -1035,8 +1035,8 @@ public class SwingGUI implements ActionListener {
     private void showMove(final Move step, final boolean doPrint) {
         if (doPrint) {
             this.appendSolutionText((step.stepNumber + 1) + ": ", null);
-            this.appendSolutionText(step.strRobotDirectionL10N(), COL_ROBOT[step.robotNumber]);
-            this.appendSolutionText(" " + step.strOldNewPosition()
+            this.appendSolutionText(Board.getColorShortL10N(step.robotNumber), COL_ROBOT[step.robotNumber]);
+            this.appendSolutionText(step.strDirectionL10N() + " " + step.strOldNewPosition()
                     + (this.computedSolutionList.get(this.computedSolutionIndex).isRebound(step) ? " " + L10N.getString("txt.Rebound.text") : "")
                     + "\n", null);
             //System.out.println(step.toString());

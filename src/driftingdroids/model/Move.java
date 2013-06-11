@@ -114,7 +114,7 @@ public class Move {
         return (Board.ROBOT_COLOR_NAMES_SHORT[this.robotNumber] + dir); 
     }
     
-    public String strRobotDirectionL10N() {
+    public String strDirectionL10N() {
         final String dir;
         switch (this.pathMap.get(Integer.valueOf(this.oldPosition)).intValue()) {
         case PATH_NORTH : dir = Board.L10N.getString("move.direction.N.text"); break;   //up    / NORTH
@@ -123,7 +123,7 @@ public class Move {
         case PATH_WEST  : dir = Board.L10N.getString("move.direction.W.text"); break;   //left  / WEST
         default         : dir = "?"; break;
         }
-        return (Board.getColorShortL10N(this.robotNumber) + dir);
+        return dir;
     }
     
     public String strOldNewPosition() {
