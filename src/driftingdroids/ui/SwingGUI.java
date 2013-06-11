@@ -120,6 +120,7 @@ public class SwingGUI implements ActionListener {
     private static final String AC_GAME_ID        = "gameid";
     private static final String AC_SELECT_SOLUTION= "selectsolution";
     private static final String AC_SHOW_COLOR_NAMES = "showcolornames";
+    private static final String AC_SHOW_ACTIVE_GOAL = "showactivegoal";
     
     private static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-ui");  //L10N = Localization
     
@@ -154,6 +155,7 @@ public class SwingGUI implements ActionListener {
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
+    private final JCheckBox jcheckOptShowOnlyActiveGoal = new JCheckBox();
     private final JCheckBox jcheckOptShowSolutions = new JCheckBox();
     private final JTabbedPane jtabPreparePlay = new JTabbedPane();
     private final JComboBox jcomboPlaceRobot = new JComboBox();
@@ -243,7 +245,18 @@ public class SwingGUI implements ActionListener {
             e.printStackTrace();
         }
     }
-    
+
+    private void appendSolutionTextCurrentGoal() {
+        final Board.Goal goal = this.board.getGoal();
+        final Icon goalIcon = new GoalIcon(goal, this.jcheckOptShowColorNames.isSelected());
+        final String goalStr = "  " + L10N.getString("txt.Goal.text")
+                + " - " + Board.getColorLongL10N(goal.robotNumber)
+                + " - " + Board.getGoalShapeL10N(goal.shape) + "\n\n";
+        this.jtextSolution.setCaretPosition(this.jtextSolution.getStyledDocument().getLength());
+        this.jtextSolution.insertIcon(goalIcon);
+        this.appendSolutionText(goalStr, null);
+    }
+
     private String getSolverOptionsString(final Solver solver) {
         StringBuilder sb = new StringBuilder();
         sb.append(L10N.getString("txt.Options.text")).append('\n')
@@ -267,6 +280,7 @@ public class SwingGUI implements ActionListener {
         this.hintCounter = 0;
         this.jtextSolution.setText(null);
         this.appendSolutionText(this.getSolverOptionsString(solver), null);
+        this.appendSolutionTextCurrentGoal();
         if (this.computedSolutionList.get(this.computedSolutionIndex).size() > 0) {
             final int seconds = (int)((solver.getSolutionMilliSeconds() + 999) / 1000);
             final int solutions = this.computedSolutionList.size();
@@ -353,6 +367,7 @@ public class SwingGUI implements ActionListener {
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);
             appendSolutionText(getSolverOptionsString(solver), null);
+            appendSolutionTextCurrentGoal();
             appendSolutionText(L10N.getString("txt.ComputingSolutions.text") + "\n\n", null);
             solver.execute();
             return solver;
@@ -646,6 +661,11 @@ public class SwingGUI implements ActionListener {
         this.jcheckOptShowColorNames.setActionCommand(AC_SHOW_COLOR_NAMES);
         this.jcheckOptShowColorNames.addActionListener(this);
 
+        this.jcheckOptShowOnlyActiveGoal.setText(L10N.getString("chk.ShowOnlyActiveGoal.text"));
+        this.jcheckOptShowOnlyActiveGoal.setSelected(true);
+        this.jcheckOptShowOnlyActiveGoal.setActionCommand(AC_SHOW_ACTIVE_GOAL);
+        this.jcheckOptShowOnlyActiveGoal.addActionListener(this);
+
         this.jcheckOptShowSolutions.setText(L10N.getString("chk.ShowSolutions.text"));
         this.jcheckOptShowSolutions.setSelected(false);
         
@@ -661,6 +681,7 @@ public class SwingGUI implements ActionListener {
         optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
         optionsLayout.emptyRow();
         optionsLayout.row().grid().add(this.jcheckOptShowColorNames);
+        optionsLayout.row().grid().add(this.jcheckOptShowOnlyActiveGoal);
         optionsLayout.row().grid().add(this.jcheckOptShowSolutions);
         
         
@@ -895,6 +916,10 @@ public class SwingGUI implements ActionListener {
         return (this.jtabPreparePlay.getSelectedIndex() == 2);
     }
     
+    private boolean isModeOptions() {
+        return (this.jtabPreparePlay.getSelectedIndex() == 1);
+    }
+    
     private boolean isFreestyleBoard() {
         return (this.jtabEditBoard.getSelectedIndex() == 1);
     }
@@ -1058,6 +1083,8 @@ public class SwingGUI implements ActionListener {
             this.handleGameID();
         } else if (AC_SHOW_COLOR_NAMES.equals(e.getActionCommand())) {
             this.refreshBoard();
+        } else if (AC_SHOW_ACTIVE_GOAL.equals(e.getActionCommand())) {
+            this.refreshBoard();
         }
     }
     
@@ -1136,21 +1163,23 @@ public class SwingGUI implements ActionListener {
             }
             
             // paint the goal
-            if (!isModePlay() || selectGoal || ((null !=board.getGoal()) && (board.getGoal().position == this.boardPosition))) {
-                final Board.Goal goal;
-                if (isModePlay() && !selectGoal) {
+            final Board.Goal goal;
+            if ((isModePlay() || isModeOptions()) && !selectGoal && jcheckOptShowOnlyActiveGoal.isSelected()) {
+                if (board.getGoal().position == this.boardPosition) {
                     goal = board.getGoal();
                 } else {
-                    goal = board.getGoalAt(this.boardPosition);
+                    goal = null;
                 }
-                if (null != goal) {
-                    final Icon goalIcon = new GoalIcon(
-                            width - 2 * vWallWidth,
-                            height - 2 * hWallWidth,
-                            goal, jcheckOptShowColorNames.isSelected());
-                    goalIcon.paintIcon(this, g2d, vWallWidth, hWallWidth);
-                    this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + Board.getColorLongL10N(goal.robotNumber) + " - " + Board.getGoalShapeL10N(goal.shape));
-                }
+            } else {
+                goal = board.getGoalAt(this.boardPosition);
+            }
+            if (null != goal) {
+                final Icon goalIcon = new GoalIcon(
+                        width - 2 * vWallWidth,
+                        height - 2 * hWallWidth,
+                        goal, jcheckOptShowColorNames.isSelected());
+                goalIcon.paintIcon(this, g2d, vWallWidth, hWallWidth);
+                this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + Board.getColorLongL10N(goal.robotNumber) + " - " + Board.getGoalShapeL10N(goal.shape));
             }
             
             // paint the robot paths
