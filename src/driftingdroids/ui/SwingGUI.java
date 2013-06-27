@@ -478,30 +478,24 @@ public class SwingGUI implements ActionListener {
         this.refreshJcomboRobots();
         
         this.jbutRemoveWalls.setText(L10N.getString("btn.RemoveWalls.text"));
-        this.addKeyBindingTooltip(this.jbutRemoveWalls,
-                L10N.getString("btn.RemoveWalls.acceleratorkey"),
-                L10N.getString("btn.RemoveWalls.tooltip"),
-                new AbstractAction() {
-                    public void actionPerformed(ActionEvent e) {
-                        board.removeWalls();
-                        board.setFreestyleBoard();
-                        refreshBoard();
-                    }
-                }
-        );
+        this.jbutRemoveWalls.setToolTipText(L10N.getString("btn.RemoveWalls.tooltip"));
+        this.jbutRemoveWalls.addActionListener(new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                board.removeWalls();
+                board.setFreestyleBoard();
+                refreshBoard();
+            }
+        });
 
         this.jbutRemoveGoals.setText(L10N.getString("btn.RemoveGoals.text"));
-        this.addKeyBindingTooltip(this.jbutRemoveGoals,
-                L10N.getString("btn.RemoveGoals.acceleratorkey"),
-                L10N.getString("btn.RemoveGoals.tooltip"),
-                new AbstractAction() {
-                    public void actionPerformed(ActionEvent e) {
-                        board.removeGoals();
-                        board.setFreestyleBoard();
-                        refreshBoard();
-                    }
-                }
-        );
+        this.jbutRemoveGoals.setToolTipText(L10N.getString("btn.RemoveGoals.tooltip"));
+        this.jbutRemoveGoals.addActionListener(new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                board.removeGoals();
+                board.setFreestyleBoard();
+                refreshBoard();
+            }
+        });
 
         this.jbutCopyBoardDumpToClipboard.setText(L10N.getString("btn.CopyBoardDumpToClipboard.text"));
         this.addKeyBindingTooltip(this.jbutCopyBoardDumpToClipboard,
@@ -614,9 +608,12 @@ public class SwingGUI implements ActionListener {
 
         final JPanel editBoardOriginalPanel = new JPanel();
         final DesignGridLayout editBoardOriginalLayout = new DesignGridLayout(editBoardOriginalPanel);
-        editBoardOriginalLayout.row().grid().add(this.jlabelBoardTiles);
-        editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(0), this.jcomboQuadrants.get(1)).add(this.jbutRandomLayout, 2);
+        editBoardOriginalLayout.row().left().add(this.jlabelBoardTiles);
+        editBoardOriginalLayout.emptyRow();
+        editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(0), this.jcomboQuadrants.get(1)).empty(2);
         editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(3), this.jcomboQuadrants.get(2)).empty(2);
+        editBoardOriginalLayout.emptyRow();
+        editBoardOriginalLayout.row().left().add(this.jbutRandomLayout);
 
         final JPanel editBoardFreestylePanel = new JPanel();
         final DesignGridLayout editBoardFreestyleLayout = new DesignGridLayout(editBoardFreestylePanel);
@@ -657,7 +654,7 @@ public class SwingGUI implements ActionListener {
         this.jcheckOptAllowRebounds.setSelected(true);
 
         this.jcheckOptShowColorNames.setText(L10N.getString("chk.ShowColorNames.text"));
-        this.jcheckOptShowColorNames.setSelected(true);
+        this.jcheckOptShowColorNames.setSelected(false);
         this.jcheckOptShowColorNames.setActionCommand(AC_SHOW_COLOR_NAMES);
         this.jcheckOptShowColorNames.addActionListener(this);
 
