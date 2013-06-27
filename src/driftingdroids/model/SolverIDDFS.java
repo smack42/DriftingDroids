@@ -191,7 +191,7 @@ public class SolverIDDFS extends Solver {
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
                 if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3))))
-                        && ((true == this.isSolution01) || (lastRobo != robo) || (lastDirReverse != dir))) {
+                        && ((lastRobo != robo) || (lastDirReverse != dir))) {
                     int newRoboPos = oldRoboPos;
                     int obstacle = obstacles[newRoboPos];
                     final int wallMask = (1 << dir);
@@ -244,7 +244,7 @@ public class SolverIDDFS extends Solver {
             for (int dirIncr : this.board.directionIncrement) {
                 ++dir;
                 if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != ((dir + 2) & 3))))
-                    && ((true == this.isSolution01) || (lastRobo != robo) || (lastDirReverse != dir))) {
+                    && ((lastRobo != robo) || (lastDirReverse != dir))) {
                     int newRoboPos = oldRoboPos;
                     int obstacle = obstacles[newRoboPos];
                     final int wallMask = (1 << dir);
