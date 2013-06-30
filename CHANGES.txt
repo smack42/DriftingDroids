@@ -1,0 +1,37 @@
+CHANGES
+
+1.2 _beta_1_ (2013-06-30)
+
++ improved solver algorithm
+   - finds optimal solutions more quickly
+   - needs less memory
+   - iterative deepening depth-first search (IDDFS) with several enhancements
+   - thanks to Michael Fogleman for ideas!
++ special solver mode for "goal in 0 or 1 move" situations
+   - active robot has to ricochet at least once before reaching the goal
+   - comply with the rules of Ricochet Robots
++ custom board editor
+   - build your own board from scratch
+   - modify the Ricochet Robots board
+   - place every wall and goal where you want
+   - save and load your custom board
++ improved GUI
+   - popup menu to place robots and select goals
+   - buttons to rotate the board
+   - option: show current goal only or show all goals
+   - show current goal in solver output panel
+
+
+
+1.1 (2012-02-05)
+
++ improved GUI
++ localization support (English and German translations included)
+
+
+
+1.0 (2011-12-27)
+
++ solver algorithm:
+   - breadth-first search (BFS) with several enhancements
+   - thanks to David Hansel for ideas!

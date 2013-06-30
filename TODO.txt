@@ -1,17 +1,10 @@
 TODO
 
-board layout:
--user can build boards from scratch = put each individual wall and goal.
-
 gameplay:
 -user can move robots while searching for the solution (with undo/redo).
 
 gui:
 -better graphics (robots, goals, board, ...)
-
-solver:
--implement a better solver algorithm, if possible (use less time and less memory)
--comply with special cases in the rules (solutions with zero or one moves are not allowed, instead a longer solution must be found because the goal robot has to ricochet at least once)
 
 source code:
 -refactoring (reorganise some classes, clean up SwingGUI, ...)
@@ -20,3 +13,16 @@ source code:
 documentation:
 -technical paper that describes the solver algorithm.
 -better user docs. 
+
+
+
+
+DONE
+
+board layout:
+-user can build boards from scratch = put each individual wall and goal.
+
+solver:
+-implement a better solver algorithm, if possible (use less time and less memory)
+-comply with special cases in the rules (solutions with zero or one moves are not allowed, instead a longer solution must be found because the goal robot has to ricochet at least once)
+

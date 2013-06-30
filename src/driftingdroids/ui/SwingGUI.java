@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011, 2012  Michael Henke
+    Copyright (C) 2011, 2012, 2013  Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -58,7 +58,6 @@ import java.util.concurrent.CancellationException;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
-import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -68,11 +67,9 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
@@ -392,25 +389,6 @@ public class SwingGUI implements ActionListener {
             if ( ! errorMsg.isEmpty()) {
                 appendSolutionText("error:\n" + errorMsg + "\n", null);
             }
-        }
-    }
-    
-    private class BoardEditModeAction extends AbstractAction {
-        private static final long serialVersionUID = 1L;
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            final boolean isModeFreestyle = isModeEditBoard();
-            final boolean isModeOriginal = !isModeFreestyle;
-            //enable/disable controls
-            jlabelBoardTiles.setEnabled(isModeOriginal);
-            for (JComboBox jc : jcomboQuadrants) { jc.setEnabled(isModeOriginal); }
-            jbutRandomLayout.setEnabled(isModeOriginal);
-            jbutRemoveWalls.setEnabled(isModeFreestyle);
-            jbutRemoveGoals.setEnabled(isModeFreestyle);
-            jlabelListGoalColors.setEnabled(isModeFreestyle);
-            jlabelListGoalShapes.setEnabled(isModeFreestyle);
-            jlistGoalRobots.setEnabled(isModeFreestyle);
-            jlistGoalShapes.setEnabled(isModeFreestyle);
         }
     }
 

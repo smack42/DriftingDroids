@@ -1,7 +1,23 @@
 DriftingDroids - yet another Ricochet Robots solver program.
 
-Version   1.1 (2012-02-05)
+Version   1.2 _beta_1_ (2013-06-30)
 Homepage  https://github.com/smack42/DriftingDroids/wiki
+
+
+
+## beta-version
+
+The new version of the program is currently in its public test phase. The
+following steps are planned before the final version will be released:
+ - fix reported bugs (if any)
+ - add newly requested (small) features (if any)
+ - add translations into additional user languages (if any)
+ - update documentation
+
+For the steps marked with "if any" I need your support. Please report any bugs
+you encounter during testing, tell me about any missing features or send me a
+translation of the program texts into a language that you're interested in.
+Thank you very much!
 
 
 
@@ -36,7 +52,7 @@ For more info please read the included documentation.
 ## license
 
 DriftingDroids - yet another Ricochet Robots solver program.
-Copyright (C) 2011, 2012  Michael Henke <smack42@googlemail.com>
+Copyright (C) 2011, 2012, 2013  Michael Henke <smack42@googlemail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
