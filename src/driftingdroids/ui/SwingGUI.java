@@ -166,7 +166,10 @@ public class SwingGUI implements ActionListener {
     private final JTextPane jtextSolution = new JTextPane();
     
     public SwingGUI(final String windowTitle) throws InterruptedException, InvocationTargetException {
-        this.board = Board.createBoardGameID("0765+41+2E21BD0F+1C");   //1A 4B 3B 2B
+        this.board = Board.createBoardRandom(5);
+        this.board.setRobotsRandom();
+        this.board.setGoalRandom();
+        //this.board = Board.createBoardGameID("0765+41+2E21BD0F+1C");   //1A 4B 3B 2B
         this.moves = new ArrayList<Move>();
         
         this.boardCells = new BoardCell[this.board.size];
@@ -626,7 +629,7 @@ public class SwingGUI implements ActionListener {
         
         final Solver.SOLUTION_MODE[] solModes = Solver.SOLUTION_MODE.values();
         this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
-        this.jcomboOptSolutionMode.setSelectedItem(Solver.SOLUTION_MODE.MINIMUM);
+        this.jcomboOptSolutionMode.setSelectedItem(Solver.SOLUTION_MODE.MAXIMUM);
         
         this.jcheckOptAllowRebounds.setText(L10N.getString("chk.AllowReboundMoves.text"));
         this.jcheckOptAllowRebounds.setSelected(true);
