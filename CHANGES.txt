@@ -1,5 +1,15 @@
 CHANGES
 
+1.2 _beta_2_ (2013-07-08)
+
++ changed some default settings
+   - 5 robots
+   - random board configuration
+   - prefer solution with maximum number of robots in motion
++ Russian translation contributed by Jay (x11x@pisem.net)
+
+
+
 1.2 _beta_1_ (2013-06-30)
 
 + improved solver algorithm
