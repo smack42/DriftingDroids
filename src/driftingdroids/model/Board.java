@@ -162,7 +162,7 @@ public class Board {
     private int[] robots;               // index=robot, value=position
     private boolean isFreestyleBoard;
 
-    public class Goal {
+    public class Goal implements Comparable<Goal> {
         public final int x, y, position, robotNumber, shape;
         public Goal(int x, int y, int robotNumber, int shape) {
             this.x = x;
@@ -181,8 +181,45 @@ public class Board {
                     (this.robotNumber == other.robotNumber) &&
                     (this.shape == other.shape));
         }
+        // a List<Goal> will be sorted by:
+        // 1. robotNumber a.k.a. color
+        // 2. shape
+        // 3. position
+        @Override
+        public int compareTo(final Goal other) {
+            final int thisColor = (this.robotNumber < 0 ? Integer.MAX_VALUE : this.robotNumber);
+            final int otherColor = (other.robotNumber < 0 ? Integer.MAX_VALUE : other.robotNumber);
+            if (thisColor < otherColor) {
+                return -1; // less
+            } else if (thisColor > otherColor) {
+                return 1; // greater
+            } else { // robotNumbers are equal
+                if (this.shape < other.shape) {
+                    return -1; // less
+                } else if (this.shape > other.shape) {
+                    return 1; // greater
+                } else { // shapes are equal
+                    if (this.position < other.position) {
+                        return -1; // less
+                    } else if (this.position > other.position) {
+                        return 1; // greater
+                    } else {
+                        return 0; // equal
+                    }
+                }
+            }
+        }
     }
-    
+
+
+    public static List<Goal> getStaticQuadrantGoals(final int quadrant) {
+        final List<Goal> result = new ArrayList<Goal>();
+        result.addAll(QUADRANTS[quadrant].goals);
+        Collections.sort(result);
+        return result;
+    }
+
+
     private Board(int width, int height, int numRobots) {
         this.width = width;
         this.height = height;
@@ -202,7 +239,7 @@ public class Board {
         this.isFreestyleBoard = false;
     }
 
-    
+
     public static Board createBoardQuadrants(int quadrantNW, int quadrantNE, int quadrantSE, int quadrantSW, int numRobots) {
         Board b = new Board(WIDTH_STANDARD, HEIGHT_STANDARD, numRobots);
         //add walls and goals

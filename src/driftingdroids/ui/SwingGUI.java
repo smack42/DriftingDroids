@@ -58,7 +58,9 @@ import java.util.concurrent.CancellationException;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -74,6 +76,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
+import javax.swing.JToolTip;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
@@ -82,6 +85,9 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.plaf.ToolTipUI;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -111,7 +117,6 @@ public class SwingGUI implements ActionListener {
 
     private static final int ICON_SIZE = 29;
 
-    private static final String AC_BOARD_QUADRANTS= "quadrants";
     private static final String AC_BOARD_ROBOTS   = "robots";
     private static final String AC_PLACE_ROBOT    = "placerobot";
     private static final String AC_GAME_ID        = "gameid";
@@ -132,11 +137,12 @@ public class SwingGUI implements ActionListener {
     private int hintCounter = 0;
     private int placeRobot = -1;    //default: false
     private boolean selectGoal = false;
+    private boolean doRefreshJlistQuadrants = true;
     
     private final JPopupMenu popupMenu = new JPopupMenu();
     private final JTabbedPane jtabEditBoard = new JTabbedPane();
     private final JLabel jlabelBoardTiles = new JLabel(L10N.getString("lbl.BoardTiles.text"));
-    private final List<JComboBox> jcomboQuadrants = new ArrayList<JComboBox>();
+    private final JList[] jlistQuadrants = new JList[4];
     private final JButton jbutRandomLayout = new JButton();
     private final JComboBox jcomboRobots = new JComboBox();
     private final JButton jbutRotateBoardLeft = new JButton();
@@ -186,10 +192,10 @@ public class SwingGUI implements ActionListener {
     
     private void makeBoardQuadrants() {
         this.board = Board.createBoardQuadrants(
-                this.jcomboQuadrants.get(0).getSelectedIndex(),
-                this.jcomboQuadrants.get(1).getSelectedIndex(),
-                this.jcomboQuadrants.get(2).getSelectedIndex(),
-                this.jcomboQuadrants.get(3).getSelectedIndex(),
+                this.jlistQuadrants[0].getSelectedIndex(),
+                this.jlistQuadrants[1].getSelectedIndex(),
+                this.jlistQuadrants[2].getSelectedIndex(),
+                this.jlistQuadrants[3].getSelectedIndex(),
                 this.jcomboRobots.getSelectedIndex() + 1 );
         this.refreshBoard();
     }
@@ -436,19 +442,38 @@ public class SwingGUI implements ActionListener {
                     public void actionPerformed(ActionEvent e) {
                         makeRandomBoardQuadrants();
                         refreshJComboPlaceRobot();
-                        refreshJcomboQuadrants();
+                        refreshJlistQuadrants();
                     }
                 }
         );
         
         for (int i = 0;  i < 4;  ++i) {
-            final JComboBox jc = new JComboBox();
-            jc.setModel(new DefaultComboBoxModel(Board.QUADRANT_NAMES));
-            jc.setEditable(false);
-            jc.setSelectedIndex(this.board.getQuadrantNum(i));
-            jc.setActionCommand(AC_BOARD_QUADRANTS);
-            jc.addActionListener(this);
-            this.jcomboQuadrants.add(jc);
+            final JList jl = new JList(Board.QUADRANT_NAMES) {
+                @Override
+                public JToolTip createToolTip() {
+                    return new QuadrantGoalsToolTip(this, Integer.parseInt(this.getToolTipText()));
+                };
+            };
+            jl.setCellRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    list.setToolTipText(String.valueOf(index));
+                    return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                };
+            });
+            jl.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            jl.setVisibleRowCount(1);
+            jl.setSelectedIndex(this.board.getQuadrantNum(i));
+            jl.addListSelectionListener(new ListSelectionListener() {
+                @Override
+                public void valueChanged(ListSelectionEvent e) {
+                    if (true == doRefreshJlistQuadrants) {
+                        makeBoardQuadrants();
+                        refreshJComboPlaceRobot();
+                    }
+                }
+            });
+            this.jlistQuadrants[i] = jl;
         }
         
         final String[] strRobots = { "1", "2", "3", "4", "5" };
@@ -523,7 +548,7 @@ public class SwingGUI implements ActionListener {
                                     refreshBoard();
                                     refreshJcomboRobots();
                                     refreshJComboPlaceRobot();
-                                    refreshJcomboQuadrants();
+                                    refreshJlistQuadrants();
                                 } else {
                                     throw new IllegalArgumentException();   //show error message
                                 }
@@ -547,7 +572,7 @@ public class SwingGUI implements ActionListener {
                         board = board.rotate90(false);
                         refreshBoard();
                         refreshJComboPlaceRobot();
-                        refreshJcomboQuadrants();
+                        refreshJlistQuadrants();
                     }
                 }
         );
@@ -561,7 +586,7 @@ public class SwingGUI implements ActionListener {
                         board = board.rotate90(true);
                         refreshBoard();
                         refreshJComboPlaceRobot();
-                        refreshJcomboQuadrants();
+                        refreshJlistQuadrants();
                     }
                 }
         );
@@ -586,15 +611,11 @@ public class SwingGUI implements ActionListener {
         this.jlistGoalShapes.setVisibleRowCount(dataGoalShapes.size());
         final JScrollPane jscrollGoalShapes = new JScrollPane(this.jlistGoalShapes);
 
-
         final JPanel editBoardOriginalPanel = new JPanel();
         final DesignGridLayout editBoardOriginalLayout = new DesignGridLayout(editBoardOriginalPanel);
         editBoardOriginalLayout.row().left().add(this.jlabelBoardTiles);
-        editBoardOriginalLayout.emptyRow();
-        editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(0), this.jcomboQuadrants.get(1)).empty(2);
-        editBoardOriginalLayout.row().grid().add(this.jcomboQuadrants.get(3), this.jcomboQuadrants.get(2)).empty(2);
-        editBoardOriginalLayout.emptyRow();
-        editBoardOriginalLayout.row().left().add(this.jbutRandomLayout);
+        editBoardOriginalLayout.row().grid().add(new JScrollPane(this.jlistQuadrants[0]), new JScrollPane(this.jlistQuadrants[1])).add(this.jbutRandomLayout, 2);
+        editBoardOriginalLayout.row().grid().add(new JScrollPane(this.jlistQuadrants[3]), new JScrollPane(this.jlistQuadrants[2])).empty(2);
 
         final JPanel editBoardFreestylePanel = new JPanel();
         final DesignGridLayout editBoardFreestyleLayout = new DesignGridLayout(editBoardFreestylePanel);
@@ -616,11 +637,7 @@ public class SwingGUI implements ActionListener {
         });
         
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text")), 2).add(this.jcomboRobots).empty();
-        prepareLayout.emptyRow();
-        prepareLayout.row().grid().add(new JSeparator());
-        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
-        prepareLayout.emptyRow();
         prepareLayout.row().grid().add(this.jtabEditBoard);
 
 
@@ -913,14 +930,13 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.setActionCommand(tmp);
     }
 
-    private void refreshJcomboQuadrants() {
+    private void refreshJlistQuadrants() {
+        this.doRefreshJlistQuadrants = false;
         for (int i = 0;  i < 4;  ++i) {
-            final JComboBox jc = this.jcomboQuadrants.get(i);
-            final String tmp = jc.getActionCommand();
-            jc.setActionCommand("");
-            jc.setSelectedIndex(this.board.getQuadrantNum(i));
-            jc.setActionCommand(tmp);
+            final JList jl = this.jlistQuadrants[i];
+            jl.setSelectedIndex(this.board.getQuadrantNum(i));
         }
+        this.doRefreshJlistQuadrants = true;
     }
 
     
@@ -1033,7 +1049,7 @@ public class SwingGUI implements ActionListener {
                 this.board = newBoard;
                 this.refreshJComboPlaceRobot();
                 this.refreshJcomboRobots();
-                this.refreshJcomboQuadrants();
+                this.refreshJlistQuadrants();
                 this.updateBoardGetRobots();
             } else {
                 appendSolutionText(MessageFormat.format(L10N.getString("msg.ErrorGameID.pattern"), newGameID) + "\n", null);
@@ -1047,10 +1063,7 @@ public class SwingGUI implements ActionListener {
      */
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (AC_BOARD_QUADRANTS.equals(e.getActionCommand())) {
-            this.makeBoardQuadrants();
-            this.refreshJComboPlaceRobot();
-        } else if (AC_BOARD_ROBOTS.equals(e.getActionCommand())) {
+        if (AC_BOARD_ROBOTS.equals(e.getActionCommand())) {
                 this.board.setRobots(this.jcomboRobots.getSelectedIndex() + 1);
                 this.refreshJComboPlaceRobot();
         } else if (AC_SELECT_SOLUTION.equals(e.getActionCommand())) {
@@ -1491,4 +1504,36 @@ public class SwingGUI implements ActionListener {
         }
     }
 
+    private class QuadrantGoalsToolTip extends JToolTip {
+        private static final long serialVersionUID = -8631408017675104144L;
+
+        public QuadrantGoalsToolTip(final JComponent c, final int staticQuadrantNumber) {
+            super();
+            this.setComponent(c);
+
+            final JPanel iconPanel = new JPanel(null);
+            iconPanel.setLayout(new BoxLayout(iconPanel, BoxLayout.X_AXIS));
+            final List<Board.Goal> goals = Board.getStaticQuadrantGoals(staticQuadrantNumber);
+            for(Board.Goal goal : goals) {
+                final Icon icon = new GoalIcon(goal, SwingGUI.this.jcheckOptShowColorNames.isSelected());
+                iconPanel.add(new JLabel(icon));
+            }
+            this.setLayout(new BorderLayout());
+            this.add(iconPanel);
+            this.setUI(new ToolTipUI() {
+                @Override
+                public Dimension getMinimumSize(JComponent c) {
+                    return c.getLayout().minimumLayoutSize(c);
+                }
+                @Override
+                public Dimension getPreferredSize(JComponent c) {
+                    return c.getLayout().preferredLayoutSize(c);
+                }
+                @Override
+                public Dimension getMaximumSize(JComponent c) {
+                    return this.getPreferredSize(c);
+                }
+            });
+        }
+    }
 }
