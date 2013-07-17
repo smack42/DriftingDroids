@@ -151,8 +151,18 @@ public class SwingGUI implements ActionListener {
     private final JButton jbutRemoveGoals = new JButton();
     private final JLabel jlabelListGoalColors = new JLabel(L10N.getString("lbl.ListGoalColors.text"));
     private final JLabel jlabelListGoalShapes = new JLabel(L10N.getString("lbl.ListGoalShapes.text"));
-    private final JList jlistGoalRobots = new JList();
-    private final JList jlistGoalShapes = new JList();
+
+    private class JListGoalToolTip extends JList {
+        private static final long serialVersionUID = 3257436257447585359L;
+        @Override
+        public JToolTip createToolTip() {
+            final String[] values = this.getToolTipText().split(";");
+            return new GoalToolTip(this, Integer.parseInt(values[0]), Integer.parseInt(values[1]));
+        };
+    }
+    private final JList jlistGoalRobots = new JListGoalToolTip();
+    private final JList jlistGoalShapes = new JListGoalToolTip();
+
     private final JButton jbutCopyBoardDumpToClipboard = new JButton();
     private final JButton jbutCreateBoardFromDump = new JButton();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
@@ -599,6 +609,13 @@ public class SwingGUI implements ActionListener {
         this.jlistGoalRobots.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         this.jlistGoalRobots.setSelectedIndex(0 + 1);
         this.jlistGoalRobots.setVisibleRowCount(dataGoalRobots.size());
+        this.jlistGoalRobots.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                list.setToolTipText((index - 1) + ";" + jlistGoalShapes.getSelectedIndex());
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            };
+        });
         final JScrollPane jscrollGoalRobots = new JScrollPane(this.jlistGoalRobots);
 
         final Vector<String> dataGoalShapes = new Vector<String>();
@@ -609,6 +626,13 @@ public class SwingGUI implements ActionListener {
         this.jlistGoalShapes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         this.jlistGoalShapes.setSelectedIndex(0);
         this.jlistGoalShapes.setVisibleRowCount(dataGoalShapes.size());
+        this.jlistGoalShapes.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                list.setToolTipText((jlistGoalRobots.getSelectedIndex() - 1) + ";" + index);
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            };
+        });
         final JScrollPane jscrollGoalShapes = new JScrollPane(this.jlistGoalShapes);
 
         final JPanel editBoardOriginalPanel = new JPanel();
@@ -1520,6 +1544,33 @@ public class SwingGUI implements ActionListener {
             }
             this.setLayout(new BorderLayout());
             this.add(iconPanel);
+            this.setUI(new ToolTipUI() {
+                @Override
+                public Dimension getMinimumSize(JComponent c) {
+                    return c.getLayout().minimumLayoutSize(c);
+                }
+                @Override
+                public Dimension getPreferredSize(JComponent c) {
+                    return c.getLayout().preferredLayoutSize(c);
+                }
+                @Override
+                public Dimension getMaximumSize(JComponent c) {
+                    return this.getPreferredSize(c);
+                }
+            });
+        }
+    }
+
+    private class GoalToolTip extends JToolTip {
+        private static final long serialVersionUID = 669015603188699556L;
+
+        public GoalToolTip(final JComponent c, final int robotNumber, final int shape) {
+            super();
+            this.setComponent(c);
+
+            final Icon icon = new GoalIcon(board.new Goal(0, 0, robotNumber, shape), SwingGUI.this.jcheckOptShowColorNames.isSelected());
+            this.setLayout(new BorderLayout());
+            this.add(new JLabel(icon));
             this.setUI(new ToolTipUI() {
                 @Override
                 public Dimension getMinimumSize(JComponent c) {
