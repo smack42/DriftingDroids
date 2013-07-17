@@ -688,20 +688,20 @@ public class SwingGUI implements ActionListener {
         this.jcheckOptShowSolutions.setText(L10N.getString("chk.ShowSolutions.text"));
         this.jcheckOptShowSolutions.setSelected(false);
         
-        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
+        optionsLayout.row().left().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
         optionsLayout.emptyRow();
-        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.PreferSolutionWith.text"))).addMulti(this.jcomboOptSolutionMode);
-        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
-        optionsLayout.row().grid().add(new JLabel(" "));
-        optionsLayout.row().grid().add(this.jcheckOptAllowRebounds);
+        optionsLayout.row().left().addMulti(new JLabel(L10N.getString("lbl.PreferSolutionWith.text")), this.jcomboOptSolutionMode);
+        optionsLayout.row().left().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
+        optionsLayout.row().left().add(new JLabel(" "));
+        optionsLayout.row().left().add(this.jcheckOptAllowRebounds);
         optionsLayout.emptyRow();
-        optionsLayout.row().grid().add(new JSeparator());
+        optionsLayout.row().left().add(new JSeparator());
         optionsLayout.emptyRow();
-        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
+        optionsLayout.row().left().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
         optionsLayout.emptyRow();
-        optionsLayout.row().grid().add(this.jcheckOptShowColorNames);
-        optionsLayout.row().grid().add(this.jcheckOptShowOnlyActiveGoal);
-        optionsLayout.row().grid().add(this.jcheckOptShowSolutions);
+        optionsLayout.row().left().add(this.jcheckOptShowColorNames);
+        optionsLayout.row().left().add(this.jcheckOptShowOnlyActiveGoal);
+        optionsLayout.row().left().add(this.jcheckOptShowSolutions);
         
         
         final JPanel playPanel = new JPanel();      //-----------------------------------------------
