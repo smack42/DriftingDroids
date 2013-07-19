@@ -1568,9 +1568,12 @@ public class SwingGUI implements ActionListener {
             super();
             this.setComponent(c);
 
+            final JPanel iconPanel = new JPanel(null);
+            iconPanel.setLayout(new BoxLayout(iconPanel, BoxLayout.X_AXIS));
             final Icon icon = new GoalIcon(board.new Goal(0, 0, robotNumber, shape), SwingGUI.this.jcheckOptShowColorNames.isSelected());
+            iconPanel.add(new JLabel(icon));
             this.setLayout(new BorderLayout());
-            this.add(new JLabel(icon));
+            this.add(iconPanel);
             this.setUI(new ToolTipUI() {
                 @Override
                 public Dimension getMinimumSize(JComponent c) {
