@@ -642,47 +642,26 @@ public class Board {
     
     
     public boolean isSolution01() {
-        if (null == this.goal) {
-            return false;
-        }
-        boolean result = false;
-        //is this a zero-move solution?
-        if (this.goal.robotNumber < 0) {
-            for (int pos : this.robots) {
-                if (this.goal.position == pos) {
-                    result = true;  break;
+        for (int robo = 0;  robo < this.robots.length;  ++robo) {
+            final int oldRoboPos = this.robots[robo];
+            int dir = -1;
+            for (final int dirIncr : this.directionIncrement) {
+                ++dir;
+                int newRoboPos = oldRoboPos;
+                // move the robot until it reaches a wall. (_NOT_ another robot!)
+                // NOTE: we rely on the fact that all boards are surrounded
+                // by outer walls. without the outer walls we would need
+                // some additional boundary checking here.
+                while (false == this.walls[dir][newRoboPos]) {
+                    newRoboPos += dirIncr;
                 }
-            }
-        } else if (this.goal.position == this.robots[this.goal.robotNumber]) {
-            result = true;
-        }
-        //is this a one-move solution?
-        if (false == result) {
-            //copied from SolverBFS.getFinalStates()
-            final boolean[] expandRobotPositions = new boolean[this.size];
-            Arrays.fill(expandRobotPositions, false);
-            for (int pos : this.robots) { expandRobotPositions[pos] = true; }
-            for (int robo = 0;  robo < this.robots.length;  ++robo) {
-                final int oldRoboPos = this.robots[robo];
-                int dir = -1;
-                for (int dirIncr : this.directionIncrement) {
-                    ++dir;
-                    int newRoboPos = oldRoboPos;
-                    while (false == this.walls[dir][newRoboPos]) {  //move the robot until it reaches a wall or another robot.
-                        newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
-                        if (expandRobotPositions[newRoboPos]) { //by outer walls. without the outer walls we would need
-                            newRoboPos -= dirIncr;              //some additional boundary checking here.
-                            break;
-                        }
-                    }
-                    if ( (oldRoboPos != newRoboPos) && (this.goal.position == newRoboPos) &&
-                            ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1)) ) {
-                        result = true;
-                    }
+                if ( (this.goal.position == newRoboPos) &&
+                     ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1)) ) {
+                    return true;
                 }
             }
         }
-        return result;
+        return false;
     }
     
     
