@@ -1,5 +1,12 @@
 CHANGES
 
+1.2 (2013-08-31)
+
++ updated user documentation
++ solver algorithm: fixed condition when to use "solution 0/1 mode"
+
+
+
 1.2 _beta_3_ (2013-07-19)
 
 + improved GUI

@@ -31,7 +31,7 @@ import driftingdroids.model.Solver;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids 1.2 _beta_3_");
+        new SwingGUI("DriftingDroids 1.2");
         //runTestRandom1000();
     }
     
