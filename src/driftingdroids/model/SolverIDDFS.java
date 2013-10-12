@@ -319,16 +319,16 @@ public class SolverIDDFS extends Solver {
         
         //store the unique keys of all known states
         private abstract class AllKeys {
-            protected final TrieMapByte theMap;
+            protected final KeyDepthMap theMap;
             
             protected AllKeys() {
-                this.theMap = new TrieMapByte(Math.max(12, board.getNumRobots() * board.sizeNumBits));
+                this.theMap = KeyDepthMapFactory.newInstance(board);
             }
             
             public abstract boolean add(final int[] state, final int depth);
             
             public long getBytesAllocated() {
-                return this.theMap.getBytesAllocated();
+                return this.theMap.allocatedBytes();
             }
         }
         //store the unique keys of all known states in 32-bit ints
