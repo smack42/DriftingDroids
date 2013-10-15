@@ -342,10 +342,10 @@ public class Board {
         for (int i = 0;  i < 4;  ++i) { indexList.add(Integer.valueOf(i)); }
         Collections.shuffle(indexList, RANDOM);
         return createBoardQuadrants(
-                indexList.get(0).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
-                indexList.get(1).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
-                indexList.get(2).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
-                indexList.get(3).intValue() + (RANDOM.nextBoolean() ? 4 : 0),
+                indexList.get(0).intValue() + RANDOM.nextInt(2 + 1) * 4,
+                indexList.get(1).intValue() + RANDOM.nextInt(2 + 1) * 4,
+                indexList.get(2).intValue() + RANDOM.nextInt(2 + 1) * 4,
+                indexList.get(3).intValue() + RANDOM.nextInt(2 + 1) * 4,
                 numRobots);
     }
     
