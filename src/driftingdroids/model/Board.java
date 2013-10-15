@@ -267,6 +267,61 @@ public class Board {
     }
 
 
+    public static Board createBoardFreestyle(final Board oldBoard, final int width, final int height, final int numRobots) {
+        if ((width < 3) || (height < 3) || (width*height > 1024)) {
+            System.out.println("error in createBoardFreestyle(): invalid width(" + width + ") and/or height(" + height + ") parameter!");
+            return oldBoard;
+        }
+        final Board newBoard = new Board(width, height, numRobots);
+        newBoard.setFreestyleBoard();
+        if (null != oldBoard) {
+            // copy walls, goals and active goal
+            oldBoard.removeOuterWalls();
+            newBoard.goal = null;
+            for (int y = 0;  y < Math.min(newBoard.height, oldBoard.height);  ++y) {
+                int newPos = y * newBoard.width;
+                int oldPos = y * oldBoard.width;
+                for (int x = 0;  x < Math.min(newBoard.width, oldBoard.width);  ++x, ++newPos, ++oldPos) {
+                    for (int d = 0;  d < newBoard.walls.length;  ++d) {
+                        newBoard.walls[d][newPos] = oldBoard.walls[d][oldPos];
+                    }
+                    final Goal oldGoal = oldBoard.getGoalAt(oldPos);
+                    if (null != oldGoal) {
+                        newBoard.addGoal(newPos, oldGoal.robotNumber, oldGoal.shape);
+                        if (oldGoal.equals(oldBoard.getGoal())) {
+                            newBoard.setGoal(newPos);
+                        }
+                    }
+                }
+            }
+            if (null == newBoard.goal) {
+                newBoard.setGoalRandom();
+            }
+            oldBoard.addOuterWalls();
+            // copy robots
+            Arrays.fill(newBoard.robots, -1);
+            for (int robot = 0;  robot < Math.min(newBoard.robots.length, oldBoard.robots.length);  ++robot) {
+                final int oldX = oldBoard.robots[robot] % oldBoard.width;
+                final int oldY = oldBoard.robots[robot] / oldBoard.width;
+                final int newPos = oldX + oldY * newBoard.width;
+                newBoard.setRobot(robot, newPos, false);
+            }
+            // copy of some robot didn't succeed, set it on lowest possible position
+            for (int robot = 0;  robot < newBoard.getNumRobots();  ++robot) {
+                if (0 > newBoard.robots[robot]) {
+                    for (int pos = 0;  pos < newBoard.size;  ++pos) {
+                        if (true == newBoard.setRobot(robot, pos, false)) {
+                            break; // setRobot succeeded
+                        }
+                    }
+                }
+            }
+        }
+        newBoard.addOuterWalls();
+        return newBoard;
+    }
+
+
     public static Board createBoardQuadrants(int quadrantNW, int quadrantNE, int quadrantSE, int quadrantSW, int numRobots) {
         Board b = new Board(WIDTH_STANDARD, HEIGHT_STANDARD, numRobots);
         //add walls and goals
@@ -758,7 +813,7 @@ public class Board {
             this.goal = null;
             return;
         }
-        if (this.randomGoals.size() == 0) {
+        if (this.randomGoals.isEmpty()) {
             this.randomGoals.addAll(this.goals);
             Collections.shuffle(this.randomGoals, RANDOM);
         }
@@ -824,13 +879,19 @@ public class Board {
     }
 
     private Board addOuterWalls() {
+        return this.setOuterWalls(true);
+    }
+    private Board removeOuterWalls() {
+        return this.setOuterWalls(false);
+    }
+    private Board setOuterWalls(boolean value) {
         for (int x = 0; x < this.width; ++x) {
-            this.addWall(x, 0,               "N");
-            this.addWall(x, this.height - 1, "S");
+            this.setWall(x, 0,               NORTH, value);
+            this.setWall(x, this.height - 1, SOUTH, value);
         }
         for (int y = 0; y < this.height; ++y) {
-            this.addWall(0,              y, "W");
-            this.addWall(this.width - 1, y, "E");
+            this.setWall(0,              y, WEST, value);
+            this.setWall(this.width - 1, y, EAST, value);
         }
         return this;
     }
