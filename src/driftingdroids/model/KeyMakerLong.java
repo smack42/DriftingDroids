@@ -95,27 +95,27 @@ public abstract class KeyMakerLong {
                 if (c <= d) {
                     if (a <= c) {
                         if (b <= d) {
-                            if (b <= c) { result = (a | (b << this.s1) | (c << this.s2)) | ((long)d << this.s3);
-                            } else {      result = (a | (c << this.s1) | (b << this.s2)) | ((long)d << this.s3); }
-                        } else {          result = (a | (c << this.s1) | (d << this.s2)) | ((long)b << this.s3); }
+                            if (b <= c) { result = (a | (b << this.s1) | ((long)c << this.s2)) | ((long)d << this.s3);
+                            } else {      result = (a | (c << this.s1) | ((long)b << this.s2)) | ((long)d << this.s3); }
+                        } else {          result = (a | (c << this.s1) | ((long)d << this.s2)) | ((long)b << this.s3); }
                     } else {
-                        if (b <= d) {     result = (c | (a << this.s1) | (b << this.s2)) | ((long)d << this.s3);
+                        if (b <= d) {     result = (c | (a << this.s1) | ((long)b << this.s2)) | ((long)d << this.s3);
                         } else {
-                            if (a <= d) { result = (c | (a << this.s1) | (d << this.s2)) | ((long)b << this.s3);
-                            } else {      result = (c | (d << this.s1) | (a << this.s2)) | ((long)b << this.s3); }
+                            if (a <= d) { result = (c | (a << this.s1) | ((long)d << this.s2)) | ((long)b << this.s3);
+                            } else {      result = (c | (d << this.s1) | ((long)a << this.s2)) | ((long)b << this.s3); }
                         }
                     }
                 } else {
                     if (a <= d) {
                         if (b <= c) {
-                            if (b <= d) { result = (a | (b << this.s1) | (d << this.s2)) | ((long)c << this.s3);
-                            } else {      result = (a | (d << this.s1) | (b << this.s2)) | ((long)c << this.s3); }
-                        } else {          result = (a | (d << this.s1) | (c << this.s2)) | ((long)b << this.s3); }
+                            if (b <= d) { result = (a | (b << this.s1) | ((long)d << this.s2)) | ((long)c << this.s3);
+                            } else {      result = (a | (d << this.s1) | ((long)b << this.s2)) | ((long)c << this.s3); }
+                        } else {          result = (a | (d << this.s1) | ((long)c << this.s2)) | ((long)b << this.s3); }
                     } else {
-                        if (b <= c) {     result = (d | (a << this.s1) | (b << this.s2)) | ((long)c << this.s3);
+                        if (b <= c) {     result = (d | (a << this.s1) | ((long)b << this.s2)) | ((long)c << this.s3);
                         } else {
-                            if (a <= c) { result = (d | (a << this.s1) | (c << this.s2)) | ((long)b << this.s3);
-                            } else {      result = (d | (c << this.s1) | (a << this.s2)) | ((long)b << this.s3); }
+                            if (a <= c) { result = (d | (a << this.s1) | ((long)c << this.s2)) | ((long)b << this.s3);
+                            } else {      result = (d | (c << this.s1) | ((long)a << this.s2)) | ((long)b << this.s3); }
                         }
                     }
                 }
@@ -123,27 +123,27 @@ public abstract class KeyMakerLong {
                 if (c <= d) {
                     if (b <= c) {
                         if (a <= d) {
-                            if (a <= c) { result = (b | (a << this.s1) | (c << this.s2)) | ((long)d << this.s3);
-                            } else {      result = (b | (c << this.s1) | (a << this.s2)) | ((long)d << this.s3); }
-                        } else {          result = (b | (c << this.s1) | (d << this.s2)) | ((long)a << this.s3); }
+                            if (a <= c) { result = (b | (a << this.s1) | ((long)c << this.s2)) | ((long)d << this.s3);
+                            } else {      result = (b | (c << this.s1) | ((long)a << this.s2)) | ((long)d << this.s3); }
+                        } else {          result = (b | (c << this.s1) | ((long)d << this.s2)) | ((long)a << this.s3); }
                     } else {
-                        if (a <= d) {     result = (c | (b << this.s1) | (a << this.s2)) | ((long)d << this.s3);
+                        if (a <= d) {     result = (c | (b << this.s1) | ((long)a << this.s2)) | ((long)d << this.s3);
                         } else {
-                            if (b <= d) { result = (c | (b << this.s1) | (d << this.s2)) | ((long)a << this.s3);
-                            } else {      result = (c | (d << this.s1) | (b << this.s2)) | ((long)a << this.s3); }
+                            if (b <= d) { result = (c | (b << this.s1) | ((long)d << this.s2)) | ((long)a << this.s3);
+                            } else {      result = (c | (d << this.s1) | ((long)b << this.s2)) | ((long)a << this.s3); }
                         }
                     }
                 } else {
                     if (b <= d) {
                         if (a <= c) {
-                            if (a <= d) { result = (b | (a << this.s1) | (d << this.s2)) | ((long)c << this.s3);
-                            } else {      result = (b | (d << this.s1) | (a << this.s2)) | ((long)c << this.s3); }
-                        } else {          result = (b | (d << this.s1) | (c << this.s2)) | ((long)a << this.s3); }
+                            if (a <= d) { result = (b | (a << this.s1) | ((long)d << this.s2)) | ((long)c << this.s3);
+                            } else {      result = (b | (d << this.s1) | ((long)a << this.s2)) | ((long)c << this.s3); }
+                        } else {          result = (b | (d << this.s1) | ((long)c << this.s2)) | ((long)a << this.s3); }
                     } else {
-                        if (a <= c) {     result = (d | (b << this.s1) | (a << this.s2)) | ((long)c << this.s3);
+                        if (a <= c) {     result = (d | (b << this.s1) | ((long)a << this.s2)) | ((long)c << this.s3);
                         } else {
-                            if (b <= c) { result = (d | (b << this.s1) | (c << this.s2)) | ((long)a << this.s3);
-                            } else {      result = (d | (c << this.s1) | (b << this.s2)) | ((long)a << this.s3); }
+                            if (b <= c) { result = (d | (b << this.s1) | ((long)c << this.s2)) | ((long)a << this.s3);
+                            } else {      result = (d | (c << this.s1) | ((long)b << this.s2)) | ((long)a << this.s3); }
                         }
                     }
                 }

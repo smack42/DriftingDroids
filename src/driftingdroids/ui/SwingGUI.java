@@ -74,12 +74,14 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
 import javax.swing.JToolTip;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
@@ -89,6 +91,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.plaf.ToolTipUI;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultCaret;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
@@ -127,7 +130,8 @@ public class SwingGUI implements ActionListener {
     private static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-ui");  //L10N = Localization
     
     private Board board = null;
-    private final BoardCell[] boardCells;
+    private BoardCell[] boardCells = new BoardCell[0]; // init placeholder
+    private int boardCellsWidth = 0, boardCellsHeight = 0; // init placeholder
     private int[] currentPosition;
     
     private volatile SolverTask solverTask = null;                  //only set while SolverTask is working
@@ -139,18 +143,13 @@ public class SwingGUI implements ActionListener {
     private boolean selectGoal = false;
     private boolean doRefreshJlistQuadrants = true;
     
+    private final JFrame frame = new JFrame();
     private final JPopupMenu popupMenu = new JPopupMenu();
     private final JTabbedPane jtabEditBoard = new JTabbedPane();
-    private final JLabel jlabelBoardTiles = new JLabel(L10N.getString("lbl.BoardTiles.text"));
     private final JList[] jlistQuadrants = new JList[4];
-    private final JButton jbutRandomLayout = new JButton();
     private final JComboBox jcomboRobots = new JComboBox();
-    private final JButton jbutRotateBoardLeft = new JButton();
-    private final JButton jbutRotateBoardRight = new JButton();
-    private final JButton jbutRemoveWalls = new JButton();
-    private final JButton jbutRemoveGoals = new JButton();
-    private final JLabel jlabelListGoalColors = new JLabel(L10N.getString("lbl.ListGoalColors.text"));
-    private final JLabel jlabelListGoalShapes = new JLabel(L10N.getString("lbl.ListGoalShapes.text"));
+    private final JSpinner jspinWidth = new JSpinner();
+    private final JSpinner jspinHeight = new JSpinner();
 
     private class JListGoalToolTip extends JList {
         private static final long serialVersionUID = 3257436257447585359L;
@@ -163,8 +162,6 @@ public class SwingGUI implements ActionListener {
     private final JList jlistGoalRobots = new JListGoalToolTip();
     private final JList jlistGoalShapes = new JListGoalToolTip();
 
-    private final JButton jbutCopyBoardDumpToClipboard = new JButton();
-    private final JButton jbutCreateBoardFromDump = new JButton();
     private final JComboBox jcomboOptSolutionMode = new JComboBox();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
@@ -187,11 +184,6 @@ public class SwingGUI implements ActionListener {
         this.board.setGoalRandom();
         //this.board = Board.createBoardGameID("0765+41+2E21BD0F+1C");   //1A 4B 3B 2B
         this.moves = new ArrayList<Move>();
-        
-        this.boardCells = new BoardCell[this.board.size];
-        for (int i = 0;  i < this.board.size;  ++i) {
-            boardCells[i] = new BoardCell(i);
-        }
         
         SwingUtilities.invokeAndWait(new Runnable() {
             public void run() {
@@ -247,8 +239,8 @@ public class SwingGUI implements ActionListener {
         this.refreshButtons();
     }
     
-    private void appendSolutionText(String str, Color bgCol) {
-        StyledDocument doc = this.jtextSolution.getStyledDocument();
+    private void appendSolutionText(final String str, final Color bgCol) {
+        final StyledDocument doc = this.jtextSolution.getStyledDocument();
         Style style = null;
         if (null != bgCol) {
             style = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
@@ -438,14 +430,15 @@ public class SwingGUI implements ActionListener {
     
     @SuppressWarnings("serial")
     private void createAndShowGUI(String windowTitle) {
-        final JFrame frame = new JFrame(windowTitle);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.frame.setTitle(windowTitle);
+        this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         final JPanel preparePanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
         
-        this.jbutRandomLayout.setText(L10N.getString("btn.RandomLayout.text"));
-        this.addKeyBindingTooltip(this.jbutRandomLayout,
+        final JButton jbutRandomLayout = new JButton();
+        jbutRandomLayout.setText(L10N.getString("btn.RandomLayout.text"));
+        this.addKeyBindingTooltip(jbutRandomLayout,
                 L10N.getString("btn.RandomLayout.acceleratorkey"),
                 L10N.getString("btn.RandomLayout.tooltip"),
                 new AbstractAction() {
@@ -493,9 +486,10 @@ public class SwingGUI implements ActionListener {
         this.jcomboRobots.addActionListener(this);
         this.refreshJcomboRobots();
         
-        this.jbutRemoveWalls.setText(L10N.getString("btn.RemoveWalls.text"));
-        this.jbutRemoveWalls.setToolTipText(L10N.getString("btn.RemoveWalls.tooltip"));
-        this.jbutRemoveWalls.addActionListener(new AbstractAction() {
+        final JButton jbutRemoveWalls = new JButton();
+        jbutRemoveWalls.setText(L10N.getString("btn.RemoveWalls.text"));
+        jbutRemoveWalls.setToolTipText(L10N.getString("btn.RemoveWalls.tooltip"));
+        jbutRemoveWalls.addActionListener(new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 board.removeWalls();
                 board.setFreestyleBoard();
@@ -503,9 +497,10 @@ public class SwingGUI implements ActionListener {
             }
         });
 
-        this.jbutRemoveGoals.setText(L10N.getString("btn.RemoveGoals.text"));
-        this.jbutRemoveGoals.setToolTipText(L10N.getString("btn.RemoveGoals.tooltip"));
-        this.jbutRemoveGoals.addActionListener(new AbstractAction() {
+        final JButton jbutRemoveGoals = new JButton();
+        jbutRemoveGoals.setText(L10N.getString("btn.RemoveGoals.text"));
+        jbutRemoveGoals.setToolTipText(L10N.getString("btn.RemoveGoals.tooltip"));
+        jbutRemoveGoals.addActionListener(new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
                 board.removeGoals();
                 board.setFreestyleBoard();
@@ -513,8 +508,9 @@ public class SwingGUI implements ActionListener {
             }
         });
 
-        this.jbutCopyBoardDumpToClipboard.setText(L10N.getString("btn.CopyBoardDumpToClipboard.text"));
-        this.addKeyBindingTooltip(this.jbutCopyBoardDumpToClipboard,
+        final JButton jbutCopyBoardDumpToClipboard = new JButton();
+        jbutCopyBoardDumpToClipboard.setText(L10N.getString("btn.CopyBoardDumpToClipboard.text"));
+        this.addKeyBindingTooltip(jbutCopyBoardDumpToClipboard,
                 L10N.getString("btn.CopyBoardDumpToClipboard.acceleratorkey"),
                 L10N.getString("btn.CopyBoardDumpToClipboard.tooltip"),
                 new AbstractAction() {
@@ -537,8 +533,9 @@ public class SwingGUI implements ActionListener {
                 }
         );
 
-        this.jbutCreateBoardFromDump.setText(L10N.getString("btn.CreateBoardFromDump.text"));
-        this.addKeyBindingTooltip(this.jbutCreateBoardFromDump,
+        final JButton jbutCreateBoardFromDump = new JButton();
+        jbutCreateBoardFromDump.setText(L10N.getString("btn.CreateBoardFromDump.text"));
+        this.addKeyBindingTooltip(jbutCreateBoardFromDump,
                 L10N.getString("btn.CreateBoardFromDump.acceleratorkey"),
                 L10N.getString("btn.CreateBoardFromDump.tooltip"),
                 new AbstractAction() {
@@ -573,8 +570,9 @@ public class SwingGUI implements ActionListener {
                 }
         );
 
-        this.jbutRotateBoardLeft.setText(L10N.getString("btn.RotateBoardLeft.text"));
-        this.addKeyBindingTooltip(this.jbutRotateBoardLeft,
+        final JButton jbutRotateBoardLeft = new JButton();
+        jbutRotateBoardLeft.setText(L10N.getString("btn.RotateBoardLeft.text"));
+        this.addKeyBindingTooltip(jbutRotateBoardLeft,
                 L10N.getString("btn.RotateBoardLeft.acceleratorkey"),
                 L10N.getString("btn.RotateBoardLeft.tooltip"),
                 new AbstractAction() {
@@ -587,8 +585,9 @@ public class SwingGUI implements ActionListener {
                 }
         );
 
-        this.jbutRotateBoardRight.setText(L10N.getString("btn.RotateBoardRight.text"));
-        this.addKeyBindingTooltip(this.jbutRotateBoardRight,
+        final JButton jbutRotateBoardRight = new JButton();
+        jbutRotateBoardRight.setText(L10N.getString("btn.RotateBoardRight.text"));
+        this.addKeyBindingTooltip(jbutRotateBoardRight,
                 L10N.getString("btn.RotateBoardRight.acceleratorkey"),
                 L10N.getString("btn.RotateBoardRight.tooltip"),
                 new AbstractAction() {
@@ -600,7 +599,22 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
-        
+
+        this.jspinWidth.setModel(new SpinnerNumberModel(Board.WIDTH_STANDARD, Board.WIDTH_MIN, Board.WIDTH_MAX, 1));
+        this.jspinWidth.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                makeFreestyleBoard();
+            }
+        });
+        this.jspinHeight.setModel(new SpinnerNumberModel(Board.HEIGHT_STANDARD, Board.HEIGHT_MIN, Board.HEIGHT_MAX, 1));
+        this.jspinHeight.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                makeFreestyleBoard();
+            }
+        });
+
         final Vector<String> dataGoalRobots = new Vector<String>();
         for (int color = -1;  color < 4;  ++color) {
             dataGoalRobots.add(Board.getColorLongL10N(color));
@@ -637,17 +651,22 @@ public class SwingGUI implements ActionListener {
 
         final JPanel editBoardOriginalPanel = new JPanel();
         final DesignGridLayout editBoardOriginalLayout = new DesignGridLayout(editBoardOriginalPanel);
-        editBoardOriginalLayout.row().left().add(this.jlabelBoardTiles);
-        editBoardOriginalLayout.row().grid().add(new JScrollPane(this.jlistQuadrants[0]), new JScrollPane(this.jlistQuadrants[1])).add(this.jbutRandomLayout, 2);
+        final JLabel jlabelBoardTiles = new JLabel(L10N.getString("lbl.BoardTiles.text"));
+        editBoardOriginalLayout.row().left().add(jlabelBoardTiles);
+        editBoardOriginalLayout.row().grid().add(new JScrollPane(this.jlistQuadrants[0]), new JScrollPane(this.jlistQuadrants[1])).add(jbutRandomLayout, 2);
         editBoardOriginalLayout.row().grid().add(new JScrollPane(this.jlistQuadrants[3]), new JScrollPane(this.jlistQuadrants[2])).empty(2);
 
         final JPanel editBoardFreestylePanel = new JPanel();
         final DesignGridLayout editBoardFreestyleLayout = new DesignGridLayout(editBoardFreestylePanel);
-        editBoardFreestyleLayout.row().grid().add(this.jbutRemoveWalls).add(this.jbutRemoveGoals);
+        editBoardFreestyleLayout.row().grid().add(jbutRemoveWalls).add(jbutRemoveGoals);
         editBoardFreestyleLayout.emptyRow();
-        editBoardFreestyleLayout.row().grid().add(this.jlabelListGoalColors).add(this.jlabelListGoalShapes);
+        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.Width.text")), 2).add(this.jspinWidth).empty();
+        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.Height.text")), 2).add(this.jspinHeight).empty();
+        editBoardFreestyleLayout.emptyRow();
+        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.ListGoalColors.text"))).add(new JLabel(L10N.getString("lbl.ListGoalShapes.text")));
         editBoardFreestyleLayout.row().grid().add(jscrollGoalRobots).add(jscrollGoalShapes);
-        editBoardFreestyleLayout.row().grid().add(this.jbutCopyBoardDumpToClipboard).add(this.jbutCreateBoardFromDump);
+        editBoardFreestyleLayout.emptyRow();
+        editBoardFreestyleLayout.row().grid().add(jbutCopyBoardDumpToClipboard).add(jbutCreateBoardFromDump);
 
         this.jtabEditBoard.addTab(L10N.getString("tab.OriginalBoard.text"),
                 null, editBoardOriginalPanel, L10N.getString("tab.OriginalBoard.tooltip"));
@@ -661,7 +680,7 @@ public class SwingGUI implements ActionListener {
         });
         
         prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobots.text")), 2).add(this.jcomboRobots).empty();
-        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(this.jbutRotateBoardLeft, this.jbutRotateBoardRight);
+        prepareLayout.row().grid().add(new JLabel(L10N.getString("lbl.RotateBoard.text")), 2).add(jbutRotateBoardLeft, jbutRotateBoardRight);
         prepareLayout.row().grid().add(this.jtabEditBoard);
 
 
@@ -857,6 +876,7 @@ public class SwingGUI implements ActionListener {
         );
         
         this.jtextSolution.setEditable(false);
+        ((DefaultCaret)this.jtextSolution.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE); // autoscroll
         final JPanel panelSolutionText = new JPanel(new BorderLayout());
         panelSolutionText.add(this.jtextSolution, BorderLayout.CENTER);
         final JScrollPane scrollSolutionText = new JScrollPane(panelSolutionText, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -891,16 +911,8 @@ public class SwingGUI implements ActionListener {
             }
         });
         
-
-        final JPanel boardPanel = new JPanel(new GridLayout(this.board.height, this.board.width));
-        for (int i = 0; i < this.board.size; ++i) {
-            boardPanel.add(this.boardCells[i]);
-        }
-        
-        frame.getContentPane().add(boardPanel, BorderLayout.CENTER);
-        frame.getContentPane().add(this.jtabPreparePlay, BorderLayout.EAST);
-        frame.pack();
-        frame.setVisible(true);
+        this.refreshBoardCells(); // performs frame.pack()
+        this.frame.setVisible(true);
         
         try {
             final String defLaf = UIManager.getLookAndFeel().getClass().getName();
@@ -910,8 +922,8 @@ public class SwingGUI implements ActionListener {
             if ((false == defLaf.equals(sysLaf)) && (false == defLaf.toLowerCase().contains("nimbus"))) {
                 System.out.println("activating system L&F now.");
                 UIManager.setLookAndFeel(sysLaf);
-                SwingUtilities.updateComponentTreeUI(frame);
-                frame.pack();
+                SwingUtilities.updateComponentTreeUI(this.frame);
+                this.frame.pack();
                 System.out.println("successfully activated system L&F.");
             }
         } catch (Exception e) {
@@ -959,13 +971,39 @@ public class SwingGUI implements ActionListener {
         for (int i = 0;  i < 4;  ++i) {
             final JList jl = this.jlistQuadrants[i];
             jl.setSelectedIndex(this.board.getQuadrantNum(i));
+            jl.ensureIndexIsVisible(jl.getSelectedIndex());
         }
         this.doRefreshJlistQuadrants = true;
     }
 
-    
+    private void makeFreestyleBoard() {
+        final int width = ((SpinnerNumberModel)jspinWidth.getModel()).getNumber().intValue();
+        final int height = ((SpinnerNumberModel)jspinHeight.getModel()).getNumber().intValue();
+        System.out.println("w=" + width + " h=" + height);
+        board = Board.createBoardFreestyle(board, width, height, board.getNumRobots());
+        this.refreshBoard();
+    }
+
+    private void refreshBoardCells() {
+        if ((this.boardCellsWidth != this.board.width) || (this.boardCellsHeight != this.board.height)) {
+            this.boardCellsWidth = this.board.width;
+            this.boardCellsHeight = this.board.height;
+            this.boardCells = new BoardCell[this.board.size];
+            final JPanel boardPanel = new JPanel(new GridLayout(this.boardCellsHeight, this.boardCellsWidth));
+            for (int i = 0;  i < this.boardCells.length;  ++i) {
+                boardCells[i] = new BoardCell(i);
+                boardPanel.add(this.boardCells[i]);
+            }
+            this.frame.getContentPane().removeAll();
+            this.frame.getContentPane().add(boardPanel, BorderLayout.CENTER);
+            this.frame.getContentPane().add(this.jtabPreparePlay, BorderLayout.EAST);
+            this.frame.pack();
+        }
+    }
+
     private void refreshBoard() {
         //repaint board
+        this.refreshBoardCells();
         for (JComponent comp : this.boardCells) {
             comp.repaint();
         }

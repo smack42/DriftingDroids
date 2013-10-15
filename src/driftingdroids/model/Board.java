@@ -38,7 +38,12 @@ public class Board {
     static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-model");   //L10N = Localization
     
     public static final int WIDTH_STANDARD = 16;
+    public static final int WIDTH_MIN = 3;
+    public static final int WIDTH_MAX = 100;
     public static final int HEIGHT_STANDARD = 16;
+    public static final int HEIGHT_MIN = 3;
+    public static final int HEIGHT_MAX = 100;
+    public static final int SIZE_MAX = 2048; // 11 bits
     public static final int NUMROBOTS_STANDARD = 4;
     
     public static final String[] ROBOT_COLOR_NAMES_SHORT = {    //also used as part of L10N-keys
@@ -268,8 +273,8 @@ public class Board {
 
 
     public static Board createBoardFreestyle(final Board oldBoard, final int width, final int height, final int numRobots) {
-        if ((width < 3) || (height < 3) || (width*height > 1024)) {
-            System.out.println("error in createBoardFreestyle(): invalid width(" + width + ") and/or height(" + height + ") parameter!");
+        if ((width < WIDTH_MIN) || (height < HEIGHT_MIN) || (width*height > SIZE_MAX)) {
+            System.out.println("error in createBoardFreestyle(): invalid parameter: width=" + width + " height=" + height + " size=" + width*height);
             return oldBoard;
         }
         final Board newBoard = new Board(width, height, numRobots);
