@@ -43,7 +43,7 @@ public class Board {
     public static final int HEIGHT_STANDARD = 16;
     public static final int HEIGHT_MIN = 3;
     public static final int HEIGHT_MAX = 100;
-    public static final int SIZE_MAX = 2048; // 11 bits
+    public static final int SIZE_MAX = 4096; // 12 bits
     public static final int NUMROBOTS_STANDARD = 4;
     
     public static final String[] ROBOT_COLOR_NAMES_SHORT = {    //also used as part of L10N-keys
