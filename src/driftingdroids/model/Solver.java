@@ -46,6 +46,7 @@ public abstract class Solver {
     protected List<Solution> lastResultSolutions = null;
     protected long solutionMilliSeconds = 0;
     protected int solutionStoredStates = 0;
+    protected int solutionMemoryMegabytes = 0;
     
     
     
@@ -70,7 +71,6 @@ public abstract class Solver {
     }
 
     protected final String stateString(final int[] state) {
-        @SuppressWarnings("resource")
         final Formatter formatter = new Formatter();
         this.swapGoalLast(state);
         for (int i = 0;  i < state.length;  i++) {
@@ -133,6 +133,10 @@ public abstract class Solver {
     
     public final int getSolutionStoredStates() {
         return this.solutionStoredStates;
+    }
+    
+    public final int getSolutionMemoryMegabytes() {
+        return this.solutionMemoryMegabytes;
     }
     
     @Override

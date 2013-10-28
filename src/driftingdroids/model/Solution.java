@@ -127,7 +127,6 @@ public class Solution implements Comparable<Solution> {
     public String toString() {
         StringBuilder s = new StringBuilder();
         // 1. number of moves
-        @SuppressWarnings("resource")
         final Formatter f = new Formatter(s);
         f.format("%02d", Integer.valueOf(this.size()));
         // 2. number of robots moved
@@ -176,6 +175,15 @@ public class Solution implements Comparable<Solution> {
                     return 0;
                 }
             }
+        }
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Solution) {
+            return this.movesList.equals(((Solution)obj).movesList);
+        } else {
+            return false;
         }
     }
 

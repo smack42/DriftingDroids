@@ -92,6 +92,7 @@ public class SolverIDDFS extends Solver {
             this.iddfs();
             
             this.solutionStoredStates = this.knownStates.size();
+            this.solutionMemoryMegabytes = this.knownStates.getMegaBytesAllocated();
             this.knownStates = null;    //allow garbage collection
         }
         this.sortSolutions();

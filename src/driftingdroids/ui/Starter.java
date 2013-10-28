@@ -20,10 +20,15 @@ package driftingdroids.ui;
 import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import driftingdroids.model.Board;
+import driftingdroids.model.KeyDepthMapFactory;
+import driftingdroids.model.KeyDepthMapTrieGeneric;
+import driftingdroids.model.KeyDepthMapTrieSpecial;
 import driftingdroids.model.Solution;
 import driftingdroids.model.Solver;
+import driftingdroids.model.SolverIDDFS;
 
 
 
@@ -31,8 +36,9 @@ import driftingdroids.model.Solver;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids 1.2");
+        new SwingGUI("DriftingDroids 1.3 _W_I_P_ 2013-10-28");
         //runTestRandom1000();
+//        runTestKeyDepthMap();
     }
     
     
@@ -86,4 +92,40 @@ public class Starter {
         return totalMem - freeMem;
     }
     
+    
+    @SuppressWarnings("unused")
+    private static void runTestKeyDepthMap() throws InterruptedException {
+//        final Board board = Board.createBoardRandom(5);
+        final Board board = Board.createBoardGameID("0765+42+2E21BD0F+93");
+        
+        System.err.println("GameID\t#Sol\t#Mov\tmsGnrc\tmsSpcl\tMBgnrc\tMBspcl");
+        for(;;) {
+            board.setRobotsRandom();
+//            board.setGoalRandom();
+            final StringBuilder sb = new StringBuilder();
+            sb.append(board.getGameID()).append('\t');
+            
+            KeyDepthMapFactory.setDefaultClass(KeyDepthMapTrieGeneric.class);
+            final SolverIDDFS solverGeneric = (SolverIDDFS)Solver.createInstance(board);
+            final List<Solution> solutionsGeneric = solverGeneric.execute();
+            
+            KeyDepthMapFactory.setDefaultClass(KeyDepthMapTrieSpecial.class);
+            final SolverIDDFS solverSpecial = (SolverIDDFS)Solver.createInstance(board);
+            final List<Solution> solutionsSpecial = solverSpecial.execute();
+            
+            sb.append(solutionsGeneric.size()).append('\t');
+            sb.append(solutionsGeneric.get(0).size()).append('\t');
+            sb.append(solverGeneric.getSolutionMilliSeconds()).append('\t');
+            sb.append(solverSpecial.getSolutionMilliSeconds()).append('\t');
+            sb.append(solverGeneric.getSolutionMemoryMegabytes()).append('\t');
+            sb.append(solverSpecial.getSolutionMemoryMegabytes()).append('\t');
+            System.err.println(sb);
+            
+            if (!solutionsGeneric.equals(solutionsSpecial)) {
+                System.err.println("solutions are not equal!");
+                System.out.println("solutions are not equal!");
+                break;
+            }
+        }
+    }
 }
