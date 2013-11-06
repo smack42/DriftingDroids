@@ -1,0 +1,12 @@
+board tiles 1C, 2C, 3C, 4C and 1D, 2D, 3D, 4D were first included in
+Ricochet Robots "second edition" (2003, blue box) and are also included in the
+2013 editions from ABACUSSPIELE and Z-Man Games
+
+C tiles
+http://boardgamegeek.com/image/666446/ricochet-robots
+
+D tiles
+http://boardgamegeek.com/image/44564/ricochet-robots
+
+the colored diagonal walls of the D tiles had to be omitted
+because the solver doesn't support them
