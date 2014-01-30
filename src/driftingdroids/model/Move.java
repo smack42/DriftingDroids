@@ -87,9 +87,9 @@ public class Move {
     @Override
     public int hashCode() {
         int result = this.stepNumber;
-        result = result * 255 + this.robotNumber;
-        result = result * 255 + this.oldPosition;
-        result = result * 255 + this.newPosition;
+        result = 1000003 * result + this.robotNumber;
+        result = 1000003 * result + this.oldPosition;
+        result = 1000003 * result + this.newPosition;
         return result;
     }
     

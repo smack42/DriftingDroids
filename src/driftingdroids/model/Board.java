@@ -246,6 +246,15 @@ public class Board {
                     (this.robotNumber == other.robotNumber) &&
                     (this.shape == other.shape));
         }
+        @Override
+        public int hashCode() {
+            int result = this.x;
+            result = 1000003 * result + this.y;
+            result = 1000003 * result + this.position;
+            result = 1000003 * result + this.robotNumber;
+            result = 1000003 * result + this.shape;
+            return result;
+        }
         // a List<Goal> will be sorted by:
         // 1. robotNumber a.k.a. color
         // 2. shape

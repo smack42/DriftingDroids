@@ -186,6 +186,15 @@ public class Solution implements Comparable<Solution> {
             return false;
         }
     }
+    
+    @Override
+    public int hashCode() {
+        int result = 0;
+        for (final Move move : this.movesList) {
+            result = 1000003 * result + move.hashCode();
+        }
+        return result;
+    }
 
 }
 
