@@ -116,12 +116,13 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
     @Override
     public boolean putIfGreater(int key, final int byteValue) {
         //root node
-        int[] nodeArray = this.rootNode;
         int nidx = key & this.nodeMask;
-        int nodeIndex, i;   //used by both for() loops
+        int[] nodeArray = this.rootNode;
+        int elementThis = nidx;
+        int elementThisLookup = this.elementLookup[nidx];
         //go through nodes (without compression because (key<<8)+value is greater than "int")
+        int nodeIndex, i;   //used by both for() loops
         for (i = 1;  i < this.nodeNumberUnCompr;  ++i) {
-            final int elementThis = key & this.nodeMask;
             nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
@@ -139,13 +140,14 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
                 this.nextNode += nodeSize;
                 nodeArray[nidx] = nodeIndex;
             }
+            elementThis = key & this.nodeMask;
+            nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+            elementThisLookup = this.elementLookup[elementThis];
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-            final int elementNext = key & this.nodeMask;
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
+            nidx += elementThisLookup;
         }
         //go through nodes (with compression because (key<<8)+value is inside "int" range now)
         for ( ;  i < this.nodeNumber;  ++i) {
-            final int elementThis = key & this.nodeMask;
             nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
@@ -182,17 +184,18 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
                 nodeArray[nidx] = nodeIndex;
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                final int elementPrev = prevKey & this.nodeMask;
-                nidx = (nodeIndex & NODE_ARRAY_MASK) - this.elementLookup[elementThis] - 1;
-                nodeArray[nidx + this.elementLookup[elementPrev]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
-                final int elementNext = key & this.nodeMask;
-                nidx += this.elementLookup[elementNext];
+                elementThis = key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
+                nodeArray[nidx + this.elementLookup[prevKey & this.nodeMask]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
             } else {
                 // -> node index is positive = go to next node
+                elementThis = key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                final int elementNext = key & this.nodeMask;
-                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
             }
+            nidx += elementThisLookup;
         }
         //go through leaf node (with compression)
         nodeIndex = nodeArray[nidx];
@@ -293,12 +296,13 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
     public boolean putIfGreater(long key, final int byteValue) {
         //this method is copy&paste from putIfGreater(int,int) with only a few (int) casts added where required.
         //root node
-        int[] nodeArray = this.rootNode;
         int nidx = (int)key & this.nodeMask;
-        int nodeIndex, i;   //used by both for() loops
+        int[] nodeArray = this.rootNode;
+        int elementThis = nidx;
+        int elementThisLookup = this.elementLookup[nidx];
         //go through nodes (without compression because (key<<8)+value is greater than "int")
+        int nodeIndex, i;   //used by both for() loops
         for (i = 1;  i < this.nodeNumberUnCompr;  ++i) {
-            final int elementThis = (int)key & this.nodeMask;
             nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
@@ -316,13 +320,14 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
                 this.nextNode += nodeSize;
                 nodeArray[nidx] = nodeIndex;
             }
+            elementThis = (int)key & this.nodeMask;
+            nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+            elementThisLookup = this.elementLookup[elementThis];
             nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-            final int elementNext = (int)key & this.nodeMask;
-            nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
+            nidx += elementThisLookup;
         }
         //go through nodes (with compression because (key<<8)+value is inside "int" range now)
         for ( ;  i < this.nodeNumber;  ++i) {
-            final int elementThis = (int)key & this.nodeMask;
             nodeIndex = nodeArray[nidx];
             key >>>= this.nodeShift;
             if (0 == nodeIndex) {
@@ -359,17 +364,18 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
                 nodeArray[nidx] = nodeIndex;
                 //push previous "compressed branch" one node further
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                final int elementPrev = prevKey & this.nodeMask;
-                nidx = (nodeIndex & NODE_ARRAY_MASK) - this.elementLookup[elementThis] - 1;
-                nodeArray[nidx + this.elementLookup[elementPrev]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
-                final int elementNext = (int)key & this.nodeMask;
-                nidx += this.elementLookup[elementNext];
+                elementThis = (int)key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
+                nodeArray[nidx + this.elementLookup[prevKey & this.nodeMask]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
             } else {
                 // -> node index is positive = go to next node
+                elementThis = (int)key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
                 nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
-                final int elementNext = (int)key & this.nodeMask;
-                nidx = (nodeIndex & NODE_ARRAY_MASK) + this.elementLookup[elementNext] - this.elementLookup[elementThis] - 1;
             }
+            nidx += elementThisLookup;
         }
         //go through leaf node (with compression)
         nodeIndex = nodeArray[nidx];
