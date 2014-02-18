@@ -499,7 +499,7 @@ public class Board {
         final int numRobots = 0xff & data[didx++];
         final Board board = new Board(width, height, numRobots);
         for (int i = 0;  numRobots > i;  ++i) {
-            board.setRobot(i, getInteger(data, didx), false);   didx += 4;
+            board.setRobot(i, getInteger(data, didx), true);    didx += 4;
         }
         // 3. quadrants
         for (int i = 0;  board.quadrants.length > i;  ++i) {
