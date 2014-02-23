@@ -144,9 +144,9 @@ public class SolverIDDFS extends Solver {
         for (this.depthLimit = 2;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
             final long nanoDfs = System.nanoTime();
             if ((false == this.isBoardGoalWildcard) && (false == this.isSolution01) && (true == this.optAllowRebounds)) {
-                this.dfsRecursionFast(1, -1, -1);
+                this.dfsRecursionFast(1, -1, -1, this.states[0]);
             } else {
-                this.dfsRecursion(1, -1, -1);
+                this.dfsRecursion(1, -1, -1, this.states[0], this.directions[0]);
             }
             final long nanoEnd = System.nanoTime();
             System.out.println("iddfs:  finished depthLimit=" + this.depthLimit +
@@ -162,8 +162,7 @@ public class SolverIDDFS extends Solver {
     
     
     // standard version: supports wildcard goal, solution01 special case and option noRebounds
-    private void dfsRecursion(final int depth, final int lastRobo, final int lastDirReverse) throws InterruptedException {
-        final int[] oldState = this.states[depth - 1];
+    private void dfsRecursion(final int depth, final int prevRobo, final int prevDirBit0, final int[] oldState, final int[] oldDirs) throws InterruptedException {
         final int height = this.depthLimit - depth + 1;
         final int minMovesToGoal;
         if (true == this.isBoardGoalWildcard) {
@@ -181,26 +180,26 @@ public class SolverIDDFS extends Solver {
         }
         final int[] obstacles = this.obstacles[depth];
         final int[] newState = this.states[depth];
-        final int[] oldDirs = this.directions[depth - 1];
         final int depth1 = depth + 1;
         for (final int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
         System.arraycopy(oldState, 0, newState, 0, oldState.length);
+        final boolean doRecursion = (this.depthLimit > depth1);
         //move all robots
-        int robo = -1;
+        int robo = 0;
         for (final int oldRoboPos : oldState) {
-            ++robo;
             final boolean isGoalRobot = (this.goalRobot == robo) || (this.goalRobot < 0);
             if ((minMovesToGoal == height) && (false == isGoalRobot)) {
+                ++robo;
                 continue;   //useless to move this robot: can't reach goal
             }
             final int oldDir = oldDirs[robo];
-            int dir = -1;
+            final int obstacleInit = obstacles[oldRoboPos];
+            int dir = 0;
             for (final int dirIncr : this.directionIncrement) {
-                ++dir;
                 if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != (dir ^ 2)))) // (dir + 2) & 3
-                        && ((lastRobo != robo) || (lastDirReverse != dir))) {
+                        && ((prevRobo != robo) || (prevDirBit0 != (dir & 1)))) {
                     int newRoboPos = oldRoboPos;
-                    int obstacle = obstacles[oldRoboPos];
+                    int obstacle = obstacleInit;
                     final int wallMask = (1 << dir);
                     while (0 == (obstacle & wallMask)) {        //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
@@ -221,16 +220,17 @@ public class SolverIDDFS extends Solver {
                             final int[] newDirs = this.directions[depth];
                             System.arraycopy(oldDirs, 0, newDirs, 0, oldDirs.length);
                             newDirs[robo] = dir;
-                            if (this.depthLimit > depth1) {
-                                this.dfsRecursion(depth1, robo, (dir ^ 2)); // (dir + 2) & 3
+                            if (true == doRecursion) {
+                                this.dfsRecursion(depth1, robo, (dir & 1), newState, newDirs);
                             } else {
-                                this.dfsLast(depth1, robo, (dir ^ 2)); // (dir + 2) & 3
+                                this.dfsLast(depth1, robo, (dir & 1), newState, newDirs);
                             }
                         }
                     }
                 }
+                ++dir;
             }
-            newState[robo] = oldRoboPos;
+            newState[robo++] = oldRoboPos;
         }
         for (final int pos : oldState) { obstacles[pos] ^= OBSTACLE_ROBOT; }  //unset robot positions
     }
@@ -238,8 +238,7 @@ public class SolverIDDFS extends Solver {
     
     
     // fast version: (false == this.isBoardGoalWildcard) && (false == this.isSolution01) && (true == this.optAllowRebounds)
-    private void dfsRecursionFast(final int depth, final int lastRobo, final int lastDirBit0) throws InterruptedException {
-        final int[] oldState = this.states[depth - 1];
+    private void dfsRecursionFast(final int depth, final int prevRobo, final int prevDirBit0, final int[] oldState) throws InterruptedException {
         final int minMovesToGoal = this.minimumMovesToGoal[oldState[this.goalRobot]];
         final int height = this.depthLimit - depth + 1;
         if (minMovesToGoal > height) {
@@ -249,6 +248,7 @@ public class SolverIDDFS extends Solver {
         final int[] newState = this.states[depth];
         final int depth1 = depth + 1;
         for (final int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
+        final boolean doRecursion = (this.depthLimit > depth1);
         System.arraycopy(oldState, 0, newState, 0, oldState.length);
         //move all robots
         int robo = 0;
@@ -256,11 +256,12 @@ public class SolverIDDFS extends Solver {
             if ((minMovesToGoal == height) && (this.goalRobot != robo)) {
                 ++robo; //useless to move this robot: can't reach goal
             } else {
+                final int obstacleInit = obstacles[oldRoboPos];
                 int dir = 0;
                 for (final int dirIncr : this.directionIncrement) {
-                    if ((lastRobo != robo) || (lastDirBit0 != (dir & 1))) {
+                    if ((prevRobo != robo) || (prevDirBit0 != (dir & 1))) {
                         int newRoboPos = oldRoboPos;
-                        int obstacle = obstacles[oldRoboPos];
+                        int obstacle = obstacleInit;
                         final int wallMask = (1 << dir);
                         while (0 == (obstacle & wallMask)) {        //move the robot until it reaches a wall or another robot.
                             newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
@@ -275,10 +276,10 @@ public class SolverIDDFS extends Solver {
                             newState[robo] = newRoboPos;
                             //the new state is not already known (i.e. stored in knownStates)
                             if (true == this.knownStates.add(newState, height)) {
-                                if (this.depthLimit > depth1) {
-                                    this.dfsRecursionFast(depth1, robo, (dir & 1));
+                                if (true == doRecursion) {
+                                    this.dfsRecursionFast(depth1, robo, (dir & 1), newState);
                                 } else {
-                                    this.dfsLastFast(depth1, (dir & 1));
+                                    this.dfsLastFast(depth1, (dir & 1), newState);
                                 }
                             }
                         }
@@ -294,23 +295,21 @@ public class SolverIDDFS extends Solver {
     
     
     // standard version: supports wildcard goal, solution01 special case and option noRebounds
-    private void dfsLast(final int depth, final int lastRobo, final int lastDirReverse) throws InterruptedException {
+    private void dfsLast(final int depth, final int prevRobo, final int prevDirBit0, final int[] oldState, final int[] oldDirs) throws InterruptedException {
         if (Thread.interrupted()) { throw new InterruptedException(); }
-        final int[] oldState = this.states[depth - 1];
-        final int[] oldDirs = this.directions[depth - 1];
         final int[] obstacles = this.obstacles[depth];
         for (final int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
         //move goal robot(s) only
         for (int robo = this.minRobotLast;  robo < oldState.length;  ++robo) {
             final int oldRoboPos = oldState[robo];
             final int oldDir = oldDirs[robo];
-            int dir = -1;
+            final int obstacleInit = obstacles[oldRoboPos];
+            int dir = 0;
             for (final int dirIncr : this.directionIncrement) {
-                ++dir;
                 if (((true == this.optAllowRebounds) || ((oldDir != dir) && (oldDir != (dir ^ 2)))) // (dir + 2) & 3
-                    && ((lastRobo != robo) || (lastDirReverse != dir))) {
+                    && ((prevRobo != robo) || (prevDirBit0 != (dir & 1)))) {
                     int newRoboPos = oldRoboPos;
-                    int obstacle = obstacles[newRoboPos];
+                    int obstacle = obstacleInit;
                     final int wallMask = (1 << dir);
                     while (0 == (obstacle & wallMask)) {        //move the robot until it reaches a wall or another robot.
                         newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
@@ -327,6 +326,7 @@ public class SolverIDDFS extends Solver {
                         this.buildSolution(depth);
                     }
                 }
+                ++dir;
             }
         }
         for (final int pos : oldState) { obstacles[pos] ^= OBSTACLE_ROBOT; }  //unset robot positions
@@ -335,18 +335,18 @@ public class SolverIDDFS extends Solver {
     
     
     // fast version: (false == this.isBoardGoalWildcard) && (false == this.isSolution01) && (true == this.optAllowRebounds)
-    private void dfsLastFast(final int depth, final int lastDirBit0) throws InterruptedException {
+    private void dfsLastFast(final int depth, final int prevDirBit0, final int[] oldState) throws InterruptedException {
         if (Thread.interrupted()) { throw new InterruptedException(); }
-        final int[] oldState = this.states[depth - 1];
         final int[] obstacles = this.obstacles[depth];
-        for (final int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
-        //move goal robot only
         final int oldRoboPos = oldState[this.goalRobot];
+        for (final int pos : oldState) { obstacles[pos] |= OBSTACLE_ROBOT; }  //set robot positions
         int dir = 0;
+        final int obstacleInit = obstacles[oldRoboPos];
+        //move goal robot only
         for (final int dirIncr : this.directionIncrement) {
-            if (lastDirBit0 != (dir & 1)) {
+            if (prevDirBit0 != (dir & 1)) {
                 int newRoboPos = oldRoboPos;
-                int obstacle = obstacles[newRoboPos];
+                int obstacle = obstacleInit;
                 final int wallMask = (1 << dir);
                 while (0 == (obstacle & wallMask)) {        //move the robot until it reaches a wall or another robot.
                     newRoboPos += dirIncr;                  //NOTE: we rely on the fact that all boards are surrounded
