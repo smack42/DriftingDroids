@@ -660,8 +660,8 @@ public class SwingGUI implements ActionListener {
         final DesignGridLayout editBoardFreestyleLayout = new DesignGridLayout(editBoardFreestylePanel);
         editBoardFreestyleLayout.row().grid().add(jbutRemoveWalls).add(jbutRemoveGoals);
         editBoardFreestyleLayout.emptyRow();
-        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.Width.text")), 2).add(this.jspinWidth).empty();
-        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.Height.text")), 2).add(this.jspinHeight).empty();
+        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.Width.text"))).addMulti(this.jspinWidth);
+        editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.Height.text"))).addMulti(this.jspinHeight);
         editBoardFreestyleLayout.emptyRow();
         editBoardFreestyleLayout.row().grid().add(new JLabel(L10N.getString("lbl.ListGoalColors.text"))).add(new JLabel(L10N.getString("lbl.ListGoalShapes.text")));
         editBoardFreestyleLayout.row().grid().add(jscrollGoalRobots).add(jscrollGoalShapes);
@@ -707,20 +707,20 @@ public class SwingGUI implements ActionListener {
         this.jcheckOptShowSolutions.setText(L10N.getString("chk.ShowSolutions.text"));
         this.jcheckOptShowSolutions.setSelected(false);
         
-        optionsLayout.row().left().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.SolverOptions.text")));
         optionsLayout.emptyRow();
-        optionsLayout.row().left().addMulti(new JLabel(L10N.getString("lbl.PreferSolutionWith.text")), this.jcomboOptSolutionMode);
-        optionsLayout.row().left().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
-        optionsLayout.row().left().add(new JLabel(" "));
-        optionsLayout.row().left().add(this.jcheckOptAllowRebounds);
+        optionsLayout.row().grid().addMulti(new JLabel(L10N.getString("lbl.PreferSolutionWith.text")), this.jcomboOptSolutionMode);
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.NumberOfRobotsMoved.text")));
+        optionsLayout.row().grid().add(new JLabel(" "));
+        optionsLayout.row().grid().add(this.jcheckOptAllowRebounds);
         optionsLayout.emptyRow();
-        optionsLayout.row().left().add(new JSeparator());
+        optionsLayout.row().grid().add(new JSeparator());
         optionsLayout.emptyRow();
-        optionsLayout.row().left().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
+        optionsLayout.row().grid().add(new JLabel(L10N.getString("lbl.GUIOptions.text")));
         optionsLayout.emptyRow();
-        optionsLayout.row().left().add(this.jcheckOptShowColorNames);
-        optionsLayout.row().left().add(this.jcheckOptShowOnlyActiveGoal);
-        optionsLayout.row().left().add(this.jcheckOptShowSolutions);
+        optionsLayout.row().grid().add(this.jcheckOptShowColorNames);
+        optionsLayout.row().grid().add(this.jcheckOptShowOnlyActiveGoal);
+        optionsLayout.row().grid().add(this.jcheckOptShowSolutions);
         
         
         final JPanel playPanel = new JPanel();      //-----------------------------------------------
