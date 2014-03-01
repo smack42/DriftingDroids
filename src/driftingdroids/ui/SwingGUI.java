@@ -25,7 +25,6 @@ import java.awt.Dimension;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridLayout;
 import java.awt.LinearGradientPaint;
 import java.awt.MultipleGradientPaint;
 import java.awt.Paint;
@@ -989,7 +988,7 @@ public class SwingGUI implements ActionListener {
             this.boardCellsWidth = this.board.width;
             this.boardCellsHeight = this.board.height;
             this.boardCells = new BoardCell[this.board.size];
-            final JPanel boardPanel = new JPanel(new GridLayout(this.boardCellsHeight, this.boardCellsWidth));
+            final JPanel boardPanel = new JPanel(new GridLayoutSquare(this.boardCellsHeight, this.boardCellsWidth));
             for (int i = 0;  i < this.boardCells.length;  ++i) {
                 boardCells[i] = new BoardCell(i);
                 boardPanel.add(this.boardCells[i]);
