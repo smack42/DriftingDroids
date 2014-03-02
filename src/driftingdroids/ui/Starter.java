@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011, 2012, 2013  Michael Henke
+    Copyright (C) 2011-2014 Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ import driftingdroids.model.SolverIDDFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids 1.3");
+        new SwingGUI("DriftingDroids 1.3.1 (2014-03-02)");
         //runTestRandom1000();
 //        runTestKeyDepthMap();
     }

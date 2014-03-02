@@ -1,5 +1,5 @@
 -injars bin
--injars designgridlayout-1.9.jar(**.class)
+-injars designgridlayout-1.11.jar(**.class)
 # specify this on the command line: -outjars driftingdroids.jar
 
 -libraryjars <java.home>/lib/rt.jar

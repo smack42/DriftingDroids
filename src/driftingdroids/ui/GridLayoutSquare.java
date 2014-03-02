@@ -1,6 +1,6 @@
 // GridLayoutSquare.java
-// a GridLayout variant that resizes its grid components to squares
-// modifications (C) 2014 Michael Henke, under GNU GPL
+// a GridLayout variant that resizes its grid components to squares.
+// modifications Copyright (C) 2014 Michael Henke; under GNU GPL.
 
 
 /* GridLayout.java -- Grid-based layout engine
