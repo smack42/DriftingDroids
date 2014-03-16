@@ -115,7 +115,7 @@ public class SwingGUI implements ActionListener {
         new Color(99, 245, 99), //Color.GREEN,
         new Color(99, 99, 245), //Color.BLUE,
         new Color(245, 245, 99),//Color.YELLOW,
-        Color.WHITE
+        new Color(245, 245, 245) //light grey
     };
 
     private static final int ICON_SIZE = 29;
@@ -571,7 +571,7 @@ public class SwingGUI implements ActionListener {
         );
 
         final JButton jbutRotateBoardLeft = new JButton();
-        jbutRotateBoardLeft.setText(getAnticlockwiseBarArrow(jbutRotateBoardLeft.getFont()));
+        jbutRotateBoardLeft.setText(getAnticlockwiseArrow(jbutRotateBoardLeft.getFont()));
         this.addKeyBindingTooltip(jbutRotateBoardLeft,
                 L10N.getString("btn.RotateBoardLeft.acceleratorkey"),
                 L10N.getString("btn.RotateBoardLeft.tooltip"),
@@ -586,7 +586,7 @@ public class SwingGUI implements ActionListener {
         );
 
         final JButton jbutRotateBoardRight = new JButton();
-        jbutRotateBoardRight.setText(getClockwiseBarArrow(jbutRotateBoardRight.getFont()));
+        jbutRotateBoardRight.setText(getClockwiseArrow(jbutRotateBoardRight.getFont()));
         this.addKeyBindingTooltip(jbutRotateBoardRight,
                 L10N.getString("btn.RotateBoardRight.acceleratorkey"),
                 L10N.getString("btn.RotateBoardRight.tooltip"),
@@ -1683,11 +1683,11 @@ public class SwingGUI implements ActionListener {
         if (font.canDisplay('\u21e5'))  return "\u21e5";
         else                            return ">|";
     }
-    private static String getAnticlockwiseBarArrow(final Font font) {
+    private static String getAnticlockwiseArrow(final Font font) {
         if (font.canDisplay('\u21ba'))  return "\u21ba";
         else                            return "<";
     }
-    private static String getClockwiseBarArrow(final Font font) {
+    private static String getClockwiseArrow(final Font font) {
         if (font.canDisplay('\u21bb'))  return "\u21bb";
         else                            return ">";
     }
