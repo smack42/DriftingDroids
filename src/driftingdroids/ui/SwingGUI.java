@@ -22,6 +22,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -570,7 +571,7 @@ public class SwingGUI implements ActionListener {
         );
 
         final JButton jbutRotateBoardLeft = new JButton();
-        jbutRotateBoardLeft.setText(L10N.getString("btn.RotateBoardLeft.text"));
+        jbutRotateBoardLeft.setText(getAnticlockwiseBarArrow(jbutRotateBoardLeft.getFont()));
         this.addKeyBindingTooltip(jbutRotateBoardLeft,
                 L10N.getString("btn.RotateBoardLeft.acceleratorkey"),
                 L10N.getString("btn.RotateBoardLeft.tooltip"),
@@ -585,7 +586,7 @@ public class SwingGUI implements ActionListener {
         );
 
         final JButton jbutRotateBoardRight = new JButton();
-        jbutRotateBoardRight.setText(L10N.getString("btn.RotateBoardRight.text"));
+        jbutRotateBoardRight.setText(getClockwiseBarArrow(jbutRotateBoardRight.getFont()));
         this.addKeyBindingTooltip(jbutRotateBoardRight,
                 L10N.getString("btn.RotateBoardRight.acceleratorkey"),
                 L10N.getString("btn.RotateBoardRight.tooltip"),
@@ -829,7 +830,7 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
-        this.jbutNextMove.setText(L10N.getString("btn.NextMove.text"));
+        this.jbutNextMove.setText(getRightwardsArrow(this.jbutNextMove.getFont()));
         this.addKeyBindingTooltip(this.jbutNextMove,
                 L10N.getString("btn.NextMove.acceleratorkey"),
                 L10N.getString("btn.NextMove.tooltip"),
@@ -839,7 +840,7 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
-        this.jbutAllMoves.setText(L10N.getString("btn.AllMoves.text"));
+        this.jbutAllMoves.setText(getRightwardsBarArrow(this.jbutAllMoves.getFont()));
         this.addKeyBindingTooltip(this.jbutAllMoves,
                 L10N.getString("btn.AllMoves.acceleratorkey"),
                 L10N.getString("btn.AllMoves.tooltip"),
@@ -851,7 +852,7 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
-        this.jbutPrevMove.setText(L10N.getString("btn.PrevMove.text"));
+        this.jbutPrevMove.setText(getLeftwardsArrow(this.jbutPrevMove.getFont()));
         this.addKeyBindingTooltip(this.jbutPrevMove,
                 L10N.getString("btn.PrevMove.acceleratorkey"),
                 L10N.getString("btn.PrevMove.tooltip"),
@@ -861,7 +862,7 @@ public class SwingGUI implements ActionListener {
                     }
                 }
         );
-        this.jbutNoMoves.setText(L10N.getString("btn.NoMoves.text"));
+        this.jbutNoMoves.setText(getLeftwardsBarArrow(this.jbutNoMoves.getFont()));
         this.addKeyBindingTooltip(this.jbutNoMoves,
                 L10N.getString("btn.NoMoves.acceleratorkey"),
                 L10N.getString("btn.NoMoves.tooltip"),
@@ -1626,5 +1627,38 @@ public class SwingGUI implements ActionListener {
                 }
             });
         }
+    }
+
+    private static String getLeftwardsArrow(final Font font) {
+        if (font.canDisplay('\u2190'))  return "\u2190";
+        else                            return "<";
+    }
+    private static String getUpwardsArrow(final Font font) {
+        if (font.canDisplay('\u2191'))  return "\u2191";
+        else                            return "^";
+    }
+    private static String getRightwardsArrow(final Font font) {
+        if (font.canDisplay('\u2192'))  return "\u2192";
+        else                            return ">";
+    }
+    private static String getDownwardsArrow(final Font font) {
+        if (font.canDisplay('\u2193'))  return "\u2193";
+        else                            return "v";
+    }
+    private static String getLeftwardsBarArrow(final Font font) {
+        if (font.canDisplay('\u21e4'))  return "\u21e4";
+        else                            return "|<";
+    }
+    private static String getRightwardsBarArrow(final Font font) {
+        if (font.canDisplay('\u21e5'))  return "\u21e5";
+        else                            return ">|";
+    }
+    private static String getAnticlockwiseBarArrow(final Font font) {
+        if (font.canDisplay('\u21ba'))  return "\u21ba";
+        else                            return "<";
+    }
+    private static String getClockwiseBarArrow(final Font font) {
+        if (font.canDisplay('\u21bb'))  return "\u21bb";
+        else                            return ">";
     }
 }
