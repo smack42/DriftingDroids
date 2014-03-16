@@ -1078,6 +1078,11 @@ public class SwingGUI implements ActionListener {
             this.moves.add(step);
             this.currentPosition[step.robotNumber] = step.newPosition;
             this.showMove(step, doPrint);
+            if (doPrint) {
+                if (step.equals(this.computedSolutionList.get(this.computedSolutionIndex).getLastMove())) {
+                    showSolutionShort(this.computedSolutionList.get(this.computedSolutionIndex));
+                }
+            }
         }
     }
     private void showPrevMove(final boolean doPrint) {
@@ -1091,14 +1096,39 @@ public class SwingGUI implements ActionListener {
     private void showMove(final Move step, final boolean doPrint) {
         if (doPrint) {
             this.appendSolutionText((step.stepNumber + 1) + ": ", null);
-            this.appendSolutionText(Board.getColorShortL10N(step.robotNumber), COL_ROBOT[step.robotNumber]);
-            this.appendSolutionText(step.strDirectionL10N() + " " + step.strOldNewPosition()
+            final Font font = this.jtextSolution.getFont();
+            final String arrow;
+            switch (step.direction) {
+            case Board.EAST:    arrow = getRightwardsArrow(font);   break;
+            case Board.WEST:    arrow = getLeftwardsArrow(font);    break;
+            case Board.NORTH:   arrow = getUpwardsArrow(font);      break;
+            case Board.SOUTH:   arrow = getDownwardsArrow(font);    break;
+            default:            arrow = "?"; break; // this should never happen
+            }
+            this.appendSolutionText(" " + arrow + " ", COL_ROBOT[step.robotNumber]);
+            this.appendSolutionText(" " + Board.getColorLongL10N(step.robotNumber) + " " + step.strDirectionL10Nlong()
                     + (this.computedSolutionList.get(this.computedSolutionIndex).isRebound(step) ? " " + L10N.getString("txt.Rebound.text") : "")
                     + "\n", null);
             //System.out.println(step.toString());
         }
         this.refreshButtons();
         this.refreshBoard(step);
+    }
+    
+    private void showSolutionShort(final Solution solution) {
+        solution.resetMoves();
+        int robot = -1;
+        Move move;
+        while (null != (move = solution.getNextMove())) {
+            if (robot != move.robotNumber) {
+                this.appendSolutionText("\n", null);
+                this.appendSolutionText(Board.getColorLongL10N(move.robotNumber), COL_ROBOT[move.robotNumber]);
+                this.appendSolutionText(":", null);
+                robot = move.robotNumber;
+            }
+            this.appendSolutionText(" " + move.strDirectionL10N(), null);
+        }
+        this.appendSolutionText("\n", null);
     }
     
     

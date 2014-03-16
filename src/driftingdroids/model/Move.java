@@ -126,6 +126,18 @@ public class Move {
         return dir;
     }
     
+    public String strDirectionL10Nlong() {
+        final String dir;
+        switch (this.pathMap.get(Integer.valueOf(this.oldPosition)).intValue()) {
+        case PATH_NORTH : dir = Board.L10N.getString("move.direction.North.text");  break;   //up
+        case PATH_EAST  : dir = Board.L10N.getString("move.direction.East.text");   break;   //right
+        case PATH_SOUTH : dir = Board.L10N.getString("move.direction.South.text");  break;   //down
+        case PATH_WEST  : dir = Board.L10N.getString("move.direction.West.text");   break;   //left
+        default         : dir = "???"; break;
+        }
+        return dir;
+    }
+    
     public String strOldNewPosition() {
         return ("(" + (this.oldPosition % this.board.width) + "," + (this.oldPosition / this.board.width) +
                 ") -> (" + (this.newPosition % this.board.width) + "," + (this.newPosition / this.board.width) + ")");
