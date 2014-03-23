@@ -1,6 +1,6 @@
 DriftingDroids - yet another Ricochet Robots solver program.
 
-Version   1.3.1 (2014-03-02)
+Version   1.3.2 (2014-03-23)
 Homepage  https://github.com/smack42/DriftingDroids/wiki
 
 

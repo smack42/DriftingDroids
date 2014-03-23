@@ -2,6 +2,15 @@ CHANGES
 
 
 
+1.3.2 (2014-03-23)
+
++ Esperanto translation contributed by Doro
++ small GUI improvements:
+   - use Unicode arrow symbols for some button labels
+   - changed format of solution moves list
+
+
+
 1.3.1 (2014-03-02)
 
 + fixed some GUI layout issues
