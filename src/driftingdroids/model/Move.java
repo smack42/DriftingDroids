@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class Move {
     public final Board board;
-    public final int stepNumber;
+    public int stepNumber;
     public final int robotNumber;
     public final int oldPosition;
     public final int newPosition;

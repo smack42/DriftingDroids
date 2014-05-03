@@ -397,6 +397,7 @@ public class SolverIDDFS extends Solver {
             tmpSolution.add(new Move(this.board, state0, state1, i));
             state0 = state1;
         }
+        tmpSolution.minimizeColorChanges();
         this.lastResultSolutions.add(tmpSolution);
         System.out.println(tmpSolution.toMovelistString() + " " + tmpSolution.toString() + " finalState=" + this.stateString(states[depth]));
     }

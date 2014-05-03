@@ -19,7 +19,10 @@ package driftingdroids.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Formatter;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -30,11 +33,15 @@ public class Solution implements Comparable<Solution> {
     private final Board board;
     private final List<Move> movesList;
     private int moveIndex;
+    private int numColors;
+    private int numColorChanges;
     
     public Solution(Board board) {
         this.board = board;
         this.movesList = new ArrayList<Move>();
         this.moveIndex = 0;
+        this.numColors = 0;
+        this.numColorChanges = 0;
     }
     
     
@@ -152,24 +159,15 @@ public class Solution implements Comparable<Solution> {
             return 1;
         } else {    //equal number of moves
             // 2. compare number of robots moved
-            final Set<Integer> thisRobotsMoved = this.getRobotsMoved();
-            final Set<Integer> otherRobotsMoved = other.getRobotsMoved();
-            if (thisRobotsMoved.size() < otherRobotsMoved.size()) {
+            if (this.numColors < other.numColors) {
                 return -1;
-            } else if (thisRobotsMoved.size() > otherRobotsMoved.size()) {
+            } else if (this.numColors > other.numColors) {
                 return 1;
             } else {    //equal number of robots moved
-                // 3. compare the moved robots
-                int thisRobotsMovedSum = 0,  otherRobotsMovedSum = 0;
-                for (Integer robot : thisRobotsMoved) {
-                    thisRobotsMovedSum = (thisRobotsMovedSum << 3) + robot.intValue();
-                }
-                for (Integer robot : otherRobotsMoved) {
-                    otherRobotsMovedSum = (otherRobotsMovedSum << 3) + robot.intValue();
-                }
-                if (thisRobotsMovedSum < otherRobotsMovedSum) {
+                // 3. compare number of color changes
+                if (this.numColorChanges < other.numColorChanges) {
                     return -1;
-                } else if (thisRobotsMovedSum > otherRobotsMovedSum) {
+                } else if (this.numColorChanges > other.numColorChanges) {
                     return 1;
                 } else {
                     return 0;
@@ -196,5 +194,95 @@ public class Solution implements Comparable<Solution> {
         return result;
     }
 
+    // prettify the solution: transpose some moves and thus create longer runs of moves of the same robot color
+    public void minimizeColorChanges() {
+        final long startNano = System.nanoTime();
+        // transform Solution to list of lists of moves (grouped by colors)
+        final List<List<Move>> colorSolution = new ArrayList<List<Move>>();
+        LinkedList<Move> moveList = new LinkedList<Move>();
+        for (final Move move : this.movesList) {
+            if ((false == moveList.isEmpty()) && (moveList.getLast().robotNumber != move.robotNumber)) { // color change
+                colorSolution.add(moveList);
+                moveList = new LinkedList<Move>();
+            }
+            moveList.add(move);
+        }
+        colorSolution.add(moveList);
+        // set the attributes used for sorting of solutions
+        this.numColorChanges = colorSolution.size();
+        this.numColors = this.getRobotsMoved().size();
+        if (this.numColors == this.numColorChanges) {
+            return; // nothing to be minimized here
+        }
+        final Set<List<List<Move>>> doneSet = new HashSet<List<List<Move>>>();
+        final Deque<List<List<Move>>> todoList = new LinkedList<List<List<Move>>>();
+        doneSet.add(colorSolution);
+        todoList.addLast(colorSolution);
+        while (false == todoList.isEmpty()) {
+            final List<List<Move>> thisSolution = todoList.removeFirst();
+            // iterate the lists of moves, try to swap adjacent lists
+try_swap_loop:
+            for (int i = 0;  i < thisSolution.size() - 2;  ++i) {
+                List<Move> thisMoves = thisSolution.get(i);
+                List<Move> nextMoves = thisSolution.get(i + 1);
+                // check if the lists of moves can be swapped
+                for (final Move move1 : thisMoves) {
+                    for (final Move move2 : nextMoves) {
+                        if (move1.pathMap.containsKey(Integer.valueOf(move2.newPosition)) ||
+                            move2.pathMap.containsKey(Integer.valueOf(move1.oldPosition))) {
+                            System.out.println("minimizeColorChanges: blocked path  " + move1.toString() + "  " + move2.toString());
+                            continue try_swap_loop; // no swap - blocked path
+                        }
+                        if ((move1.newPosition == move2.oldPosition - board.directionIncrement[move1.direction]) ||
+                            (move2.newPosition == move1.newPosition - board.directionIncrement[move2.direction])) {
+                            System.out.println("minimizeColorChanges: blocker position  " + move1.toString() + "  " + move2.toString());
+                            continue try_swap_loop; // no swap - blocker position
+                        }
+                    }
+                }
+                // swap
+                final List<List<Move>> nextSolution = new ArrayList<List<Move>>(thisSolution);
+                nextSolution.set(i, nextMoves);
+                nextSolution.set(i + 1, thisMoves);
+                // merge same-colored adjacent lists of moves
+                thisMoves = nextSolution.get(0);
+                for (int j = 1;  j < nextSolution.size();  ++j) {
+                    nextMoves = nextSolution.get(j);
+                    if (thisMoves.get(0).robotNumber == nextMoves.get(0).robotNumber) {
+                        thisMoves = new LinkedList<Move>(thisMoves);
+                        thisMoves.addAll(nextMoves);
+                        nextSolution.set(j - 1, thisMoves);
+                        nextSolution.remove(j--);
+                        System.out.println("minimizeColorChanges: merged " + Board.ROBOT_COLOR_NAMES_LONG[thisMoves.get(0).robotNumber]);
+                    } else {
+                        thisMoves = nextMoves;
+                    }
+                }
+                // if this is a new minimum of color changes then update the solution
+                if (this.numColorChanges > nextSolution.size()) {
+                    System.out.println("minimizeColorChanges: reduced from " + this.numColorChanges + " to " + nextSolution.size());
+                    this.numColorChanges = nextSolution.size();
+                    this.movesList.clear();
+                    int stepNumber = 0;
+                    for (final List<Move> moves : nextSolution) {
+                        for (final Move move : moves) {
+                            move.stepNumber = stepNumber++; // re-number moves
+                            this.movesList.add(move);
+                        }
+                    }
+                    doneSet.clear();
+                    todoList.clear();
+                    if (this.numColors == this.numColorChanges) { // global minimum reached
+                        doneSet.add(nextSolution); // break outer loop: while (false == todoList.isEmpty())
+                    }
+                }
+                if (true == doneSet.add(nextSolution)) {
+                    todoList.addLast(nextSolution);
+                }
+            }
+        }
+        final long millis = (System.nanoTime() - startNano) / 1000000L;
+        System.out.println("minimizeColorChanges: finished after " + millis + " ms.");
+    }
 }
 
