@@ -194,10 +194,18 @@ public class Solution implements Comparable<Solution> {
         return result;
     }
 
-    // prettify the solution: transpose some moves and thus create longer runs of moves of the same robot color
-    public void minimizeColorChanges() {
-        final long startNano = System.nanoTime();
-        // transform Solution to list of lists of moves (grouped by colors)
+    // set attributes used for sorting of solutions and swap some moves to minimize color changes
+    public Solution finish() {
+        final List<List<Move>> colorSolution = this.determineColorChanges();
+        // set the attributes used for sorting of solutions
+        this.numColorChanges = colorSolution.size();
+        this.numColors = this.getRobotsMoved().size();
+        this.minimizeColorChanges(colorSolution);
+        return this;
+    }
+
+    // transform Solution to list of lists of moves, grouped by colors
+    private List<List<Move>> determineColorChanges() {
         final List<List<Move>> colorSolution = new ArrayList<List<Move>>();
         LinkedList<Move> moveList = new LinkedList<Move>();
         for (final Move move : this.movesList) {
@@ -208,18 +216,23 @@ public class Solution implements Comparable<Solution> {
             moveList.add(move);
         }
         colorSolution.add(moveList);
-        // set the attributes used for sorting of solutions
-        this.numColorChanges = colorSolution.size();
-        this.numColors = this.getRobotsMoved().size();
+        return colorSolution;
+    }
+
+    // prettify the solution: transpose some moves and thus create longer runs of moves of the same robot color
+    private void minimizeColorChanges(List<List<Move>> thisSolution) {
+        final long startNano = System.nanoTime();
         if (this.numColors == this.numColorChanges) {
+            System.out.println("minimizeColorChanges: no search, already at global minimum " + this.numColorChanges);
             return; // nothing to be minimized here
         }
-        final Set<List<List<Move>>> doneSet = new HashSet<List<List<Move>>>();
+        final Set<List<List<Move>>> knownSet = new HashSet<List<List<Move>>>();
         final Deque<List<List<Move>>> todoList = new LinkedList<List<List<Move>>>();
-        doneSet.add(colorSolution);
-        todoList.addLast(colorSolution);
+        knownSet.add(thisSolution);
+        todoList.addLast(thisSolution);
+search_loop:
         while (false == todoList.isEmpty()) {
-            final List<List<Move>> thisSolution = todoList.removeFirst();
+            thisSolution = todoList.removeFirst();
             // iterate the lists of moves, try to swap adjacent lists
 try_swap_loop:
             for (int i = 0;  i < thisSolution.size() - 2;  ++i) {
@@ -270,13 +283,14 @@ try_swap_loop:
                             this.movesList.add(move);
                         }
                     }
-                    doneSet.clear();
+                    knownSet.clear();
                     todoList.clear();
                     if (this.numColors == this.numColorChanges) { // global minimum reached
-                        doneSet.add(nextSolution); // break outer loop: while (false == todoList.isEmpty())
+                        System.out.println("minimizeColorChanges: global minimum reached " + this.numColorChanges);
+                        break search_loop; // end of search
                     }
                 }
-                if (true == doneSet.add(nextSolution)) {
+                if (true == knownSet.add(nextSolution)) {
                     todoList.addLast(nextSolution);
                 }
             }
