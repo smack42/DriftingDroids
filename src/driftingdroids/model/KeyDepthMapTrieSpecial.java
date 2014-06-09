@@ -40,14 +40,14 @@ import java.util.Arrays;
  */
 public class KeyDepthMapTrieSpecial implements KeyDepthMap {
 
-    private static final int NODE_ARRAY_SHIFT = 16;
+    private static final int NODE_ARRAY_SHIFT = 20; // 20 == 4MB
     private static final int NODE_ARRAY_SIZE = 1 << NODE_ARRAY_SHIFT;
     private static final int NODE_ARRAY_MASK = NODE_ARRAY_SIZE - 1;
     private final int[] rootNode;
     private int[][] nodeArrays;
     private int numNodeArrays, nextNode, nextNodeArray;
 
-    private static final int LEAF_ARRAY_SHIFT = 16;
+    private static final int LEAF_ARRAY_SHIFT = 20; // 20 == 1MB
     private static final int LEAF_ARRAY_SIZE = 1 << LEAF_ARRAY_SHIFT;
     private static final int LEAF_ARRAY_MASK = LEAF_ARRAY_SIZE - 1;
     private byte[][] leafArrays;
@@ -91,7 +91,7 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
         this.nodeShift = board.sizeNumBits;
         this.nodeMask = (1 << board.sizeNumBits) - 1;
 
-        this.nodeArrays = new int[32][];
+        this.nodeArrays = new int[4][];
         this.rootNode = new int[NODE_ARRAY_SIZE];
         this.nodeArrays[0] = this.rootNode;
         this.numNodeArrays = 1;
@@ -103,7 +103,7 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
         this.leafNodeSize = this.leafNodeMask + 1;
         this.leafSize = 1 << (board.sizeNumBits - this.leafNodeShift);
         this.leafMask = this.leafSize - 1;
-        this.leafArrays = new byte[32][];
+        this.leafArrays = new byte[16][];
         this.numLeafArrays = 0;
         this.nextLeaf = this.leafSize;  //no leaves yet, but skip leaf "0" because this is the special value
         this.nextLeafArray = 0;         //no leaf arrays yet
@@ -474,16 +474,13 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
      */
     @Override
     public long allocatedBytes() {
-        long result = 0;
+        long result = (this.nodeArrays.length + this.leafArrays.length) * 8;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
-            result += this.nodeArrays[i].length << 2;
+            result += this.nodeArrays[i].length * 4;
         }
-//        final long nodeResult = result;
         for (int i = 0;  i < this.numLeafArrays;  ++i) {
-            result += this.leafArrays[i].length;
+            result += this.leafArrays[i].length * 1;
         }
-//        System.out.println("getBytesAllocated KeyTrieMapByte  nodes = " + nodeResult);
-//        System.out.println("getBytesAllocated KeyTrieMapByte leaves = " + (result - nodeResult));
         return result;
     }
 
