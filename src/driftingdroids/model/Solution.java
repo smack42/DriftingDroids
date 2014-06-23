@@ -200,7 +200,10 @@ public class Solution implements Comparable<Solution> {
         // set the attributes used for sorting of solutions
         this.numColorChanges = colorSolution.size();
         this.numColors = this.getRobotsMoved().size();
-        this.minimizeColorChanges(colorSolution);
+        // for solution01 the order of moves is important and should not be changed here
+        if (false == this.board.isSolution01()) {
+            this.minimizeColorChanges(colorSolution);
+        }
         return this;
     }
 
