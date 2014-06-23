@@ -902,11 +902,14 @@ public class SwingGUI implements ActionListener {
         this.jtabPreparePlay.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                refreshBoard(); // repaint the entire board
-                if (isModePlay()) {
+                SwingGUI.this.refreshBoard(); // repaint the entire board
+                if (SwingGUI.this.isModePlay()) {
                     SwingGUI.this.updateBoardGetRobots(); // start solver thread
                 } else {
                     SwingGUI.this.removeSolution(); // stop solver thread
+                    if (SwingGUI.this.isModeEditBoard()) {
+                        SwingGUI.this.board.setRobots(SwingGUI.this.currentPosition);
+                    }
                 }
             }
         });
