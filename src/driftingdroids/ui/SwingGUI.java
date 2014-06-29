@@ -370,7 +370,7 @@ public class SwingGUI implements ActionListener {
     private class SolverTask extends SwingWorker<Solver, Object> {
         @Override
         protected Solver doInBackground() throws Exception {
-            final Solver solver = Solver.createInstance(board);
+            final Solver solver = Solver.createInstance(Board.createClone(board));
             solver.setOptionSolutionMode((Solver.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
             jtextSolution.setText(null);

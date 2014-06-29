@@ -224,7 +224,7 @@ public class Board {
     private final List<Goal> randomGoals;
     private Goal goal;                  // the current goal
     
-    private int[] robots;               // index=robot, value=position
+    private final int[] robots;         // index=robot, value=position
     private boolean isFreestyleBoard;
 
     public class Goal implements Comparable<Goal> {
@@ -306,11 +306,34 @@ public class Board {
         this.directionIncrement[WEST]  = -1;
         this.quadrants = new int[4];
         this.walls = new boolean[4][width * height];    //filled with "false"
+        this.robots = new int[numRobots];
         this.setRobots(numRobots);
         this.goals = new ArrayList<Goal>();
         this.randomGoals = new ArrayList<Goal>();
         this.goal = new Goal(0, 0, 0, 0); //dummy
         this.isFreestyleBoard = false;
+    }
+
+
+    public static Board createClone(final Board oldBoard) {
+        // 1. board size, numRobots
+        final Board newBoard = new Board(oldBoard.width, oldBoard.height, oldBoard.robots.length);
+        // 2. robots
+        System.arraycopy(oldBoard.robots, 0, newBoard.robots, 0, newBoard.robots.length);
+        // 3. quadrants
+        System.arraycopy(oldBoard.quadrants, 0, newBoard.quadrants, 0, newBoard.quadrants.length);
+        // 4. walls
+        for (int i = 0;  i < oldBoard.walls.length;  ++i) {
+            System.arraycopy(oldBoard.walls[i], 0, newBoard.walls[i], 0, newBoard.walls[i].length);
+        }
+        // 5. list of goals
+        newBoard.goals.clear();
+        newBoard.goals.addAll(oldBoard.goals);
+        // 6. active goal
+        newBoard.goal = oldBoard.goal;
+        // 7. isFreestyleBoard
+        newBoard.isFreestyleBoard = oldBoard.isFreestyleBoard;
+        return newBoard;
     }
 
 
@@ -783,7 +806,7 @@ public class Board {
                 while (false == this.walls[dir][newRoboPos]) {
                     newRoboPos += dirIncr;
                 }
-                if ( (this.goal.position == newRoboPos) &&
+                if ( ((this.goal.position == oldRoboPos) || (this.goal.position == newRoboPos)) &&
                      ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1)) ) {
                     return true;
                 }
@@ -794,7 +817,6 @@ public class Board {
     
     
     public void setRobots(final int numRobots) {
-        this.robots = new int[numRobots];
         if (this.isFreestyleBoard()) {
             this.setRobotsRandom();
         } else {
