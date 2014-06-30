@@ -1,6 +1,6 @@
 ## how to set up a development environment for DriftingDroids
 
-DriftingDroids is pure Java program. Its sources are stored in the "src" folder
+DriftingDroids is a pure Java program. Its sources are stored in "src" folder
 and they consist of "*.java" and "*.properties" files.
 
 When you import the sources into your favourite IDE then make sure that you set

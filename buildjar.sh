@@ -1,4 +1,4 @@
-OUTPUT=driftingdroids.jar
+OUTPUT=lib/driftingdroids.jar
 
 rm -f $OUTPUT
 
