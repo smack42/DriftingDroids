@@ -8,10 +8,13 @@ the compiler compliance level to "1.6" (or higher) and that you add the included
 library "designgridlayout-*.jar" to the Java build path.
 The application can be compiled, debugged and run in the IDE as usual.
 
+As an alternative to using an IDE you can compile and run the program using the
+included shell-script "compilerun.sh".
+
 The included shell-script "buildjar.sh" calls ProGuard to read the class files
-from "bin" folder (compiled by IDE) and to create a complete application jar
-file in folder "lib" with the name "driftingdroids.jar", which also contains
-all necessary classes from library "designgridlayout-*.jar".
+from "bin" folder (compiled by IDE or "compilerun.sh") and to create a complete
+application jar file in folder "lib" with the name "driftingdroids.jar", which
+also contains all necessary classes from library "designgridlayout-*.jar".
 This script is used for creation of DriftingDroids release builds.
 
 
