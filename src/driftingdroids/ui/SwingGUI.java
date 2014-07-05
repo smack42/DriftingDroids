@@ -129,7 +129,7 @@ public class SwingGUI implements ActionListener {
     
     private static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-ui");  //L10N = Localization
     
-    private Board board = null;
+    private volatile Board board = null;
     private BoardCell[] boardCells = new BoardCell[0]; // init placeholder
     private int boardCellsWidth = 0, boardCellsHeight = 0; // init placeholder
     private int[] currentPosition;
@@ -556,6 +556,8 @@ public class SwingGUI implements ActionListener {
                                     refreshJcomboRobots();
                                     refreshJComboPlaceRobot();
                                     refreshJlistQuadrants();
+                                    jspinWidth.getModel().setValue(Integer.valueOf(board.width));
+                                    jspinHeight.getModel().setValue(Integer.valueOf(board.height));
                                 } else {
                                     throw new IllegalArgumentException();   //show error message
                                 }
@@ -604,14 +606,20 @@ public class SwingGUI implements ActionListener {
         this.jspinWidth.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                makeFreestyleBoard();
+                final int width = ((SpinnerNumberModel)jspinWidth.getModel()).getNumber().intValue();
+                if (width != board.width) {
+                    makeFreestyleBoard();
+                }
             }
         });
         this.jspinHeight.setModel(new SpinnerNumberModel(Board.HEIGHT_STANDARD, Board.HEIGHT_MIN, Board.HEIGHT_MAX, 1));
         this.jspinHeight.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                makeFreestyleBoard();
+                final int height = ((SpinnerNumberModel)jspinHeight.getModel()).getNumber().intValue();
+                if (height != board.height) {
+                    makeFreestyleBoard();
+                }
             }
         });
 
