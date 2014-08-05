@@ -279,7 +279,7 @@ public class SolverIDDFS extends Solver {
                                 if (true == doRecursion) {
                                     this.dfsRecursionFast(depth1, robo, (dir & 1), newState);
                                 } else {
-                                    this.dfsLastFast(depth1, (dir & 1), newState);
+                                    this.dfsLastFast(depth1, robo, (dir & 1), newState);
                                 }
                             }
                         }
@@ -335,7 +335,7 @@ public class SolverIDDFS extends Solver {
     
     
     // fast version: (false == this.isBoardGoalWildcard) && (false == this.isSolution01) && (true == this.optAllowRebounds)
-    private void dfsLastFast(final int depth, final int prevDirBit0, final int[] oldState) throws InterruptedException {
+    private void dfsLastFast(final int depth, final int prevRobo, final int prevDirBit0, final int[] oldState) throws InterruptedException {
         if (Thread.interrupted()) { throw new InterruptedException(); }
         final int[] obstacles = this.obstacles[depth];
         final int oldRoboPos = oldState[this.goalRobot];
@@ -344,7 +344,7 @@ public class SolverIDDFS extends Solver {
         final int obstacleInit = obstacles[oldRoboPos];
         //move goal robot only
         for (final int dirIncr : this.directionIncrement) {
-            if (prevDirBit0 != (dir & 1)) {
+            if ((prevRobo != this.goalRobot) || (prevDirBit0 != (dir & 1))) {
                 int newRoboPos = oldRoboPos;
                 int obstacle = obstacleInit;
                 final int wallMask = (1 << dir);
