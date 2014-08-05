@@ -795,6 +795,9 @@ public class Board {
     public boolean isSolution01() {
         for (int robo = 0;  robo < this.robots.length;  ++robo) {
             final int oldRoboPos = this.robots[robo];
+            if ((this.goal.position == oldRoboPos) && ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1))) {
+                return true; // already on goal
+            }
             int dir = -1;
             for (final int dirIncr : this.directionIncrement) {
                 ++dir;
@@ -805,10 +808,9 @@ public class Board {
                 // some additional boundary checking here.
                 while (false == this.walls[dir][newRoboPos]) {
                     newRoboPos += dirIncr;
-                }
-                if ( ((this.goal.position == oldRoboPos) || (this.goal.position == newRoboPos)) &&
-                     ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1)) ) {
-                    return true;
+                    if ((this.goal.position == newRoboPos) && ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1))) {
+                        return true; // one move to goal
+                    }
                 }
             }
         }
