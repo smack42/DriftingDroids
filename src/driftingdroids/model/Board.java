@@ -224,7 +224,7 @@ public class Board {
     private final List<Goal> randomGoals;
     private Goal goal;                  // the current goal
     
-    private final int[] robots;         // index=robot, value=position
+    private int[] robots;               // index=robot, value=position
     private boolean isFreestyleBoard;
 
     public class Goal implements Comparable<Goal> {
@@ -819,6 +819,7 @@ public class Board {
     
     
     public void setRobots(final int numRobots) {
+        this.robots = new int[numRobots];
         if (this.isFreestyleBoard()) {
             this.setRobotsRandom();
         } else {
