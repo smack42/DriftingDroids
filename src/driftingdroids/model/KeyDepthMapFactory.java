@@ -58,7 +58,7 @@ public class KeyDepthMapFactory {
         if (KeyDepthMapTrieGeneric.class.equals(clazz)) {
             return new KeyDepthMapTrieGeneric(Math.max(12, board.getNumRobots() * board.sizeNumBits));
         } else if (KeyDepthMapTrieSpecial.class.equals(clazz)) {
-            return new KeyDepthMapTrieSpecial(board);
+            return KeyDepthMapTrieSpecial.createInstance(board, true);
         } else {
             throw new IllegalArgumentException("unknown KeyDepthMap class: " + String.valueOf(clazz));
         }

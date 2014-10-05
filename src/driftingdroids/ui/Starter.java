@@ -29,6 +29,7 @@ import driftingdroids.model.KeyDepthMapFactory;
 import driftingdroids.model.KeyDepthMapTrieGeneric;
 import driftingdroids.model.KeyDepthMapTrieSpecial;
 import driftingdroids.model.KeyMakerInt;
+import driftingdroids.model.KeyMakerLong;
 import driftingdroids.model.Solution;
 import driftingdroids.model.Solver;
 import driftingdroids.model.SolverIDDFS;
@@ -39,10 +40,11 @@ import driftingdroids.model.SolverIDDFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids 1.3.3 (2014-06-30)");
-        //runTestRandom1000();
+        new SwingGUI("DriftingDroids 1.3.4 (2014-10-05) __DEVELOPMENT__");
+//        runTestRandom1000();
 //        runTestKeyDepthMap();
-//        runTestKey2();
+//        runTestKeyInt();
+//        runTestKeyLong();
     }
     
     
@@ -135,13 +137,13 @@ public class Starter {
 
 
     @SuppressWarnings("unused")
-    private static void runTestKey2() throws InterruptedException {
+    private static void runTestKeyInt() throws InterruptedException {
+        System.err.println("runTestKeyInt");
         for (;;) {
-            //final Board board = Board.createBoardGameID("0765+42+2E21BD0F+93");
             final Board board = Board.createBoardRandom(4);
 
             final KeyMakerInt kmi1 = KeyMakerInt.createInstance(board.getNumRobots(), board.sizeNumBits, (board.getGoal().robotNumber < 0));
-            final KeyDepthMap kdm1 = new KeyDepthMapTrieSpecial(board);
+            final KeyDepthMap kdm1 = KeyDepthMapTrieSpecial.createInstance(board, true);
 
             final KeyMakerInt kmi2 = KeyMakerInt.createInstance(board.getNumRobots(), board.sizeNumBits, (board.getGoal().robotNumber < 0));
             final KeyDepthMap kdm2 = new KeyDepthMapTrieGeneric(board.getNumRobots() * board.sizeNumBits);
@@ -163,6 +165,57 @@ public class Starter {
                 }
 
                 final int key2 = kmi2.run(state);
+                final boolean res2a = kdm2.putIfGreater(key2, 5);   // true or false
+                final boolean res2b = kdm2.putIfGreater(key2, 5);   // always false
+                final boolean res2c = kdm2.putIfGreater(key2, 4);   // always false
+                final boolean res2d = kdm2.putIfGreater(key2, 6);   // always equal to res2a
+                if ((true == res2b) || (true == res2c)) {
+                    System.err.println("unexpected result 'true' of kdm2.putIfGreater() for state " + Arrays.toString(state));
+                }
+                if ((res2a != res2d)) {
+                    System.err.println("unexpected results 'not equal' of kdm2.putIfGreater() for state " + Arrays.toString(state));
+                }
+
+                if ((res1a != res2a)) {
+                    System.err.println("unexpected results 'not equal' of kdm1/kdm2.putIfGreater() for state " + Arrays.toString(state));
+                }
+            }
+            System.err.println("test loop finished" +
+                    "\tkdm1.megabytes=" + ((kdm1.allocatedBytes() + (1 << 20) - 1) >> 20) +
+                    "\tkdm2.megabytes=" + ((kdm2.allocatedBytes() + (1 << 20) - 1) >> 20) );
+        }
+    }
+
+
+    @SuppressWarnings("unused")
+    private static void runTestKeyLong() throws InterruptedException {
+        System.err.println("runTestKeyLong");
+        for (;;) {
+            final Board board = Board.createBoardRandom(5);
+
+            final KeyMakerLong kml1 = KeyMakerLong.createInstance(board.getNumRobots(), board.sizeNumBits, (board.getGoal().robotNumber < 0));
+            final KeyDepthMap kdm1 = KeyDepthMapTrieSpecial.createInstance(board, false);
+
+            final KeyMakerLong kml2 = KeyMakerLong.createInstance(board.getNumRobots(), board.sizeNumBits, (board.getGoal().robotNumber < 0));
+            final KeyDepthMap kdm2 = new KeyDepthMapTrieGeneric(board.getNumRobots() * board.sizeNumBits);
+
+            for (int i = 0;  i < 10000000;  ++i) {
+                board.setRobotsRandom();
+                final int[] state = board.getRobotPositions();
+
+                final long key1 = kml1.run(state);
+                final boolean res1a = kdm1.putIfGreater(key1, 5);   // true or false
+                final boolean res1b = kdm1.putIfGreater(key1, 5);   // always false
+                final boolean res1c = kdm1.putIfGreater(key1, 4);   // always false
+                final boolean res1d = kdm1.putIfGreater(key1, 6);   // always equal to res1a
+                if ((true == res1b) || (true == res1c)) {
+                    System.err.println("unexpected result 'true' of kdm1.putIfGreater() for state " + Arrays.toString(state));
+                }
+                if ((res1a != res1d)) {
+                    System.err.println("unexpected results 'not equal' of kdm1.putIfGreater() for state " + Arrays.toString(state));
+                }
+
+                final long key2 = kml2.run(state);
                 final boolean res2a = kdm2.putIfGreater(key2, 5);   // true or false
                 final boolean res2b = kdm2.putIfGreater(key2, 5);   // always false
                 final boolean res2c = kdm2.putIfGreater(key2, 4);   // always false
