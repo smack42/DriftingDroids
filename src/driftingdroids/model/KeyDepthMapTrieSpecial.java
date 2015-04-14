@@ -62,20 +62,15 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
     protected int size = 0;
 
     public static KeyDepthMapTrieSpecial createInstance(final Board board, final boolean useMoreMemoryForSpeedup) {
-        boolean useSlowSearchMoreSolutions = false;
-        try {
-            useSlowSearchMoreSolutions = null != System.getProperty("UseSlowSearchMoreSolutions");
-        } catch (Exception ignored) { }
-
         if (useMoreMemoryForSpeedup && (8 == board.sizeNumBits) && ((4 == board.getNumRobots()) || (5 == board.getNumRobots()))) {
-            if (useSlowSearchMoreSolutions) {
+            if (Solver.USE_SLOW_SEARCH_MORE_SOLUTIONS) {
                 System.out.println("UseSlowSearchMoreSolutions");
                 return new KeyDepthMapTrieSpecial8BitEqual(board);
             } else {
                 return new KeyDepthMapTrieSpecial8Bit(board);
             }
         } else {
-            if (useSlowSearchMoreSolutions) {
+            if (Solver.USE_SLOW_SEARCH_MORE_SOLUTIONS) {
                 System.out.println("UseSlowSearchMoreSolutions");
                 return new KeyDepthMapTrieSpecialEqual(board);
             } else {

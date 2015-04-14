@@ -32,8 +32,16 @@ public abstract class Solver {
         @Override public String toString() { return Board.L10N.getString(this.l10nKey); }
         public String getName() { return this.name; }
     }
-    
-    
+
+    public static final boolean USE_SLOW_SEARCH_MORE_SOLUTIONS;
+    static {
+        boolean useSlowSearchMoreSolutions = false;
+        try {
+            useSlowSearchMoreSolutions = (null != System.getProperty("UseSlowSearchMoreSolutions"));
+        } catch (Exception ignored) { }
+        USE_SLOW_SEARCH_MORE_SOLUTIONS = useSlowSearchMoreSolutions;
+    }
+
     protected final Board board;
     protected final boolean[][] boardWalls;
     protected final int boardSizeBitMask;

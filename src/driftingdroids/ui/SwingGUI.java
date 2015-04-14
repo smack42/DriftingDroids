@@ -275,6 +275,7 @@ public class SwingGUI implements ActionListener {
           .append("\n- [")
           .append(L10N.getString(solver.getOptionAllowRebounds() ? "txt.Yes.text" : "txt.No.text"))
           .append("] ").append(L10N.getString("chk.AllowReboundMoves.text"))
+          .append(Solver.USE_SLOW_SEARCH_MORE_SOLUTIONS ? "\n- UseSlowSearchMoreSolutions" : "")
           .append("\n\n");
         return sb.toString();
     }
