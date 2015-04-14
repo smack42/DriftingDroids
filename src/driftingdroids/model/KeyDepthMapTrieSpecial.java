@@ -62,10 +62,25 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
     protected int size = 0;
 
     public static KeyDepthMapTrieSpecial createInstance(final Board board, final boolean useMoreMemoryForSpeedup) {
+        boolean useSlowSearchMoreSolutions = false;
+        try {
+            useSlowSearchMoreSolutions = null != System.getProperty("UseSlowSearchMoreSolutions");
+        } catch (Exception ignored) { }
+
         if (useMoreMemoryForSpeedup && (8 == board.sizeNumBits) && ((4 == board.getNumRobots()) || (5 == board.getNumRobots()))) {
-            return new KeyDepthMapTrieSpecial8Bit(board);
+            if (useSlowSearchMoreSolutions) {
+                System.out.println("UseSlowSearchMoreSolutions");
+                return new KeyDepthMapTrieSpecial8BitEqual(board);
+            } else {
+                return new KeyDepthMapTrieSpecial8Bit(board);
+            }
         } else {
-            return new KeyDepthMapTrieSpecial(board);
+            if (useSlowSearchMoreSolutions) {
+                System.out.println("UseSlowSearchMoreSolutions");
+                return new KeyDepthMapTrieSpecialEqual(board);
+            } else {
+                return new KeyDepthMapTrieSpecial(board);
+            }
         }
     }
 
@@ -503,15 +518,381 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
 
 
     /**
+     * this class is used to find a larger number of distinct, equally good solutions,
+     * especially those that share some robot positions and would normally be excluded
+     * by the aggressive search tree pruning.
+     * the methods "putIfGreater" are modified to behave like "putIfGreaterOrEqual".
+     * (the code is copied from the super class, changed lines are marked with //putIfGreaterOrEqual)
+     */
+    private static class KeyDepthMapTrieSpecialEqual extends KeyDepthMapTrieSpecial {
+
+        private KeyDepthMapTrieSpecialEqual(final Board board) {
+            super(board);
+        }
+
+        @Override
+        public boolean putIfGreater(int key, final int byteValue) {
+            //root node
+            int nidx = key & this.nodeMask;
+            int[] nodeArray = this.rootNode;
+            int elementThis = nidx;
+            int elementThisLookup = this.elementLookup[nidx];
+            //go through nodes (without compression because (key<<8)+value is greater than "int")
+            int nodeIndex, i;   //used by both for() loops
+            for (i = 1;  i < this.nodeNumberUnCompr;  ++i) {
+                nodeIndex = nodeArray[nidx];
+                key >>>= this.nodeShift;
+                if (0 == nodeIndex) {
+                    //create a new node
+                    final int nodeSize = this.nodeSizeLookup[elementThis];
+                    if (this.nextNode + nodeSize > this.nextNodeArray) {
+                        if (this.nodeArrays.length <= this.numNodeArrays) {
+                            this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                        }
+                        this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                        this.nextNode = this.nextNodeArray;
+                        this.nextNodeArray += NODE_ARRAY_SIZE;
+                    }
+                    nodeIndex = this.nextNode;
+                    this.nextNode += nodeSize;
+                    nodeArray[nidx] = nodeIndex;
+                }
+                elementThis = key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx += elementThisLookup;
+            }
+            //go through nodes (with compression because (key<<8)+value is inside "int" range now)
+            for ( ;  i < this.nodeNumber;  ++i) {
+                nodeIndex = nodeArray[nidx];
+                key >>>= this.nodeShift;
+                if (0 == nodeIndex) {
+                    // -> node index is null = unused
+                    //write current key+value as a "compressed branch" (negative node index)
+                    //exit immediately because no further nodes and no leaf need to be stored
+                    nodeArray[nidx] = ((~key) << 8) | byteValue;    //negative
+                    return true;
+                } else if (0 > nodeIndex) {
+                    // -> node index is negative = used by a single "compressed branch"
+                    final int prevKey = (~nodeIndex) >> 8;
+                    final int prevVal = 0xff & nodeIndex;
+                    //previous and current keys are equal (duplicate key)
+                    if (prevKey == key) {
+                        if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                            nodeArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                            return true;
+                        }
+                        return false;
+                    }
+                    //previous and current keys are not equal
+                    //create a new node
+                    final int nodeSize = this.nodeSizeLookup[elementThis];
+                    if (this.nextNode + nodeSize > this.nextNodeArray) {
+                        if (this.nodeArrays.length <= this.numNodeArrays) {
+                            this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                        }
+                        this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                        this.nextNode = this.nextNodeArray;
+                        this.nextNodeArray += NODE_ARRAY_SIZE;
+                    }
+                    nodeIndex = this.nextNode;
+                    this.nextNode += nodeSize;
+                    nodeArray[nidx] = nodeIndex;
+                    //push previous "compressed branch" one node further
+                    nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                    elementThis = key & this.nodeMask;
+                    nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                    elementThisLookup = this.elementLookup[elementThis];
+                    nodeArray[nidx + this.elementLookup[prevKey & this.nodeMask]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
+                } else {
+                    // -> node index is positive = go to next node
+                    elementThis = key & this.nodeMask;
+                    nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                    elementThisLookup = this.elementLookup[elementThis];
+                    nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                }
+                nidx += elementThisLookup;
+            }
+            //go through leaf node (with compression)
+            nodeIndex = nodeArray[nidx];
+            key >>>= this.nodeShift;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current key+value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                nodeArray[nidx] = ((~key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                final int prevKey = (~nodeIndex) >> 8;
+                final int prevVal = 0xff & nodeIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new node
+                if (this.nextNode + this.leafNodeSize > this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.leafNodeSize;
+                nodeArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.leafNodeMask);
+                nodeArray[nidx] = (~(prevKey >>> this.leafNodeShift) << 8) | prevVal;    //negative
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + (key & this.leafNodeMask);
+            //get leaf (with compression)
+            int leafIndex = nodeArray[nidx];
+            key >>>= this.leafNodeShift;
+            if (0 == leafIndex) {
+                // -> leaf index is null = unused
+                //write current value as a "compressed branch" (negative leaf index)
+                //exit immediately because no leaf needs to be stored
+                nodeArray[nidx] = ((~key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > leafIndex) {
+                // -> leaf index is negative = used by a single "compressed branch"
+                final int prevKey = (~leafIndex) >> 8;
+                final int prevVal = 0xff & leafIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (leafIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new leaf
+                if (this.nextLeaf >= this.nextLeafArray) {
+                    if (this.leafArrays.length <= this.numLeafArrays) {
+                        this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                    }
+                    final byte[] newLeafArray = new byte[LEAF_ARRAY_SIZE];
+                    this.leafArrays[this.numLeafArrays++] = newLeafArray;
+                    this.nextLeafArray += LEAF_ARRAY_SIZE;
+                }
+                leafIndex = this.nextLeaf;
+                this.nextLeaf += this.leafSize;
+                nodeArray[nidx] = leafIndex;
+                //push the previous "compressed branch" further to the leaf
+                final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevKey & this.leafMask);
+                this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (byte)prevVal;
+            }
+            final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (key & this.leafMask);
+            final byte prevVal = leafArray[lidx];
+            if (byteValue >= (0xff & prevVal)) {  //putIfGreaterOrEqual
+                leafArray[lidx] = (byte)byteValue;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean putIfGreater(long key, final int byteValue) {
+            //this method is copy&paste from putIfGreater(int,int) with only a few (int) casts added where required.
+            //root node
+            int nidx = (int)key & this.nodeMask;
+            int[] nodeArray = this.rootNode;
+            int elementThis = nidx;
+            int elementThisLookup = this.elementLookup[nidx];
+            //go through nodes (without compression because (key<<8)+value is greater than "int")
+            int nodeIndex, i;   //used by both for() loops
+            for (i = 1;  i < this.nodeNumberUnCompr;  ++i) {
+                nodeIndex = nodeArray[nidx];
+                key >>>= this.nodeShift;
+                if (0 == nodeIndex) {
+                    //create a new node
+                    final int nodeSize = this.nodeSizeLookup[elementThis];
+                    if (this.nextNode + nodeSize > this.nextNodeArray) {
+                        if (this.nodeArrays.length <= this.numNodeArrays) {
+                            this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                        }
+                        this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                        this.nextNode = this.nextNodeArray;
+                        this.nextNodeArray += NODE_ARRAY_SIZE;
+                    }
+                    nodeIndex = this.nextNode;
+                    this.nextNode += nodeSize;
+                    nodeArray[nidx] = nodeIndex;
+                }
+                elementThis = (int)key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx += elementThisLookup;
+            }
+            //go through nodes (with compression because (key<<8)+value is inside "int" range now)
+            for ( ;  i < this.nodeNumber;  ++i) {
+                nodeIndex = nodeArray[nidx];
+                key >>>= this.nodeShift;
+                if (0 == nodeIndex) {
+                    // -> node index is null = unused
+                    //write current key+value as a "compressed branch" (negative node index)
+                    //exit immediately because no further nodes and no leaf need to be stored
+                    nodeArray[nidx] = ((~(int)key) << 8) | byteValue;    //negative
+                    return true;
+                } else if (0 > nodeIndex) {
+                    // -> node index is negative = used by a single "compressed branch"
+                    final int prevKey = (~nodeIndex) >> 8;
+                    final int prevVal = 0xff & nodeIndex;
+                    //previous and current keys are equal (duplicate key)
+                    if (prevKey == (int)key) {
+                        if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                            nodeArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                            return true;
+                        }
+                        return false;
+                    }
+                    //previous and current keys are not equal
+                    //create a new node
+                    final int nodeSize = this.nodeSizeLookup[elementThis];
+                    if (this.nextNode + nodeSize > this.nextNodeArray) {
+                        if (this.nodeArrays.length <= this.numNodeArrays) {
+                            this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                        }
+                        this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                        this.nextNode = this.nextNodeArray;
+                        this.nextNodeArray += NODE_ARRAY_SIZE;
+                    }
+                    nodeIndex = this.nextNode;
+                    this.nextNode += nodeSize;
+                    nodeArray[nidx] = nodeIndex;
+                    //push previous "compressed branch" one node further
+                    nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                    elementThis = (int)key & this.nodeMask;
+                    nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                    elementThisLookup = this.elementLookup[elementThis];
+                    nodeArray[nidx + this.elementLookup[prevKey & this.nodeMask]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
+                } else {
+                    // -> node index is positive = go to next node
+                    elementThis = (int)key & this.nodeMask;
+                    nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                    elementThisLookup = this.elementLookup[elementThis];
+                    nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                }
+                nidx += elementThisLookup;
+            }
+            //go through leaf node (with compression)
+            nodeIndex = nodeArray[nidx];
+            key >>>= this.nodeShift;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current key+value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                nodeArray[nidx] = ((~(int)key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                final int prevKey = (~nodeIndex) >> 8;
+                final int prevVal = 0xff & nodeIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == (int)key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new node
+                if (this.nextNode + this.leafNodeSize > this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.leafNodeSize;
+                nodeArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.leafNodeMask);
+                nodeArray[nidx] = (~(prevKey >>> this.leafNodeShift) << 8) | prevVal;    //negative
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.leafNodeMask);
+            //get leaf (with compression)
+            int leafIndex = nodeArray[nidx];
+            key >>>= this.leafNodeShift;
+            if (0 == leafIndex) {
+                // -> leaf index is null = unused
+                //write current value as a "compressed branch" (negative leaf index)
+                //exit immediately because no leaf needs to be stored
+                nodeArray[nidx] = ((~(int)key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > leafIndex) {
+                // -> leaf index is negative = used by a single "compressed branch"
+                final int prevKey = (~leafIndex) >> 8;
+                final int prevVal = 0xff & leafIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == (int)key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (leafIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new leaf
+                if (this.nextLeaf >= this.nextLeafArray) {
+                    if (this.leafArrays.length <= this.numLeafArrays) {
+                        this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                    }
+                    final byte[] newLeafArray = new byte[LEAF_ARRAY_SIZE];
+                    this.leafArrays[this.numLeafArrays++] = newLeafArray;
+                    this.nextLeafArray += LEAF_ARRAY_SIZE;
+                }
+                leafIndex = this.nextLeaf;
+                this.nextLeaf += this.leafSize;
+                nodeArray[nidx] = leafIndex;
+                //push the previous "compressed branch" further to the leaf
+                final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevKey & this.leafMask);
+                this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (byte)prevVal;
+            }
+            final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)key & this.leafMask);
+            final byte prevVal = leafArray[lidx];
+            if (byteValue >= (0xff & prevVal)) {  //putIfGreaterOrEqual
+                leafArray[lidx] = (byte)byteValue;
+                return true;
+            }
+            return false;
+        }
+    }
+
+
+    /**
      * this class is a further specialization which trades some more memory for a speedup.
      * it can only be used for board size of 8 bits (256 == 16x16) and with 4 or 5 robots.
      */
     private static class KeyDepthMapTrieSpecial8Bit extends KeyDepthMapTrieSpecial {
 
-        private static final int LOOKUP_SHIFT = 3 * 8;
-        private static final int LOOKUP_SHIFT_2 = 2 * 8;
-        private static final int LOOKUP_MASK = (1 << LOOKUP_SHIFT) - 1;
-        private final int[] lookupArray;
+        protected static final int LOOKUP_SHIFT = 3 * 8;
+        protected static final int LOOKUP_SHIFT_2 = 2 * 8;
+        protected static final int LOOKUP_MASK = (1 << LOOKUP_SHIFT) - 1;
+        protected final int[] lookupArray;
 
         private KeyDepthMapTrieSpecial8Bit(final Board board) {
             super(board);
@@ -519,7 +900,7 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
         }
 
         @Override
-        public boolean putIfGreater(int key, int byteValue) { // for 4 robots
+        public boolean putIfGreater(int key, final int byteValue) { // for 4 robots
             int nidx = key & LOOKUP_MASK;
             int nodeIndex = this.lookupArray[nidx];
             int[] nodeArray;
@@ -613,7 +994,7 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
         }
 
         @Override
-        public boolean putIfGreater(long key, int byteValue) { // for 5 robots
+        public boolean putIfGreater(long key, final int byteValue) { // for 5 robots
             int nidx = (int)key & LOOKUP_MASK;
             int nodeIndex = this.lookupArray[nidx];
             int[] nodeArray;
@@ -761,6 +1142,261 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
         @Override
         public long allocatedBytes() {
             return super.allocatedBytes() + this.lookupArray.length * 4;
+        }
+    }
+
+
+    /**
+     * this class is used to find a larger number of distinct, equally good solutions,
+     * especially those that share some robot positions and would normally be excluded
+     * by the aggressive search tree pruning.
+     * the methods "putIfGreater" are modified to behave like "putIfGreaterOrEqual".
+     * (the code is copied from the super class, changed lines are marked with //putIfGreaterOrEqual)
+     */
+    private static class KeyDepthMapTrieSpecial8BitEqual extends KeyDepthMapTrieSpecial8Bit {
+
+        private KeyDepthMapTrieSpecial8BitEqual(final Board board) {
+            super(board);
+        }
+
+        @Override
+        public boolean putIfGreater(int key, final int byteValue) { // for 4 robots
+            int nidx = key & LOOKUP_MASK;
+            int nodeIndex = this.lookupArray[nidx];
+            int[] nodeArray;
+            key >>>= LOOKUP_SHIFT;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current key+value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                this.lookupArray[nidx] = ((~key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                final int prevKey = (~nodeIndex) >> 8;
+                final int prevVal = 0xff & nodeIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        this.lookupArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new node
+                if (this.nextNode + this.leafNodeSize > this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.leafNodeSize;
+                this.lookupArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.leafNodeMask);
+                nodeArray[nidx] = (~(prevKey >>> this.leafNodeShift) << 8) | prevVal;    //negative
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + (key & this.leafNodeMask);
+            //get leaf (with compression)
+            int leafIndex = nodeArray[nidx];
+            key >>>= this.leafNodeShift;
+            if (0 == leafIndex) {
+                // -> leaf index is null = unused
+                //write current value as a "compressed branch" (negative leaf index)
+                //exit immediately because no leaf needs to be stored
+                nodeArray[nidx] = ((~key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > leafIndex) {
+                // -> leaf index is negative = used by a single "compressed branch"
+                final int prevKey = (~leafIndex) >> 8;
+                final int prevVal = 0xff & leafIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (leafIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new leaf
+                if (this.nextLeaf >= this.nextLeafArray) {
+                    if (this.leafArrays.length <= this.numLeafArrays) {
+                        this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                    }
+                    final byte[] newLeafArray = new byte[LEAF_ARRAY_SIZE];
+                    this.leafArrays[this.numLeafArrays++] = newLeafArray;
+                    this.nextLeafArray += LEAF_ARRAY_SIZE;
+                }
+                leafIndex = this.nextLeaf;
+                this.nextLeaf += this.leafSize;
+                nodeArray[nidx] = leafIndex;
+                //push the previous "compressed branch" further to the leaf
+                final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevKey & this.leafMask);
+                this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (byte)prevVal;
+            }
+            final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (key & this.leafMask);
+            final byte prevVal = leafArray[lidx];
+            if (byteValue >= (0xff & prevVal)) {  //putIfGreaterOrEqual
+                leafArray[lidx] = (byte)byteValue;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean putIfGreater(long key, final int byteValue) { // for 5 robots
+            int nidx = (int)key & LOOKUP_MASK;
+            int nodeIndex = this.lookupArray[nidx];
+            int[] nodeArray;
+            key >>>= LOOKUP_SHIFT;
+            int elementThis = (nidx >>> LOOKUP_SHIFT_2);
+            int elementThisLookup = this.elementLookup[elementThis];
+            //go through nodes (with compression because (key<<8)+value is inside "int" range now)
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current key+value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                this.lookupArray[nidx] = ((~(int)key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                final int prevKey = (~nodeIndex) >> 8;
+                final int prevVal = 0xff & nodeIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == (int)key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        this.lookupArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new node
+                final int nodeSize = this.nodeSizeLookup[elementThis];
+                if (this.nextNode + nodeSize > this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += nodeSize;
+                this.lookupArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                elementThis = (int)key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
+                nodeArray[nidx + this.elementLookup[prevKey & this.nodeMask]] = (~(prevKey >>> this.nodeShift) << 8) | prevVal;
+            } else {
+                // -> node index is positive = go to next node
+                elementThis = (int)key & this.nodeMask;
+                nidx = (nodeIndex & NODE_ARRAY_MASK) - elementThisLookup - 1;
+                elementThisLookup = this.elementLookup[elementThis];
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx += elementThisLookup;
+            //go through leaf node (with compression)
+            nodeIndex = nodeArray[nidx];
+            key >>>= this.nodeShift;
+            if (0 == nodeIndex) {
+                // -> node index is null = unused
+                //write current key+value as a "compressed branch" (negative node index)
+                //exit immediately because no further nodes and no leaf need to be stored
+                nodeArray[nidx] = ((~(int)key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > nodeIndex) {
+                // -> node index is negative = used by a single "compressed branch"
+                final int prevKey = (~nodeIndex) >> 8;
+                final int prevVal = 0xff & nodeIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == (int)key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (nodeIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new node
+                if (this.nextNode + this.leafNodeSize > this.nextNodeArray) {
+                    if (this.nodeArrays.length <= this.numNodeArrays) {
+                        this.nodeArrays = Arrays.copyOf(this.nodeArrays, this.nodeArrays.length << 1);
+                    }
+                    this.nodeArrays[this.numNodeArrays++] = new int[NODE_ARRAY_SIZE];
+                    this.nextNode = this.nextNodeArray;
+                    this.nextNodeArray += NODE_ARRAY_SIZE;
+                }
+                nodeIndex = this.nextNode;
+                this.nextNode += this.leafNodeSize;
+                nodeArray[nidx] = nodeIndex;
+                //push previous "compressed branch" one node further
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+                nidx = (nodeIndex & NODE_ARRAY_MASK) + (prevKey & this.leafNodeMask);
+                nodeArray[nidx] = (~(prevKey >>> this.leafNodeShift) << 8) | prevVal;    //negative
+            } else {
+                // -> node index is positive = go to next node
+                nodeArray = this.nodeArrays[nodeIndex >>> NODE_ARRAY_SHIFT];
+            }
+            nidx = (nodeIndex & NODE_ARRAY_MASK) + ((int)key & this.leafNodeMask);
+            //get leaf (with compression)
+            int leafIndex = nodeArray[nidx];
+            key >>>= this.leafNodeShift;
+            if (0 == leafIndex) {
+                // -> leaf index is null = unused
+                //write current value as a "compressed branch" (negative leaf index)
+                //exit immediately because no leaf needs to be stored
+                nodeArray[nidx] = ((~(int)key) << 8) | byteValue;    //negative
+                return true;
+            } else if (0 > leafIndex) {
+                // -> leaf index is negative = used by a single "compressed branch"
+                final int prevKey = (~leafIndex) >> 8;
+                final int prevVal = 0xff & leafIndex;
+                //previous and current keys are equal (duplicate key)
+                if (prevKey == (int)key) {
+                    if (byteValue >= prevVal) {  //putIfGreaterOrEqual
+                        nodeArray[nidx] = (leafIndex ^ prevVal) | byteValue;    //negative
+                        return true;
+                    }
+                    return false;
+                }
+                //previous and current keys are not equal
+                //create a new leaf
+                if (this.nextLeaf >= this.nextLeafArray) {
+                    if (this.leafArrays.length <= this.numLeafArrays) {
+                        this.leafArrays = Arrays.copyOf(this.leafArrays, this.leafArrays.length << 1);
+                    }
+                    final byte[] newLeafArray = new byte[LEAF_ARRAY_SIZE];
+                    this.leafArrays[this.numLeafArrays++] = newLeafArray;
+                    this.nextLeafArray += LEAF_ARRAY_SIZE;
+                }
+                leafIndex = this.nextLeaf;
+                this.nextLeaf += this.leafSize;
+                nodeArray[nidx] = leafIndex;
+                //push the previous "compressed branch" further to the leaf
+                final int lidx = (leafIndex & LEAF_ARRAY_MASK) + (prevKey & this.leafMask);
+                this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT][lidx] = (byte)prevVal;
+            }
+            final byte[] leafArray = this.leafArrays[leafIndex >>> LEAF_ARRAY_SHIFT];
+            final int lidx = (leafIndex & LEAF_ARRAY_MASK) + ((int)key & this.leafMask);
+            final byte prevVal = leafArray[lidx];
+            if (byteValue >= (0xff & prevVal)) {  //putIfGreaterOrEqual
+                leafArray[lidx] = (byte)byteValue;
+                return true;
+            }
+            return false;
         }
     }
 }

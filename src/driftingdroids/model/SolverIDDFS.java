@@ -388,17 +388,20 @@ public class SolverIDDFS extends Solver {
     
     
     private void buildSolution(final int depth) {
-        final Solution tmpSolution = new Solution(this.board);
+        Solution newSolution = new Solution(this.board);
         int[] state0 = this.states[0].clone();
         swapGoalLast(state0);
         for (int i = 0;  i < depth;  ++i) {
             final int[] state1 = this.states[i + 1].clone();
             swapGoalLast(state1);
-            tmpSolution.add(new Move(this.board, state0, state1, i));
+            newSolution.add(new Move(this.board, state0, state1, i));
             state0 = state1;
         }
-        this.lastResultSolutions.add(tmpSolution.finish());
-        System.out.println(tmpSolution.toMovelistString() + " " + tmpSolution.toString() + " finalState=" + this.stateString(states[depth]));
+        newSolution = newSolution.finish();
+        System.out.println(newSolution.toMovelistString() + " " + newSolution.toString() + " finalState=" + this.stateString(states[depth]));
+        if (false == this.lastResultSolutions.contains(newSolution)) {
+            this.lastResultSolutions.add(newSolution);
+        }
     }
     
     
