@@ -35,6 +35,8 @@ public class Solution implements Comparable<Solution> {
     private int moveIndex;
     private int numColors;
     private int numColorChanges;
+    private int movedRobots;
+    private long finalPositions;
     
     public Solution(Board board) {
         this.board = board;
@@ -42,6 +44,8 @@ public class Solution implements Comparable<Solution> {
         this.moveIndex = 0;
         this.numColors = 0;
         this.numColorChanges = 0;
+        this.movedRobots = 0;
+        this.finalPositions = 0;
     }
     
     
@@ -158,19 +162,29 @@ public class Solution implements Comparable<Solution> {
         } else if (this.size() > other.size()) {
             return 1;
         } else {    //equal number of moves
+
             // 2. compare number of robots moved
             if (this.numColors < other.numColors) {
                 return -1;
             } else if (this.numColors > other.numColors) {
                 return 1;
             } else {    //equal number of robots moved
-                // 3. compare number of color changes
-                if (this.numColorChanges < other.numColorChanges) {
+
+                // 3. compare the actual robots moved
+                if (this.movedRobots < other.movedRobots) {
                     return -1;
-                } else if (this.numColorChanges > other.numColorChanges) {
+                } else if (this.movedRobots > other.movedRobots) {
                     return 1;
-                } else {
-                    return 0;
+                } else {    //equal robots moved
+
+                    // 4. compare final robot positions
+                    if (this.finalPositions < other.finalPositions) {
+                        return -1;
+                    } else if (this.finalPositions > other.finalPositions) {
+                        return 1;
+                    } else {    // equal final positions
+                        return 0;
+                    }
                 }
             }
         }
@@ -199,7 +213,13 @@ public class Solution implements Comparable<Solution> {
         final List<List<Move>> colorSolution = this.determineColorChanges();
         // set the attributes used for sorting of solutions
         this.numColorChanges = colorSolution.size();
-        this.numColors = this.getRobotsMoved().size();
+        final Set<Integer> robotsMoved = this.getRobotsMoved();
+        this.numColors = robotsMoved.size();
+        this.movedRobots = 0;
+        for (final Integer robo : robotsMoved) {
+            this.movedRobots |= 1 << (30 - robo.intValue());
+        }
+        this.finalPositions = this.movesList.get(this.movesList.size() - 1).newPositions;
         // for solution01 the order of moves is important and should not be changed here
         if (false == this.board.isSolution01()) {
             this.minimizeColorChanges(colorSolution);

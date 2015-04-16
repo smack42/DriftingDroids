@@ -30,6 +30,8 @@ public class Move {
     public final int newPosition;
     public final int direction;
     public final Map<Integer,Integer> pathMap;  //key=position, value=PATH
+    public final long oldPositions;  // positions of all robots before this move
+    public final long newPositions;  // positions of all robots after this move
     
     public static final int PATH_NORTH = 1 << Board.NORTH;
     public static final int PATH_EAST  = 1 << Board.EAST;
@@ -64,6 +66,17 @@ public class Move {
             this.pathMap.put(Integer.valueOf(i), Integer.valueOf(pathStart + pathEnd));
         }
         this.pathMap.put(Integer.valueOf(i), Integer.valueOf(pathEnd));
+
+        long oldPos = 0;
+        for (final int pos : oldPositions) {
+            oldPos = (oldPos << board.sizeNumBits) | pos;
+        }
+        this.oldPositions = oldPos;
+        long newPos = 0;
+        for (final int pos : newPositions) {
+            newPos = (newPos << board.sizeNumBits) | pos;
+        }
+        this.newPositions = newPos;
     }
     
     /* (non-Javadoc)
