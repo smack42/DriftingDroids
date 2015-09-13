@@ -2,6 +2,24 @@ CHANGES
 
 
 
+1.3.5 (2015-09-13)
+
++ added French translation, contributed by Raphaël Huck
++ find more solutions; in response to bug #7
+   - added an optional "slow search" mode that doesn't prune the search tree
+     as aggressively as the standard search.
+   - as a result of this, it runs significantly slower, but it finds a larger
+     number of distinct, equally good solutions for some game positions.
+   - it's activated by system property "UseSlowSearchMoreSolutions".
+     (for example in file appstart.properties,
+      or as VM parameter -DUseSlowSearchMoreSolutions)
+   - this option is semi-hidden (not in GUI, but only in properties file) and
+     set to "off" by default, because it slows down the solver significantly,
+     so much that longer solutions can't be found at all.
+     (like 0765+42+2E21BD0F+93 with 24 moves)
+
+
+
 1.3.4 (2014-10-05)
 
 + small speedup of the IDDFS solver algorithm (using a few MB more memory)
