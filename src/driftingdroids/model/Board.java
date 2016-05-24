@@ -948,6 +948,7 @@ public class Board {
     public void removeGoals() {
         this.goals.clear();
         this.goal = null;
+        this.randomGoals.clear();
     }
 
     private Board addOuterWalls() {
