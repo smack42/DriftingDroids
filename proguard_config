@@ -5,7 +5,7 @@
 -libraryjars <java.home>/lib/rt.jar
 
 -target 1.6
--optimizationpasses 9
+-dontoptimize
 -dontobfuscate
 -verbose
 
