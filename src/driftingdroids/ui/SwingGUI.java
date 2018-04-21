@@ -937,6 +937,8 @@ public class SwingGUI implements ActionListener {
                 SwingUtilities.updateComponentTreeUI(this.frame);
                 this.frame.pack();
                 System.out.println("successfully activated system L&F.");
+            } else {
+                System.out.println("keeping default Nimbus L&F.");
             }
         } catch (Exception e) {
             System.out.println("ERROR: could not activate system L&F: " + e.toString());
