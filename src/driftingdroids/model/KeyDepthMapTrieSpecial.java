@@ -1136,7 +1136,7 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
 
         @Override
         public long allocatedBytes() {
-            return super.allocatedBytes() + this.lookupArray.length * 4;
+            return super.allocatedBytes() + this.lookupArray.length * 4L;
         }
     }
 
