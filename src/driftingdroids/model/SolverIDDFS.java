@@ -87,9 +87,14 @@ public class SolverIDDFS extends Solver {
         } else {
             this.states[0] = this.board.getRobotPositions().clone();
             swapGoalLast(this.states[0]);   //goal robot is always the last one.
-            System.out.println("startState=" + this.stateString(this.states[0]));
-            
             Arrays.fill(this.directions[0], DIRECTION_NOT_MOVED_YET);
+            this.precomputeMinimumMovesToGoal();
+            this.knownStates = new KnownStates();
+            
+            System.out.println("startState=" + this.stateString(this.states[0]));
+            System.out.println("solution01=" + this.isSolution01);
+            System.out.println("goalWildcard=" + this.isBoardGoalWildcard);
+            System.out.println(this.knownStates.getInfo());
             
             this.iddfs();
             
@@ -138,12 +143,11 @@ public class SolverIDDFS extends Solver {
     
     private void iddfs() throws InterruptedException {
         final long nanoStart = System.nanoTime();
-        this.precomputeMinimumMovesToGoal();
-        this.knownStates = null;
-        this.knownStates = new KnownStates();
+        final boolean doDfsFast = (false == this.isBoardGoalWildcard) && (false == this.isSolution01) && (true == this.optAllowRebounds);
+        System.out.println("doDfsFast=" + doDfsFast);
         for (this.depthLimit = 2;  MAX_DEPTH > this.depthLimit;  ++this.depthLimit) {
             final long nanoDfs = System.nanoTime();
-            if ((false == this.isBoardGoalWildcard) && (false == this.isSolution01) && (true == this.optAllowRebounds)) {
+            if (doDfsFast) {
                 this.dfsRecursionFast(1, -1, -1, this.states[0]);
             } else {
                 this.dfsRecursion(1, -1, -1, this.states[0], this.directions[0]);
@@ -426,6 +430,8 @@ public class SolverIDDFS extends Solver {
             public long getBytesAllocated() {
                 return this.theMap.allocatedBytes();
             }
+            
+            public abstract String getInfo();
         }
         //store the unique keys of all known states in 32-bit ints
         //supports up to 4 robots with a board size of 256 (16*16)
@@ -438,6 +444,10 @@ public class SolverIDDFS extends Solver {
             public final boolean add(final int[] state, final int depth) {
                 final int key = this.keyMaker.run(state);
                 return this.theMap.putIfGreater(key, depth);
+            }
+            @Override
+            public String getInfo() {
+                return this.getClass().getSimpleName() + "," + this.theMap.getClass().getSimpleName() + "," + this.keyMaker.getClass().getSimpleName();
             }
         }
         //store the unique keys of all known states in 64-bit longs
@@ -452,6 +462,10 @@ public class SolverIDDFS extends Solver {
                 final long key = this.keyMaker.run(state);
                 return this.theMap.putIfGreater(key, depth);
             }
+            @Override
+            public String getInfo() {
+                return this.getClass().getSimpleName() + "," + this.theMap.getClass().getSimpleName() + "," + this.keyMaker.getClass().getSimpleName();
+            }
         }
 
         public boolean add(int[] state, int depth) {
@@ -462,6 +476,9 @@ public class SolverIDDFS extends Solver {
         }
         public final int getMegaBytesAllocated() {
             return (int)((this.allKeys.getBytesAllocated() + (1 << 20) - 1) >> 20);
+        }
+        public String getInfo() {
+            return "KnownStates(" + this.allKeys.getInfo() + ")";
         }
     }
 
