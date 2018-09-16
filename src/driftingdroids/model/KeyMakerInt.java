@@ -46,9 +46,33 @@ public abstract class KeyMakerInt {
         switch (boardNumRobots) {
         case 1:  keyMaker = new KeyMakerInt11(); break;
         case 2:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt22(boardSizeNumBits) : new KeyMakerInt21(boardSizeNumBits)); break;
-        case 3:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt33(boardSizeNumBits) : new KeyMakerInt32(boardSizeNumBits)); break;
-        case 4:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt44(boardSizeNumBits) : new KeyMakerInt43(boardSizeNumBits)); break;
+        case 3:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt33(boardSizeNumBits, 3) : new KeyMakerInt32(boardSizeNumBits)); break;
+        case 4:  keyMaker = (isBoardGoalWildcard ? new KeyMakerInt44(boardSizeNumBits, 4) : new KeyMakerInt43(boardSizeNumBits)); break;
         default: keyMaker = new KeyMakerIntAll(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
+        }
+        return keyMaker;
+    }
+    
+    
+    /**
+     * Creates an instance of <tt>KeyMakerInt</tt> that is tailored to the given parameters.
+     *
+     * @param boardNumRobots number of robots on the board (length of parameter <tt>state</tt> of method <tt>run</tt>)
+     * @param boardSizeNumBits number of bits required to store the size of the board (the 16x16 board need 8 bits)
+     * @param isBoardGoalWildcard true if the current goal is a wildcard goal (can be reached by any robot)
+     * @param isSolution01 true if the active robot can reach the goal in one move
+     * @return the instance of KeyMakerInt created
+     */
+    public static KeyMakerInt createInstance(int boardNumRobots, int boardSizeNumBits, boolean isBoardGoalWildcard, boolean isSolution01) {
+        final KeyMakerInt keyMaker;
+        if (isSolution01) {
+            switch (boardNumRobots) {
+            case 4:  keyMaker = new KeyMakerInt33(boardSizeNumBits, 4); break;
+            case 5:  keyMaker = new KeyMakerInt44(boardSizeNumBits, 5); break;
+            default: keyMaker = null;  // other numbers of robots are not supported!
+            }
+        } else {
+            keyMaker = createInstance(boardNumRobots, boardSizeNumBits, isBoardGoalWildcard);
         }
         return keyMaker;
     }
@@ -143,14 +167,15 @@ public abstract class KeyMakerInt {
     
     
     private static final class KeyMakerInt33 extends KeyMakerInt {     //sort 3 of 3 elements
-        private final int s1, s2;
-        private KeyMakerInt33(int boardSizeNumBits) {
+        private final int s1, s2, len;
+        private KeyMakerInt33(int boardSizeNumBits, int len) {
+            this.len = len;
             this.s1 = boardSizeNumBits;
             this.s2 = boardSizeNumBits * 2;
         }
         @Override
         public final int run(final int[] state) {
-            assert 3 == state.length : state.length;
+            assert this.len == state.length : state.length;
             final int a = state[0],  b = state[1],  c = state[2];
             final int result;
             if (a < b) {
@@ -198,15 +223,16 @@ public abstract class KeyMakerInt {
     
     
     private static final class KeyMakerInt44 extends KeyMakerInt {     //sort 4 of 4 elements
-        private final int s1, s2, s3;
-        private KeyMakerInt44(int boardSizeNumBits) {
+        private final int s1, s2, s3, len;
+        private KeyMakerInt44(int boardSizeNumBits, int len) {
+            this.len = len;
             this.s1 = boardSizeNumBits;
             this.s2 = boardSizeNumBits * 2;
             this.s3 = boardSizeNumBits * 3;
         }
         @Override
         public final int run(final int[] state) {
-            assert 4 == state.length : state.length;
+            assert this.len == state.length : state.length;
             final int a = state[0],  b = state[1],  c = state[2],  d = state[3];
             final int result;
             if (a <= b) {

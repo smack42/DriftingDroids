@@ -104,8 +104,9 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
                 this.elementLookup[i] = Integer.MIN_VALUE;
             }
         }
-        this.nodeNumber = board.getNumRobots() - 1;
-        this.nodeNumberUnCompr = (board.getNumRobots()*board.sizeNumBits + 8 - 31 + (board.sizeNumBits - 1)) / board.sizeNumBits;
+        final int numRobots = board.getNumRobots() - (board.isSolution01() ? 1 : 0);
+        this.nodeNumber = numRobots - 1;
+        this.nodeNumberUnCompr = (numRobots*board.sizeNumBits + 8 - 31 + (board.sizeNumBits - 1)) / board.sizeNumBits;
         this.nodeShift = board.sizeNumBits;
         this.nodeMask = (1 << board.sizeNumBits) - 1;
 
