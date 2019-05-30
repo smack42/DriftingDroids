@@ -794,29 +794,51 @@ public class Board {
     
     public boolean isSolution01() {
         for (int robo = 0;  robo < this.robots.length;  ++robo) {
+            if ((this.goal.robotNumber != robo) && (this.goal.robotNumber != -1)) {
+                continue; // skip because it's not the goal robot
+            }
             final int oldRoboPos = this.robots[robo];
-            if ((this.goal.position == oldRoboPos) && ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1))) {
+            if (this.goal.position == oldRoboPos) {
                 return true; // already on goal
             }
             int dir = -1;
             for (final int dirIncr : this.directionIncrement) {
                 ++dir;
                 int newRoboPos = oldRoboPos;
-                // move the robot until it reaches a wall. (_NOT_ another robot!)
+                int prevRoboPos = oldRoboPos;
+                // move the robot until it reaches a wall or another robot.
                 // NOTE: we rely on the fact that all boards are surrounded
                 // by outer walls. without the outer walls we would need
                 // some additional boundary checking here.
-                while (false == this.walls[dir][newRoboPos]) {
-                    newRoboPos += dirIncr;
-                    if ((this.goal.position == newRoboPos) && ((this.goal.robotNumber == robo) || (this.goal.robotNumber == -1))) {
-                        return true; // one move to goal
+                while (true) {
+                    if (true == this.walls[dir][newRoboPos]) { // stopped by wall
+                        if (this.goal.position == newRoboPos) {
+                            return true; // one move to goal
+                        }
+                        break; // can't go on
                     }
+                    if (true == this.isRobotPos(newRoboPos)) { // stopped by robot
+                        if (this.goal.position == prevRoboPos) {
+                            return true; // one move to goal
+                        }
+                        // go on in this direction
+                    }
+                    prevRoboPos = newRoboPos;
+                    newRoboPos += dirIncr;
                 }
             }
         }
         return false;
     }
     
+    private boolean isRobotPos(final int position) {
+        for (final int roboPos : this.robots) {
+            if (position == roboPos) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     public void setRobots(final int numRobots) {
         this.robots = new int[numRobots];
