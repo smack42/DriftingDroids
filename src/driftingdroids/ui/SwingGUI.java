@@ -374,10 +374,15 @@ public class SwingGUI implements ActionListener {
             final Solver solver = Solver.createInstance(Board.createClone(board));
             solver.setOptionSolutionMode((Solver.SOLUTION_MODE)jcomboOptSolutionMode.getSelectedItem());
             solver.setOptionAllowRebounds(jcheckOptAllowRebounds.isSelected());
-            jtextSolution.setText(null);
-            appendSolutionText(getSolverOptionsString(solver), null);
-            appendSolutionTextCurrentGoal();
-            appendSolutionText(L10N.getString("txt.ComputingSolutions.text") + "\n\n", null);
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    jtextSolution.setText(null);
+                    appendSolutionText(getSolverOptionsString(solver), null);
+                    appendSolutionTextCurrentGoal();
+                    appendSolutionText(L10N.getString("txt.ComputingSolutions.text") + "\n\n", null);
+                }
+            });
             solver.execute();
             return solver;
         }
