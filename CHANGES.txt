@@ -2,6 +2,18 @@ CHANGES
 
 
 
+1.3.8 (2020-07-25)
+
++ don't apply "ricochet rule" on custom boards; in response to bug #13
+   - active robot has to ricochet at least once before reaching the goal,
+     according to the rules of the Ricochet Robots board game
+   - however, this rule is not applied on custom boards, when the active robot can
+     reach the goal in a straight line, but requires at least one other robot to be
+     moved into position (one-move solutions are still not allowed)
++ fixed a GUI-related bug (multi-threading problem, could "freeze" randomly)
+
+
+
 1.3.7 (2018-09-17)
 
 + speedup of "solution01 solver mode"; in response to bug #12
