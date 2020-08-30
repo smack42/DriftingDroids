@@ -2,6 +2,13 @@ CHANGES
 
 
 
+1.3.9 (2020-08-30)
+
++ Java 8 or higher is required
++ compatibility fix for Java 9 (fixed "load/save custom board")
+
+
+
 1.3.8 (2020-07-25)
 
 + don't apply "ricochet rule" on custom boards; in response to bug #13

@@ -1,6 +1,6 @@
 DriftingDroids - noch ein weiteres Ricochet Robots Lösungsprogramm.
 
-Version   1.3.8 (2020-07-25)
+Version   1.3.9 (2020-08-30)
 Homepage  https://github.com/smack42/DriftingDroids/wiki
 
 
@@ -12,7 +12,7 @@ von Alex Randolph. Wenn Du es noch nicht kennen solltest dann kannst Du
 hier etwas darüber lesen:
 https://de.wikipedia.org/wiki/Rasende_Roboter
 https://en.wikipedia.org/wiki/Ricochet_Robot
-http://boardgamegeek.com/boardgame/51/ricochet-robots
+https://boardgamegeek.com/boardgame/51/ricochet-robots
 
 DriftingDroids ist eine Computervariante des Brettspiels Ricochet Robots.
 Es enthält einen Lösungsalgorithmus der die optimalen Lösungen für jedes
@@ -25,9 +25,10 @@ mit dem echten Brettspiel.
 
 ## Benutzung
 
-Java SE Runtime Environment (JRE Version 6 oder neuer) wird benötigt um
+Java SE Runtime Environment (JRE Version 8 oder neuer) wird benötigt um
 das Programm zu benutzen. Du kannst Java hier herunterladen:
-http://www.oracle.com/technetwork/java/javase/downloads/index.html
+https://www.oracle.com/java/technologies/javase-downloads.html
+https://adoptopenjdk.net/
 
 Um DriftingDroids zu starten doppelklicke auf "start.jar".
 
