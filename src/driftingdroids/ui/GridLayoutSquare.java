@@ -74,6 +74,7 @@ public class GridLayoutSquare implements LayoutManager, Serializable
    * @param name The name of the component to add.
    * @param comp The component to add.
    */
+  @Override
   public void addLayoutComponent (String name, Component comp)
   {
     // Nothing.
@@ -160,6 +161,7 @@ public class GridLayoutSquare implements LayoutManager, Serializable
    * number of rows and columns in this object.
    * @param parent The container to lay out
    */
+  @Override
   public void layoutContainer (Container parent)
   {
     synchronized (parent.getTreeLock ())
@@ -229,6 +231,7 @@ public class GridLayoutSquare implements LayoutManager, Serializable
   /** Get the minimum layout size of the container.
    * @param cont The parent container
    */
+  @Override
   public Dimension minimumLayoutSize (Container cont)
   {
     return getSize (cont, true);
@@ -237,6 +240,7 @@ public class GridLayoutSquare implements LayoutManager, Serializable
   /** Get the preferred layout size of the container.
    * @param cont The parent container
    */
+  @Override
   public Dimension preferredLayoutSize (Container cont)
   {
     return getSize (cont, false);
@@ -246,6 +250,7 @@ public class GridLayoutSquare implements LayoutManager, Serializable
    * This particular implementation does nothing.
    * @param comp The component to remove
    */
+  @Override
   public void removeLayoutComponent (Component comp)
   {
     // Nothing.
@@ -298,6 +303,7 @@ public class GridLayoutSquare implements LayoutManager, Serializable
   }
 
   /** Return String description of this object.  */
+  @Override
   public String toString ()
   {
     return (getClass ().getName () + "["

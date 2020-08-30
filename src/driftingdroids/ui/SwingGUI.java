@@ -146,12 +146,13 @@ public class SwingGUI implements ActionListener {
     private final JFrame frame = new JFrame();
     private final JPopupMenu popupMenu = new JPopupMenu();
     private final JTabbedPane jtabEditBoard = new JTabbedPane();
-    private final JList[] jlistQuadrants = new JList[4];
-    private final JComboBox jcomboRobots = new JComboBox();
+    @SuppressWarnings("unchecked")
+    private final JList<String>[] jlistQuadrants = new JList[4];
+    private final JComboBox<String> jcomboRobots = new JComboBox<>();
     private final JSpinner jspinWidth = new JSpinner();
     private final JSpinner jspinHeight = new JSpinner();
 
-    private class JListGoalToolTip extends JList {
+    private class JListGoalToolTip extends JList<String> {
         private static final long serialVersionUID = 3257436257447585359L;
         @Override
         public JToolTip createToolTip() {
@@ -159,18 +160,18 @@ public class SwingGUI implements ActionListener {
             return new GoalToolTip(this, Integer.parseInt(values[0]), Integer.parseInt(values[1]));
         };
     }
-    private final JList jlistGoalRobots = new JListGoalToolTip();
-    private final JList jlistGoalShapes = new JListGoalToolTip();
+    private final JList<String> jlistGoalRobots = new JListGoalToolTip();
+    private final JList<String> jlistGoalShapes = new JListGoalToolTip();
 
-    private final JComboBox jcomboOptSolutionMode = new JComboBox();
+    private final JComboBox<Solver.SOLUTION_MODE> jcomboOptSolutionMode = new JComboBox<>();
     private final JCheckBox jcheckOptAllowRebounds = new JCheckBox();
     private final JCheckBox jcheckOptShowColorNames = new JCheckBox();
     private final JCheckBox jcheckOptShowOnlyActiveGoal = new JCheckBox();
     private final JCheckBox jcheckOptShowSolutions = new JCheckBox();
     private final JTabbedPane jtabPreparePlay = new JTabbedPane();
-    private final JComboBox jcomboPlaceRobot = new JComboBox();
-    private final JComboBox jcomboGameIDs = new JComboBox();
-    private final JComboBox jcomboSelectSolution = new JComboBox();
+    private final JComboBox<String> jcomboPlaceRobot = new JComboBox<String>();
+    private final JComboBox<String> jcomboGameIDs = new JComboBox<String>();
+    private final JComboBox<String> jcomboSelectSolution = new JComboBox<String>();
     private final JButton jbutSolutionHint = new JButton();
     private final JButton jbutNextMove = new JButton();
     private final JButton jbutAllMoves = new JButton();
@@ -186,6 +187,7 @@ public class SwingGUI implements ActionListener {
         this.moves = new ArrayList<Move>();
         
         SwingUtilities.invokeAndWait(new Runnable() {
+            @Override
             public void run() {
                 createAndShowGUI(windowTitle);
             }
@@ -448,6 +450,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.RandomLayout.acceleratorkey"),
                 L10N.getString("btn.RandomLayout.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         makeRandomBoardQuadrants();
                         refreshJComboPlaceRobot();
@@ -457,7 +460,7 @@ public class SwingGUI implements ActionListener {
         );
         
         for (int i = 0;  i < 4;  ++i) {
-            final JList jl = new JList(Board.QUADRANT_NAMES) {
+            final JList<String> jl = new JList<String>(Board.QUADRANT_NAMES) {
                 @Override
                 public JToolTip createToolTip() {
                     return new QuadrantGoalsToolTip(this, Integer.parseInt(this.getToolTipText()));
@@ -465,7 +468,7 @@ public class SwingGUI implements ActionListener {
             };
             jl.setCellRenderer(new DefaultListCellRenderer() {
                 @Override
-                public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                     list.setToolTipText(String.valueOf(index));
                     return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 };
@@ -486,7 +489,7 @@ public class SwingGUI implements ActionListener {
         }
         
         final String[] strRobots = { "1", "2", "3", "4", "5" };
-        this.jcomboRobots.setModel(new DefaultComboBoxModel(strRobots));
+        this.jcomboRobots.setModel(new DefaultComboBoxModel<String>(strRobots));
         this.jcomboRobots.setEditable(false);
         this.jcomboRobots.setActionCommand(AC_BOARD_ROBOTS);
         this.jcomboRobots.addActionListener(this);
@@ -496,6 +499,7 @@ public class SwingGUI implements ActionListener {
         jbutRemoveWalls.setText(L10N.getString("btn.RemoveWalls.text"));
         jbutRemoveWalls.setToolTipText(L10N.getString("btn.RemoveWalls.tooltip"));
         jbutRemoveWalls.addActionListener(new AbstractAction() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 board.removeWalls();
                 board.setFreestyleBoard();
@@ -507,6 +511,7 @@ public class SwingGUI implements ActionListener {
         jbutRemoveGoals.setText(L10N.getString("btn.RemoveGoals.text"));
         jbutRemoveGoals.setToolTipText(L10N.getString("btn.RemoveGoals.tooltip"));
         jbutRemoveGoals.addActionListener(new AbstractAction() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 board.removeGoals();
                 board.setFreestyleBoard();
@@ -520,6 +525,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.CopyBoardDumpToClipboard.acceleratorkey"),
                 L10N.getString("btn.CopyBoardDumpToClipboard.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         try {
                             final Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -545,6 +551,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.CreateBoardFromDump.acceleratorkey"),
                 L10N.getString("btn.CreateBoardFromDump.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         try {
                             final String data = JOptionPane.showInputDialog(frame,
@@ -584,6 +591,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.RotateBoardLeft.acceleratorkey"),
                 L10N.getString("btn.RotateBoardLeft.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         board = board.rotate90(false);
                         refreshBoard();
@@ -599,6 +607,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.RotateBoardRight.acceleratorkey"),
                 L10N.getString("btn.RotateBoardRight.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         board = board.rotate90(true);
                         refreshBoard();
@@ -639,7 +648,7 @@ public class SwingGUI implements ActionListener {
         this.jlistGoalRobots.setVisibleRowCount(dataGoalRobots.size());
         this.jlistGoalRobots.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 list.setToolTipText((index - 1) + ";" + jlistGoalShapes.getSelectedIndex());
                 return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             };
@@ -656,7 +665,7 @@ public class SwingGUI implements ActionListener {
         this.jlistGoalShapes.setVisibleRowCount(dataGoalShapes.size());
         this.jlistGoalShapes.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 list.setToolTipText((jlistGoalRobots.getSelectedIndex() - 1) + ";" + index);
                 return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             };
@@ -702,7 +711,7 @@ public class SwingGUI implements ActionListener {
         final DesignGridLayout optionsLayout = new DesignGridLayout(optionsPanel);
         
         final Solver.SOLUTION_MODE[] solModes = Solver.SOLUTION_MODE.values();
-        this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel(solModes));
+        this.jcomboOptSolutionMode.setModel(new DefaultComboBoxModel<Solver.SOLUTION_MODE>(solModes));
         this.jcomboOptSolutionMode.setSelectedItem(Solver.SOLUTION_MODE.MAXIMUM);
         
         this.jcheckOptAllowRebounds.setText(L10N.getString("chk.AllowReboundMoves.text"));
@@ -745,6 +754,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.RandomRobots.acceleratorkey"),
                 L10N.getString("btn.RandomRobots.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         placeRobot = -1;
                         refreshJComboPlaceRobot();
@@ -758,6 +768,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.RandomGoal.acceleratorkey"),
                 L10N.getString("btn.RandomGoal.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         selectGoal = false;
                         updateBoardRandomGoal();
@@ -774,6 +785,7 @@ public class SwingGUI implements ActionListener {
         jbutPlaceRobot.setPreferredSize(new Dimension());  //invisible button
         prtt += this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.1.acceleratorkey"), "",
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 1) { jcomboPlaceRobot.setSelectedIndex(1); }
                     }
@@ -781,6 +793,7 @@ public class SwingGUI implements ActionListener {
         );
         prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.2.acceleratorkey"), "",
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 2) { jcomboPlaceRobot.setSelectedIndex(2); }
                     }
@@ -788,6 +801,7 @@ public class SwingGUI implements ActionListener {
         );
         prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.3.acceleratorkey"), "",
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 3) { jcomboPlaceRobot.setSelectedIndex(3); }
                     }
@@ -795,6 +809,7 @@ public class SwingGUI implements ActionListener {
         );
         prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.4.acceleratorkey"), "",
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 4) { jcomboPlaceRobot.setSelectedIndex(4); }
                     }
@@ -802,6 +817,7 @@ public class SwingGUI implements ActionListener {
         );
         prtt += " &nbsp; " + this.addKeyBindingTooltip(jbutPlaceRobot, L10N.getString("cmb.PlaceRobot.5.acceleratorkey"), "",
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         if (jcomboPlaceRobot.getItemCount() > 5) { jcomboPlaceRobot.setSelectedIndex(5); }
                     }
@@ -814,6 +830,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.SelectGoal.acceleratorkey"),
                 L10N.getString("btn.SelectGoal.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         selectGoal = !selectGoal;
                         refreshBoard();
@@ -821,12 +838,12 @@ public class SwingGUI implements ActionListener {
                 }
         );
         
-        this.jcomboGameIDs.setModel(new DefaultComboBoxModel());
+        this.jcomboGameIDs.setModel(new DefaultComboBoxModel<String>());
         this.jcomboGameIDs.setEditable(true);
         this.jcomboGameIDs.setActionCommand(AC_GAME_ID);
         this.jcomboGameIDs.addActionListener(this);
         
-        this.jcomboSelectSolution.setModel(new DefaultComboBoxModel());
+        this.jcomboSelectSolution.setModel(new DefaultComboBoxModel<String>());
         this.jcomboSelectSolution.setPrototypeDisplayValue("99)  99/9/#####");  //longest string possible here
         this.jcomboSelectSolution.addItem(L10N.getString("cmb.SelectSolution.text"));
         this.jcomboSelectSolution.setEditable(false);
@@ -839,6 +856,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.Hint.acceleratorkey"),
                 L10N.getString("btn.Hint.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         showHint();
                     }
@@ -849,6 +867,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.NextMove.acceleratorkey"),
                 L10N.getString("btn.NextMove.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         showNextMove(true);
                     }
@@ -859,6 +878,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.AllMoves.acceleratorkey"),
                 L10N.getString("btn.AllMoves.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         while (jbutNextMove.isEnabled()) {
                             showNextMove(true);
@@ -871,6 +891,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.PrevMove.acceleratorkey"),
                 L10N.getString("btn.PrevMove.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         showPrevMove(true);
                     }
@@ -881,6 +902,7 @@ public class SwingGUI implements ActionListener {
                 L10N.getString("btn.NoMoves.acceleratorkey"),
                 L10N.getString("btn.NoMoves.tooltip"),
                 new AbstractAction() {
+                    @Override
                     public void actionPerformed(ActionEvent e) {
                         while (jbutPrevMove.isEnabled()) {
                             showPrevMove(true);
@@ -988,7 +1010,7 @@ public class SwingGUI implements ActionListener {
     private void refreshJlistQuadrants() {
         this.doRefreshJlistQuadrants = false;
         for (int i = 0;  i < 4;  ++i) {
-            final JList jl = this.jlistQuadrants[i];
+            final JList<String> jl = this.jlistQuadrants[i];
             jl.setSelectedIndex(this.board.getQuadrantNum(i));
             jl.ensureIndexIsVisible(jl.getSelectedIndex());
         }
