@@ -27,9 +27,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 
 
@@ -504,6 +510,11 @@ public class Board {
      * @return a new Board object.
      */
     public static Board createBoardGameDump(final String dump) {
+        try {
+            return importHtml(dump);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         final byte[] data = unb64unzip(dump.replaceAll("\\s", "")); //remove whitespace
         if (null == data) {
             return null;    //invalid input String
@@ -556,6 +567,97 @@ public class Board {
         }
         // 7. isFreestyleBoard
         board.isFreestyleBoard = (0 != data[didx++]);
+        return board;
+    }
+    
+    
+    private static Board importHtml(String strHtml) {
+        final Element eBody = Jsoup.parseBodyFragment(strHtml).body();
+        final Element eMgb = eBody.getElementById("MainGameBoard");
+        if ( (null == eMgb)
+                || ! eMgb.normalName().equals("div")
+                || ! eMgb.attr("style").toLowerCase().contains("width: 640px")
+                || ! eMgb.attr("style").toLowerCase().contains("height: 640px")
+                || ! (eMgb.childNodeSize() > 0) ) {
+            throw new IllegalArgumentException("could not find HTML <div> tag with id=MainGameBoard and width,height 640px");
+        }
+        final Board board = new Board(16, 16, 4);
+        board.removeGoals();
+        board.removeWalls();
+        board.setFreestyleBoard();
+        final Pattern pTop    = Pattern.compile("top: (-?\\d+)px");
+        final Pattern pLeft   = Pattern.compile("left: (-?\\d+)px");
+        final Pattern pWidth  = Pattern.compile("width: (-?\\d+)px");
+        final Pattern pHeight = Pattern.compile("height: (-?\\d+)px");
+        for (final Element eCell : eMgb.children()) {
+            final String style = eCell.attr("style").toLowerCase();
+            if (style.contains("position: absolute")) {
+                Matcher m = pTop.matcher(style);
+                if (m.find()) {
+                    final int top = ((Integer.parseInt(m.group(1)) + 9) / 10) * 10;
+                    if ((m = pLeft.matcher(style)).find()) {
+                        final int left = ((Integer.parseInt(m.group(1)) + 9) / 10) * 10;
+                        if ((m = pWidth.matcher(style)).find()) {
+                            final int width = Integer.parseInt(m.group(1));
+                            if ((m = pHeight.matcher(style)).find()) {
+                                final int height = Integer.parseInt(m.group(1));
+                                final int x = left / 40;
+                                final int y = top / 40;
+                                // is it a wall?
+                                // <div style="width: 40px; height: 10px; background-color: black; position: absolute; top: -5px; left: 0px; opacity: 1;"></div>
+                                // <div style="width: 40px; height: 10px; background-color: black; position: absolute; top: 315px; left: 80px; opacity: 1;"></div>
+                                if ( eCell.normalName().equals("div")
+                                        && style.contains("background-color: black") ) {
+                                    if ((width == 40) && (height == 10)) {
+                                        board.addWall(x, y, "N"); // horizontal wall
+                                    } else if ((width == 10) && (height == 40)) {
+                                        board.addWall(x, y, "W"); // vertical wall
+                                    }
+                                }
+                                // is it the goal?
+                                // <img src="/static/images/swirl.png" style="width: 40px; height: 40px; position: absolute; top: 400px; left: 440px; user-select: none;">
+                                if ( eCell.normalName().equals("img")
+                                        && eCell.attr("src").contains("swirl.png") ) {
+                                    if ((width == 40) && (height == 40)) {
+                                        board.addGoal(x, y, -1, GOAL_VORTEX);
+                                    }
+                                }
+                                // is it a robot?
+                                // <div style="width: 40px; height: 40px; position: absolute; top: 80px; left: 400px; transition: all 0.1s ease 0s;">
+                                //     <div style="width: 36px; height: 36px; position: absolute; top: 2px; left: 2px; transition: all 0.1s ease 0s;">
+                                //         <div style="width: 27px; height: 27px; background-color: rgb(65, 105, 225); box-shadow: rgb(255, 215, 0) 0px 0px 0px 3pt; background-size: 27px; background-image: url(&quot;/static/images/astronaut.png&quot;); position: absolute; border-radius: 50%; top: 4.5px; left: 4.5px; transition: all 0.1s ease 0s;"></div>
+                                //     </div>
+                                // </div>
+                                if ( eCell.normalName().equals("div")
+                                        && ! style.contains("background-color:")
+                                        && (eCell.childrenSize() == 1) ) {
+                                    Element eChild = eCell.children().first();
+                                    if (eChild.childrenSize() == 1) {
+                                        eChild = eChild.children().first();
+                                        final String childStyle = eChild.attr("style");
+                                        if (childStyle.contains("astronaut.png")) {
+                                            int robot = -1;
+                                            if (childStyle.contains("background-color: rgb(178, 34, 34)")) {
+                                                robot = 0; // R
+                                            } else if (childStyle.contains("background-color: rgb(34, 139, 34)")) {
+                                                robot = 1; // G
+                                            } else if (childStyle.contains("background-color: rgb(65, 105, 225)")) {
+                                                robot = 2; // B
+                                            } else if (childStyle.contains("background-color: rgb(255, 140, 0)")) {
+                                                robot = 3; // Y
+                                            }
+                                            if (robot >= 0) {
+                                                board.setRobot(robot, x + y * 16, true);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         return board;
     }
     

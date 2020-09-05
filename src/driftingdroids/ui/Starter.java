@@ -40,7 +40,7 @@ import driftingdroids.model.SolverIDDFS;
 public class Starter {
     
     public static void main(String[] args) throws InterruptedException, InvocationTargetException {
-        new SwingGUI("DriftingDroids 1.3.9 (2020-08-30)");
+        new SwingGUI("DriftingDroids 1.3.10__LOAD-HTML__ (2020-09-05)");
 //        runTestRandom1000();
 //        runTestKeyDepthMap();
 //        runTestKeyInt();
