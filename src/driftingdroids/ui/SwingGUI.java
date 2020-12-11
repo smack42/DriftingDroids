@@ -953,23 +953,23 @@ public class SwingGUI implements ActionListener {
         this.refreshBoardCells(); // performs frame.pack()
         this.frame.setVisible(true);
         
-        try {
-            final String defLaf = UIManager.getLookAndFeel().getClass().getName();
-            final String sysLaf = UIManager.getSystemLookAndFeelClassName();
-            System.out.println("default L&F: " + defLaf);
-            System.out.println("system  L&F: " + sysLaf);
-            if ((false == defLaf.equals(sysLaf)) && (false == defLaf.toLowerCase().contains("nimbus"))) {
-                System.out.println("activating system L&F now.");
-                UIManager.setLookAndFeel(sysLaf);
-                SwingUtilities.updateComponentTreeUI(this.frame);
-                this.frame.pack();
-                System.out.println("successfully activated system L&F.");
-            } else {
-                System.out.println("keeping default Nimbus L&F.");
-            }
-        } catch (Exception e) {
-            System.out.println("ERROR: could not activate system L&F: " + e.toString());
-        }
+//        try {
+//            final String defLaf = UIManager.getLookAndFeel().getClass().getName();
+//            final String sysLaf = UIManager.getSystemLookAndFeelClassName();
+//            System.out.println("default L&F: " + defLaf);
+//            System.out.println("system  L&F: " + sysLaf);
+//            if ((false == defLaf.equals(sysLaf)) && (false == defLaf.toLowerCase().contains("nimbus"))) {
+//                System.out.println("activating system L&F now.");
+//                UIManager.setLookAndFeel(sysLaf);
+//                SwingUtilities.updateComponentTreeUI(this.frame);
+//                this.frame.pack();
+//                System.out.println("successfully activated system L&F.");
+//            } else {
+//                System.out.println("keeping default Nimbus L&F.");
+//            }
+//        } catch (Exception e) {
+//            System.out.println("ERROR: could not activate system L&F: " + e.toString());
+//        }
         
         this.updateBoardGetRobots();
     }

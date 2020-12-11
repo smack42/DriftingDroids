@@ -52,3 +52,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+
+
+This program uses:
+
+DesignGridLayout - Swing LayoutManager that implements "Canonical Grids"
+- https://web.archive.org/web/20170409233103/https://java.net/projects/designgridlayout/pages/Home
+- https://search.maven.org/artifact/net.java.dev.designgridlayout/designgridlayout
+- Copyright 2005-2013 Jason Aaron Osgood, Jean-Francois Poilpret
+- DesignGridLayout is open source licensed under the Apache License 2.0
+
+FlatLaf - Flat Look and Feel (with Darcula/IntelliJ themes support)
+- https://www.formdev.com/flatlaf
+- https://github.com/JFormDesigner/FlatLaf
+- Copyright 2019 FormDev Software GmbH
+- FlatLaf is open source licensed under the Apache License 2.0

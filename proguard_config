@@ -1,11 +1,13 @@
 -injars bin
--injars designgridlayout-1.11.jar(**.class)
 # specify this on the command line: -outjars driftingdroids.jar
 
 -libraryjars <java.home>/lib/rt.jar
+-libraryjars ./lib/designgridlayout-1.11.jar
 
 -target 1.8
+
 -dontoptimize
+
 -dontobfuscate
 -verbose
 
