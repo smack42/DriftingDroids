@@ -493,12 +493,12 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
      */
     @Override
     public long allocatedBytes() {
-        long result = (this.nodeArrays.length + this.leafArrays.length) * 8;
+        long result = (this.nodeArrays.length + this.leafArrays.length) * 8L;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
-            result += this.nodeArrays[i].length * 4;
+            result += this.nodeArrays[i].length * 4L;
         }
         for (int i = 0;  i < this.numLeafArrays;  ++i) {
-            result += this.leafArrays[i].length * 1;
+            result += this.leafArrays[i].length;
         }
         return result;
     }

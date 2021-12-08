@@ -81,8 +81,8 @@ public abstract class Solver {
     protected final String stateString(final int[] state) {
         final Formatter formatter = new Formatter();
         this.swapGoalLast(state);
-        for (int i = 0;  i < state.length;  i++) {
-            formatter.format("%02x", Integer.valueOf(state[i]));
+        for (int i : state) {
+            formatter.format("%02x", Integer.valueOf(i));
         }
         this.swapGoalLast(state);
         return "0x" + formatter.out().toString();

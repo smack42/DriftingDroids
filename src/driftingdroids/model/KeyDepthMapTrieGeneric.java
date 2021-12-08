@@ -386,7 +386,7 @@ public final class KeyDepthMapTrieGeneric implements KeyDepthMap {
     public final long allocatedBytes() {
         long result = 0;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
-            result += this.nodeArrays[i].length << 2;
+            result += this.nodeArrays[i].length * 4L;
         }
 //        final long nodeResult = result;
         for (int i = 0;  i < this.numLeafArrays;  ++i) {

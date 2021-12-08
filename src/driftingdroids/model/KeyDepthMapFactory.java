@@ -60,7 +60,7 @@ public class KeyDepthMapFactory {
         } else if (KeyDepthMapTrieSpecial.class.equals(clazz)) {
             return KeyDepthMapTrieSpecial.createInstance(board, true);
         } else {
-            throw new IllegalArgumentException("unknown KeyDepthMap class: " + String.valueOf(clazz));
+            throw new IllegalArgumentException("unknown KeyDepthMap class: " + clazz);
         }
     }
 

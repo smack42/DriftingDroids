@@ -398,10 +398,10 @@ public final class TrieSet {
     public final long getBytesAllocated() {
         long result = 0;
         for (int i = 0;  i < this.numNodeArrays;  ++i) {
-            result += this.nodeArrays[i].length << 2;
+            result += this.nodeArrays[i].length * 4L;
         }
         for (int i = 0;  i < this.numLeafArrays;  ++i) {
-            result += this.leafArrays[i].length << 2;
+            result += this.leafArrays[i].length * 4L;
         }
         return result;
     }

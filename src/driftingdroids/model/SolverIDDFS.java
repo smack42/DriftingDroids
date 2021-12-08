@@ -112,7 +112,7 @@ public class SolverIDDFS extends Solver {
     
     
     private void precomputeMinimumMovesToGoal() {
-        final boolean posToDo[] = new boolean[this.minimumMovesToGoal.length];
+        final boolean[] posToDo = new boolean[this.minimumMovesToGoal.length];
         Arrays.fill(this.minimumMovesToGoal, Integer.MAX_VALUE);
         this.minimumMovesToGoal[this.goalPosition] = 0;
         posToDo[this.goalPosition] = true;
@@ -384,10 +384,7 @@ public class SolverIDDFS extends Solver {
             }
             prevDir = thisDir;
         }
-        if ((((lastDir + 1) & 3) == prevDir) || (((lastDir + 3) & 3) == prevDir)) {
-            return true;
-        }
-        return false;
+        return (((lastDir + 1) & 3) == prevDir) || (((lastDir + 3) & 3) == prevDir);
     }
     
     

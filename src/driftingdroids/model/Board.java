@@ -17,7 +17,7 @@
 
 package driftingdroids.model;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -286,8 +286,7 @@ public class Board {
 
 
     public static List<Goal> getStaticQuadrantGoals(final int quadrant) {
-        final List<Goal> result = new ArrayList<Goal>();
-        result.addAll(QUADRANTS[quadrant].goals);
+        final List<Goal> result = new ArrayList<>(QUADRANTS[quadrant].goals);
         Collections.sort(result);
         return result;
     }
@@ -454,7 +453,7 @@ public class Board {
                 throw new IllegalArgumentException("missing '+' at index=" + (index-1));
             }
             String str = String.valueOf(idStr.charAt(index++));
-            str += String.valueOf(idStr.charAt(index++));
+            str += String.valueOf(idStr.charAt(index));
             final int goalPosition = Integer.parseInt(str, 16);
             result = createBoardQuadrants(q0, q1, q2, q3, numRobots);
             final boolean successRobots = result.setRobots(robotPositions);
@@ -500,7 +499,7 @@ public class Board {
     /**
      * Creates a new Board object based on the state information contained in the input string.
      * 
-     * @param a String that represents the state of a Board object.
+     * @param dump a String that represents the state of a Board object.
      * @return a new Board object.
      */
     public static Board createBoardGameDump(final String dump) {
@@ -530,7 +529,7 @@ public class Board {
         // 4. walls
         for (int dir = 0;  dir < board.walls.length;  ++dir) {
             for (int pos = 0;  pos < board.walls[dir].length;  ++pos) {
-                board.walls[dir][pos] = (0 != data[didx++] ? true : false);
+                board.walls[dir][pos] = (0 != data[didx++]);
             }
         }
         // 5. list of goals
@@ -555,7 +554,7 @@ public class Board {
             }
         }
         // 7. isFreestyleBoard
-        board.isFreestyleBoard = (0 != data[didx++]);
+        board.isFreestyleBoard = (0 != data[didx]);
         return board;
     }
     
@@ -645,9 +644,7 @@ public class Board {
         final String b64Output = Base64.getEncoder().encodeToString(b64Input);
         //compute CRC of encoded data
         final CRC32 crc32 = new CRC32();
-        try {
-            crc32.update(b64Output.getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException ignored) { }
+        crc32.update(b64Output.getBytes(StandardCharsets.UTF_8));
         final long crc32Value = crc32.getValue();
         final String crc32String = new Formatter().format("%08X", Long.valueOf(crc32Value)).toString();
         //build output string:  starts and ends with "!", to be split at "!"
@@ -668,7 +665,7 @@ public class Board {
             //validate data
             final long b64crc = Long.parseLong(inputSplit[2], 16);      //throws NumberFormatException
             final CRC32 crc32 = new CRC32();
-            crc32.update(inputSplit[3].getBytes("UTF-8"));
+            crc32.update(inputSplit[3].getBytes(StandardCharsets.UTF_8));
             if (crc32.getValue() != b64crc) {
                 throw new IllegalArgumentException("data CRC mismatch");
             }
@@ -871,9 +868,8 @@ public class Board {
         Arrays.fill(this.robots, -1);
         for (int i = 0; i < newRobots.length; ++i) {
             if ( ! this.setRobot(i, newRobots[i], false)) {    //failed to set a robot
-                for (int j = 0; j < backup.length; ++j) {
-                    this.robots[j] = backup[j];         //undo all changes
-                }
+                //undo all changes
+                System.arraycopy(backup, 0, this.robots, 0, backup.length);
                 return false;
             }
         }
