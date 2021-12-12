@@ -9,7 +9,7 @@ echo compile...
 rm -rf $DESTDIR
 mkdir $DESTDIR
 javac -sourcepath $SRCDIR -d $DESTDIR -cp $LIBDIR/designgridlayout-1.11.jar -source 1.8 -target 1.8 $SRCDIR/driftingdroids/ui/*.java $SRCDIR/driftingdroids/model/*.java
-cp -rp $SRCDIR/META-INF $SRCDIR/*.properties $DESTDIR
+cp -rp $SRCDIR/META-INF $SRCDIR/resource $DESTDIR
 
 echo
 echo run...

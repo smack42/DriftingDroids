@@ -127,7 +127,7 @@ public class SwingGUI implements ActionListener {
     private static final String AC_SHOW_COLOR_NAMES = "showcolornames";
     private static final String AC_SHOW_ACTIVE_GOAL = "showactivegoal";
     
-    private static final ResourceBundle L10N = ResourceBundle.getBundle("driftingdroids-localization-ui");  //L10N = Localization
+    private static final ResourceBundle L10N = ResourceBundle.getBundle("resource/driftingdroids-localization-ui");  //L10N = Localization
     
     private volatile Board board = null;
     private BoardCell[] boardCells = new BoardCell[0]; // init placeholder
