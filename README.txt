@@ -28,7 +28,16 @@ this program. You can download Java here:
 https://www.oracle.com/java/technologies/javase-downloads.html
 https://adoptopenjdk.net/
 
-To run DriftingDroids just doubleclick "start.jar".
+To run DriftingDroids follow these steps on first run and after each update of the repository:
+
+    ./compilerun.sh & sleep 15 # or quit DriftingDroids
+    ./buildrelease.sh
+    cd DriftingDroids_release/
+    java -jar start.jar
+
+From now on you can start with:
+    
+    java -jar DriftingDroids_release/start.jar
 
 For more info please read the included documentation.
 
