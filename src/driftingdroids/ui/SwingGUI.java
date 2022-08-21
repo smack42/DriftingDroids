@@ -107,9 +107,13 @@ import driftingdroids.model.Solver;
 
 public class SwingGUI implements ActionListener {
     private static final Color COL_BACKGROUND = new Color(190, 190, 190);
+    private static final Color COL_BACKGROUND_DARK = new Color(0x3C, 0x3F, 0x41);
     private static final Color COL_CELL1 = new Color(210, 210, 210);
+    private static final Color COL_CELL1_DARK = COL_BACKGROUND_DARK.darker();
     private static final Color COL_CELL2 = new Color(245, 245, 245);
+    private static final Color COL_CELL2_DARK = COL_CELL1_DARK.darker();
     private static final Color COL_WALL = new Color(85, 85, 85);
+    private static final Color COL_WALL_DARK = new Color(0xBB, 0xBB, 0xBB);
     private static final Color[] COL_ROBOT = {
         new Color(245, 99, 99), //Color.RED,
         new Color(99, 245, 99), //Color.GREEN,
@@ -142,6 +146,7 @@ public class SwingGUI implements ActionListener {
     private int placeRobot = -1;    //default: false
     private boolean selectGoal = false;
     private boolean doRefreshJlistQuadrants = true;
+    private boolean isDarkMode = false;
     
     private final JFrame frame = new JFrame();
     private final JPopupMenu popupMenu = new JPopupMenu();
@@ -258,7 +263,7 @@ public class SwingGUI implements ActionListener {
 
     private void appendSolutionTextCurrentGoal() {
         final Board.Goal goal = this.board.getGoal();
-        final Icon goalIcon = new GoalIcon(goal, this.jcheckOptShowColorNames.isSelected());
+        final Icon goalIcon = new GoalIcon(goal, this.jcheckOptShowColorNames.isSelected(), isDarkMode);
         final String goalStr = "  " + L10N.getString("txt.Goal.text")
                 + " - " + Board.getColorLongL10N(goal.robotNumber)
                 + " - " + Board.getGoalShapeL10N(goal.shape) + "\n\n";
@@ -440,6 +445,9 @@ public class SwingGUI implements ActionListener {
     private void createAndShowGUI(String windowTitle) {
         this.frame.setTitle(windowTitle);
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        String lafName = UIManager.getLookAndFeel().getName();
+        this.isDarkMode = lafName.contains("FlatLaf") && (lafName.contains("Dark") || lafName.contains("Darcula"));
         
         final JPanel preparePanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
@@ -1247,15 +1255,15 @@ public class SwingGUI implements ActionListener {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
             
             // fill background (walls and center)
-            g2d.setColor(COL_BACKGROUND);
+            g2d.setColor(isDarkMode ? COL_BACKGROUND_DARK : COL_BACKGROUND);
             g2d.fillRect(0, 0, width, height);
             
             // fill center
-            g2d.setPaint(new GradientPaint(0, height-1, COL_CELL1, width-1, 0, COL_CELL2));
+            g2d.setPaint(new GradientPaint(0, height-1, isDarkMode ? COL_CELL1_DARK : COL_CELL1, width-1, 0, isDarkMode ? COL_CELL2_DARK : COL_CELL2));
             g2d.fillRect(vWallWidth, hWallWidth, width - vWallWidth * 2, height - hWallWidth * 2);
             
             // fill the 4 walls
-            g2d.setColor(COL_WALL);
+            g2d.setColor(isDarkMode ? COL_WALL_DARK : COL_WALL);
             if (true == board.isWall(this.boardPosition, Board.NORTH)) {
                 g2d.fillRect(0, 0, width, hWallWidth);
             }
@@ -1301,7 +1309,7 @@ public class SwingGUI implements ActionListener {
                 final Icon goalIcon = new GoalIcon(
                         width - 2 * vWallWidth,
                         height - 2 * hWallWidth,
-                        goal, jcheckOptShowColorNames.isSelected());
+                        goal, jcheckOptShowColorNames.isSelected(), isDarkMode);
                 goalIcon.paintIcon(this, g2d, vWallWidth, hWallWidth);
                 this.setToolTipText(L10N.getString("txt.Goal.text") + " - " + Board.getColorLongL10N(goal.robotNumber) + " - " + Board.getGoalShapeL10N(goal.shape));
             }
@@ -1342,7 +1350,7 @@ public class SwingGUI implements ActionListener {
                         final Icon robotIcon = new RobotIcon(
                                 width - 2 * vWallWidth,
                                 height - 2 * hWallWidth,
-                                i, jcheckOptShowColorNames.isSelected());
+                                i, jcheckOptShowColorNames.isSelected(), isDarkMode);
                         robotIcon.paintIcon(this, g2d, vWallWidth, hWallWidth);
                         this.setToolTipText(L10N.getString("txt.Robot.text") + " - " + Board.getColorLongL10N(i));
                         break;
@@ -1454,7 +1462,7 @@ public class SwingGUI implements ActionListener {
                             L10N.getString("txt.Place.text") + " "
                                     + L10N.getString("txt.Robot.text") + " - "
                                     + Board.getColorLongL10N(i),
-                            new RobotIcon(robot, jcheckOptShowColorNames.isSelected())) {
+                            new RobotIcon(robot, jcheckOptShowColorNames.isSelected(), isDarkMode)) {
                         private static final long serialVersionUID = 5584260141986571387L;
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -1472,7 +1480,7 @@ public class SwingGUI implements ActionListener {
                                     + Board.getColorLongL10N(goal.robotNumber)
                                     + " - "
                                     + Board.getGoalShapeL10N(goal.shape),
-                            new GoalIcon(goal, jcheckOptShowColorNames.isSelected())) {
+                            new GoalIcon(goal, jcheckOptShowColorNames.isSelected(), isDarkMode)) {
                         private static final long serialVersionUID = 2813443733253766305L;
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -1506,17 +1514,18 @@ public class SwingGUI implements ActionListener {
     public static class GoalIcon implements Icon {
         private final int width, height;
         private final Board.Goal goal;
-        private final boolean drawColorNames;
+        private final boolean drawColorNames, isDarkMode;
 
-        public GoalIcon(final Board.Goal goal, final boolean drawColorNames) {
-            this(SwingGUI.ICON_SIZE, SwingGUI.ICON_SIZE, goal, drawColorNames);
+        public GoalIcon(final Board.Goal goal, final boolean drawColorNames, final boolean isDarkMode) {
+            this(SwingGUI.ICON_SIZE, SwingGUI.ICON_SIZE, goal, drawColorNames, isDarkMode);
         }
 
-        public GoalIcon(final int width, final int height, final Board.Goal goal, final boolean drawColorNames) {
+        public GoalIcon(final int width, final int height, final Board.Goal goal, final boolean drawColorNames, final boolean isDarkMode) {
             this.width = width;
             this.height = height;
             this.goal = goal;
             this.drawColorNames = drawColorNames;
+            this.isDarkMode = isDarkMode;
         }
 
         @Override
@@ -1572,7 +1581,7 @@ public class SwingGUI implements ActionListener {
             g2d.fill(area);
             if (this.drawColorNames) {
                 final String goalColorShort = Board.getColorShortL10N(goal.robotNumber);
-                g2d.setColor(Color.BLACK);
+                g2d.setColor(isDarkMode ? Color.WHITE : Color.BLACK);
                 g2d.drawChars(goalColorShort.toCharArray(), 0, 1, width / 2 - 3, height / 2 + 3);
             }
             g2d.dispose();
@@ -1590,17 +1599,18 @@ public class SwingGUI implements ActionListener {
 
     public static class RobotIcon implements Icon {
         private final int width, height, robot;
-        private final boolean drawColorNames;
+        private final boolean drawColorNames, isDarkMode;
 
-        public RobotIcon(final int robot, final boolean drawColorNames) {
-            this(SwingGUI.ICON_SIZE, SwingGUI.ICON_SIZE, robot, drawColorNames);
+        public RobotIcon(final int robot, final boolean drawColorNames, final boolean isDarkMode) {
+            this(SwingGUI.ICON_SIZE, SwingGUI.ICON_SIZE, robot, drawColorNames, isDarkMode);
         }
 
-        public RobotIcon(final int width, final int height, final int robot, final boolean drawColorNames) {
+        public RobotIcon(final int width, final int height, final int robot, final boolean drawColorNames, final boolean isDarkMode) {
             this.width = width;
             this.height = height;
             this.robot = robot;
             this.drawColorNames = drawColorNames;
+            this.isDarkMode = isDarkMode;
         }
 
         @Override
@@ -1608,7 +1618,7 @@ public class SwingGUI implements ActionListener {
             final Graphics2D g2d = (Graphics2D) g.create();
             g2d.translate(x, y);
             final Paint fillPaint = new GradientPaint(0, 0, COL_ROBOT[this.robot], 0, height-1, Color.DARK_GRAY);
-            final Color outlineColor = Color.BLACK;
+            final Color outlineColor = isDarkMode ? Color.LIGHT_GRAY : Color.BLACK;
             Polygon shapeFoot = new Polygon();
             shapeFoot.addPoint(this.width / 2 - 1, this.height * 3 / 4 - 1);
             shapeFoot.addPoint(0, this.height - 1);
@@ -1648,7 +1658,7 @@ public class SwingGUI implements ActionListener {
             iconPanel.setLayout(new BoxLayout(iconPanel, BoxLayout.X_AXIS));
             final List<Board.Goal> goals = Board.getStaticQuadrantGoals(staticQuadrantNumber);
             for(Board.Goal goal : goals) {
-                final Icon icon = new GoalIcon(goal, SwingGUI.this.jcheckOptShowColorNames.isSelected());
+                final Icon icon = new GoalIcon(goal, SwingGUI.this.jcheckOptShowColorNames.isSelected(), isDarkMode);
                 iconPanel.add(new JLabel(icon));
             }
             this.setLayout(new BorderLayout());
@@ -1679,7 +1689,7 @@ public class SwingGUI implements ActionListener {
 
             final JPanel iconPanel = new JPanel(null);
             iconPanel.setLayout(new BoxLayout(iconPanel, BoxLayout.X_AXIS));
-            final Icon icon = new GoalIcon(board.new Goal(0, 0, robotNumber, shape), SwingGUI.this.jcheckOptShowColorNames.isSelected());
+            final Icon icon = new GoalIcon(board.new Goal(0, 0, robotNumber, shape), SwingGUI.this.jcheckOptShowColorNames.isSelected(), isDarkMode);
             iconPanel.add(new JLabel(icon));
             this.setLayout(new BorderLayout());
             this.add(iconPanel);
