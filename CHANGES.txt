@@ -2,6 +2,19 @@ CHANGES
 
 
 
+1.3.10 (2022-08-22)
+
++ added FlatLaf - Flat Look and Feel (current version 2.4)
+   - FlatLaf is a modern open-source cross-platform Look and Feel for
+     Java Swing desktop applications.
+     https://www.formdev.com/flatlaf
+     https://github.com/JFormDesigner/FlatLaf
++ added dark mode (light-on-dark color scheme)
+   - to activate it, please edit the file appstart.properties
+     and remove the "#" from the line that ends in FlatDarkLaf or FlatDarculaLaf
+
+
+
 1.3.9 (2020-08-30)
 
 + Java 8 or higher is required

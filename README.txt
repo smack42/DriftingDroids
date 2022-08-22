@@ -1,6 +1,6 @@
 DriftingDroids - yet another Ricochet Robots solver program.
 
-Version   1.3.9 (2020-08-30)
+Version   1.3.10 (2022-08-22)
 Homepage  https://github.com/smack42/DriftingDroids/wiki
 
 
@@ -25,10 +25,10 @@ real board gaming sessions.
 
 Java SE Runtime Environment (JRE version 8 or newer) is required to run
 this program. You can download Java here:
-https://www.oracle.com/java/technologies/javase-downloads.html
-https://adoptopenjdk.net/
+https://adoptium.net/
+https://www.oracle.com/java/technologies/downloads/
 
-To run DriftingDroids just doubleclick "start.jar".
+To run DriftingDroids, just doubleclick "start.jar".
 
 For more info please read the included documentation.
 
@@ -37,7 +37,7 @@ For more info please read the included documentation.
 ## license
 
 DriftingDroids - yet another Ricochet Robots solver program.
-Copyright (C) 2011-2020 Michael Henke <smack42@gmail.com>
+Copyright (C) 2011-2022 Michael Henke <smack42@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
