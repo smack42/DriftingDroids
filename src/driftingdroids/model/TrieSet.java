@@ -419,9 +419,9 @@ public final class TrieSet {
 //            final boolean addedB = t.add(i);
 //            final boolean containsB = t.contains(i);
 //            if ((false != containsA) || (true != addedA) || (false != addedB) || (true != containsB)) {
-//                System.out.println("BUG!");
+//                Logger.println("BUG!");
 //            }
 //        }
-//        System.out.println("done.");
+//        Logger.println("done.");
 //    }
 }

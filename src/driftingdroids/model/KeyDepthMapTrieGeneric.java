@@ -392,8 +392,8 @@ public final class KeyDepthMapTrieGeneric implements KeyDepthMap {
         for (int i = 0;  i < this.numLeafArrays;  ++i) {
             result += this.leafArrays[i].length;
         }
-//        System.out.println("getBytesAllocated TrieMapByte  nodes = " + nodeResult);
-//        System.out.println("getBytesAllocated TrieMapByte leaves = " + (result - nodeResult));
+//        Logger.println("getBytesAllocated TrieMapByte  nodes = " + nodeResult);
+//        Logger.println("getBytesAllocated TrieMapByte leaves = " + (result - nodeResult));
         return result;
     }
 

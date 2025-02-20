@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011-2014 Michael Henke
+    Copyright (C) 2011-2025 Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -64,14 +64,14 @@ public class KeyDepthMapTrieSpecial implements KeyDepthMap {
     public static KeyDepthMapTrieSpecial createInstance(final Board board, final boolean useMoreMemoryForSpeedup) {
         if (useMoreMemoryForSpeedup && (8 == board.sizeNumBits) && ((4 == board.getNumRobots()) || (5 == board.getNumRobots()))) {
             if (Solver.USE_SLOW_SEARCH_MORE_SOLUTIONS) {
-                System.out.println("UseSlowSearchMoreSolutions");
+                Logger.println("UseSlowSearchMoreSolutions");
                 return new KeyDepthMapTrieSpecial8BitEqual(board);
             } else {
                 return new KeyDepthMapTrieSpecial8Bit(board);
             }
         } else {
             if (Solver.USE_SLOW_SEARCH_MORE_SOLUTIONS) {
-                System.out.println("UseSlowSearchMoreSolutions");
+                Logger.println("UseSlowSearchMoreSolutions");
                 return new KeyDepthMapTrieSpecialEqual(board);
             } else {
                 return new KeyDepthMapTrieSpecial(board);

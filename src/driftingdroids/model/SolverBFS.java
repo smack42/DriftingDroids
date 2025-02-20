@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011-2014 Michael Henke
+    Copyright (C) 2011-2025 Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,14 +39,14 @@ public class SolverBFS extends Solver {
         final long startExecute = System.nanoTime();
         this.lastResultSolutions = new ArrayList<Solution>();
         
-        System.out.println("***** " + this.getClass().getSimpleName() + " *****");
-        System.out.println("options: " + this.getOptionsAsString());
+        Logger.println("***** " + this.getClass().getSimpleName() + " *****");
+        Logger.println("options: " + this.getOptionsAsString());
         
         final KnownStates knownStates = new KnownStates();
         final List<int[]> finalStates = new ArrayList<int[]>();
         final int[] startState = this.board.getRobotPositions().clone();
         swapGoalLast(startState);   //goal robot is always the last one.
-        System.out.println("startState=" + this.stateString(startState));
+        Logger.println("startState=" + this.stateString(startState));
         
         //find the "finalStates" and save all intermediate states in "knownStates"
         final long startGetStates = System.nanoTime();
@@ -56,11 +56,11 @@ public class SolverBFS extends Solver {
             this.getFinalStatesNoRebound(startState, this.board.getGoal().position, this.isBoardGoalWildcard, knownStates, finalStates);
         }
         this.solutionStoredStates = knownStates.size();
-        System.out.println("knownStates: " + knownStates.infoString());
+        Logger.println("knownStates: " + knownStates.infoString());
         final long durationStates = (System.nanoTime() - startGetStates) / 1000000L;
-        System.out.println("time (Breadth-First-Search for finalStates) : " + (durationStates / 1000d) + " seconds");
-        System.out.println("number of finalStates: " + finalStates.size());
-        System.out.println(knownStates.megaBytesAllocated());
+        Logger.println("time (Breadth-First-Search for finalStates) : " + (durationStates / 1000d) + " seconds");
+        Logger.println("number of finalStates: " + finalStates.size());
+        Logger.println(knownStates.megaBytesAllocated());
         
         
         //find the paths from "startState" to the "finalStates".
@@ -78,19 +78,15 @@ public class SolverBFS extends Solver {
                     swapGoalLast(statesPath.get(i+1));
                     tmpSolution.add(new Move(this.board, statesPath.get(i), statesPath.get(i+1), i));
                 }
-                System.out.printf("finalState=%s  solution=%s", this.stateString(finalState), tmpSolution.toString());
-                if (true == tmpSolution.isRebound()) {
-                    System.out.print("  <- rebound");
-                }
+                Logger.println("finalState=" + this.stateString(finalState) + "  solution=" + tmpSolution.toString() + (tmpSolution.isRebound() ? "  <- rebound" : ""));
                 this.lastResultSolutions.add(tmpSolution);
-                System.out.println();
             }
         }
         
         this.sortSolutions();
         
         final long durationPath = (System.nanoTime() - startGetPath) / 1000000L;
-        System.out.println("time (Depth-First-Search   for statePaths ) : " + (durationPath / 1000d) + " seconds");
+        Logger.println("time (Depth-First-Search   for statePaths ) : " + (durationPath / 1000d) + " seconds");
         
         this.solutionMilliSeconds = (System.nanoTime() - startExecute) / 1000000L;
         return this.lastResultSolutions;
@@ -123,7 +119,7 @@ public class SolverBFS extends Solver {
             depth = knownStates.incrementDepth();
             KnownStates.Iterator iter = knownStates.iterator(depth - 1);
             final double thisPrevSizes = (0 == iter.size() ? 0.0 : (double)prevSize / iter.size());
-            System.out.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size() + "   prev/thisStates=" + Math.round(thisPrevSizes*1000d)/1000d);
+            Logger.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size() + "   prev/thisStates=" + Math.round(thisPrevSizes*1000d)/1000d);
             if (0 == iter.size()) { return; }       //goal NOT reachable!
             prevSize += iter.size();
             //first pass: move goal robot, only.
@@ -232,7 +228,7 @@ public class SolverBFS extends Solver {
             if (0 < finalStates.size()) { return; } //goal has been reached!
             depth = knownStates.incrementDepth();
             final KnownStates.Iterator iter = knownStates.iterator(depth - 1);
-            System.out.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size());
+            Logger.println("... BFS working at depth="+depth+"   statesToExpand=" + iter.size());
             if (0 == iter.size()) { return; }       //goal NOT reachable!
             while (true == iter.next(tmpState, tmpDirs)) {
                 if (Thread.interrupted()) { throw new InterruptedException(); }
