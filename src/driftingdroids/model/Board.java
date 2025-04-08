@@ -995,18 +995,15 @@ public class Board {
         if (str.contains("N")) {
             this.setWall(x, y,     NORTH,  value);
             this.setWall(x, y - 1, SOUTH,  value);
-        }
-        if (str.contains("E")) {
+        } else if (str.contains("E")) {
             this.setWall(x,     y, EAST,   value);
             this.setWall(x + 1, y, WEST,   value);
-        }
-        if (str.contains("S")) {
-            this.setWall(x, y,     SOUTH,  value);
-            this.setWall(x, y + 1, NORTH,  value);
-        }
-        if (str.contains("W")) {
+        } else if (str.contains("W")) {
             this.setWall(x,     y, WEST,   value);
             this.setWall(x - 1, y, EAST,   value);
+        } else if (str.contains("S")) { // S could also be in WEST or EAST
+            this.setWall(x, y,     SOUTH,  value);
+            this.setWall(x, y + 1, NORTH,  value);
         }
     }
 
