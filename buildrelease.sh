@@ -6,7 +6,10 @@ mkdir $DESTDIR
 mkdir $DESTDIR/lib
 jar --create --file $DESTDIR/lib/driftingdroids.jar --no-compress --manifest src/META-INF/MANIFEST.MF -C bin/ driftingdroids -C src/ resource
 cp -p  lib/designgridlayout-1.11.jar  $DESTDIR/lib
-cp -p  lib/flatlaf*.jar               $DESTDIR/lib
+cp -p  lib/flatlaf-*-no-natives.jar   $DESTDIR/lib
+cp -p  lib/flatlaf-*.so               $DESTDIR/lib
+cp -p  lib/flatlaf-*.dylib            $DESTDIR/lib
+cp -p  lib/flatlaf-*.dll              $DESTDIR/lib
 
 cp -p  lib/appstart.properties        $DESTDIR
 cp -p  lib/appstart.jar               $DESTDIR/start.jar
