@@ -1,5 +1,5 @@
 /*  DriftingDroids - yet another Ricochet Robots solver program.
-    Copyright (C) 2011-2014 Michael Henke
+    Copyright (C) 2011-2026 Michael Henke
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -80,6 +80,7 @@ import javax.swing.JTextPane;
 import javax.swing.JToolTip;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.LookAndFeel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
@@ -96,6 +97,10 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 import javax.swing.text.StyledDocument;
+
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 
 import net.java.dev.designgridlayout.DesignGridLayout;
 import driftingdroids.model.Board;
@@ -441,13 +446,9 @@ public class SwingGUI implements ActionListener {
     }
     
     
-    @SuppressWarnings("serial")
     private void createAndShowGUI(String windowTitle) {
         this.frame.setTitle(windowTitle);
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        String lafName = UIManager.getLookAndFeel().getName();
-        this.isDarkMode = lafName.contains("FlatLaf") && (lafName.contains("Dark") || lafName.contains("Darcula"));
         
         final JPanel preparePanel = new JPanel();   //-----------------------------------------------
         final DesignGridLayout prepareLayout = new DesignGridLayout(preparePanel);
@@ -961,25 +962,25 @@ public class SwingGUI implements ActionListener {
         this.refreshBoardCells(); // performs frame.pack()
         this.frame.setVisible(true);
         
-//        try {
-//            final String defLaf = UIManager.getLookAndFeel().getClass().getName();
-//            final String sysLaf = UIManager.getSystemLookAndFeelClassName();
-//            System.out.println("default L&F: " + defLaf);
-//            System.out.println("system  L&F: " + sysLaf);
-//            if ((false == defLaf.equals(sysLaf)) && (false == defLaf.toLowerCase().contains("nimbus"))) {
-//                System.out.println("activating system L&F now.");
-//                UIManager.setLookAndFeel(sysLaf);
-//                SwingUtilities.updateComponentTreeUI(this.frame);
-//                this.frame.pack();
-//                System.out.println("successfully activated system L&F.");
-//            } else {
-//                System.out.println("keeping default Nimbus L&F.");
-//            }
-//        } catch (Exception e) {
-//            System.out.println("ERROR: could not activate system L&F: " + e.toString());
-//        }
-        
         this.updateBoardGetRobots();
+        
+        String userLafName = System.getProperty("swing.defaultlaf");
+        System.out.println("user LAF=" + userLafName);
+        if (userLafName == null) {
+            boolean sysDarkMode = DarkModeDetector.isDark();
+            System.out.println("detected dark=" + sysDarkMode);
+            LookAndFeel autoLaf = sysDarkMode ? new FlatDarkLaf() : new FlatLightLaf();
+            System.out.println("switch to LAF=" + autoLaf.getClass().getName());
+            try {
+                UIManager.setLookAndFeel(autoLaf);
+                FlatLaf.updateUI();
+                this.frame.pack();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        LookAndFeel activeLaf = UIManager.getLookAndFeel();
+        this.isDarkMode = (activeLaf instanceof FlatLaf) && ((FlatLaf) activeLaf).isDark();
     }
     
     private void refreshJComboPlaceRobot() {
