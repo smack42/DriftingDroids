@@ -29,6 +29,7 @@ import java.awt.Graphics2D;
 import java.awt.LinearGradientPaint;
 import java.awt.MultipleGradientPaint;
 import java.awt.Paint;
+import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.Shape;
@@ -54,6 +55,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
@@ -1221,6 +1223,12 @@ public class SwingGUI implements ActionListener {
         }
     }
     
+
+
+    /** 0=none, 1=set, -1=unset **/
+    private volatile int mouseDragMode;
+    private final AtomicReference<BoardCell> mouseDragComp = new AtomicReference<>();
+
     private class BoardCell extends JPanel implements MouseListener, MouseMotionListener {
         private static final long serialVersionUID = 1L;
         private static final int PREF_WIDTH = SwingGUI.ICON_SIZE + 2 + 2;   // preferred width
@@ -1372,13 +1380,19 @@ public class SwingGUI implements ActionListener {
         public void mouseClicked(MouseEvent e) { /* NO-OP */ }
         @Override
         public void mouseEntered(MouseEvent e) {
-            this.isMouseInside = true;
-            this.repaint();
+            if (e.getSource() == this) {
+                mouseDragComp.set(this);
+                this.isMouseInside = true;
+                this.repaint();
+            }
         }
         @Override
         public void mouseExited(MouseEvent e) {
-            this.isMouseInside = false;
-            this.repaint();
+            if (e.getSource() == this) {
+                mouseDragComp.compareAndSet(this, null);
+                this.isMouseInside = false;
+                this.repaint();
+            }
         }
         @Override
         public void mousePressed(MouseEvent e) {
@@ -1392,7 +1406,14 @@ public class SwingGUI implements ActionListener {
             if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
                 // set wall/goal : mouse button 1 and NOT shift key down
                 // remove wall/goal : other mouse button or shift key down
-                final boolean doSet = ((e.getButton() == MouseEvent.BUTTON1) && (0 == (e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK)));
+                final boolean doSet, doFirst;
+                if (mouseDragMode == 0) {
+                    doSet = ((e.getButton() == MouseEvent.BUTTON1) && (0 == (e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK)));
+                    doFirst = true;
+                } else {
+                    doSet = mouseDragMode > 0;
+                    doFirst = false;
+                }
                 if (true == this.isMouseNorth) {
                     board.setWall(this.boardPosition, "N", doSet);
                     board.setFreestyleBoard();
@@ -1413,11 +1434,15 @@ public class SwingGUI implements ActionListener {
                     board.setFreestyleBoard();
                     this.repaintOther(this.boardPosition - 1);
                 }
-                if ((false == this.isMouseNorth) && (false == this.isMouseEast) && (false == this.isMouseSouth) && (false == this.isMouseWest)) {
-                    if (true == doSet) {
-                        board.addGoal(this.boardPosition, jlistGoalRobots.getSelectedIndex()-1, jlistGoalShapes.getSelectedIndex());
+                if (doFirst) {
+                    if ((false == this.isMouseNorth) && (false == this.isMouseEast) && (false == this.isMouseSouth) && (false == this.isMouseWest)) {
+                        if (true == doSet) {
+                            board.addGoal(this.boardPosition, jlistGoalRobots.getSelectedIndex()-1, jlistGoalShapes.getSelectedIndex());
+                        } else {
+                            board.removeGoal(this.boardPosition);
+                        }
                     } else {
-                        board.removeGoal(this.boardPosition);
+                        mouseDragMode = (doSet ? 1 : -1); // mouse drag sets or removes walls only (not goals)
                     }
                 }
                 this.repaint();
@@ -1426,14 +1451,25 @@ public class SwingGUI implements ActionListener {
         @Override
         public void mouseReleased(MouseEvent e) {
             this.maybeShowPopup(e);
+            mouseDragMode = 0;
         }
         @Override
-        public void mouseDragged(MouseEvent e) { /* NO-OP */ }
+        public void mouseDragged(MouseEvent e) {
+            BoardCell c = mouseDragComp.get();
+            if ((c != null) && isModeEditBoard()) {
+                c.mouseMoved(e);
+                if (mouseDragMode != 0) {
+                    c.mousePressed(e);
+                }
+            }
+        }
         @Override
         public void mouseMoved(MouseEvent e) {
             if ((true == isModeEditBoard()) && (true == this.isMouseInside)) {
                 final Dimension size = this.getSize();
-                final int mouseX = e.getX();
+                final Point thisLoc = this.getLocationOnScreen();
+                final Point evtLoc = e.getLocationOnScreen();
+                final int mouseX = evtLoc.x - thisLoc.x;
                 this.isMouseWest = false;
                 this.isMouseEast = false;
                 if (mouseX <= (size.width >> 2)) {
@@ -1441,7 +1477,7 @@ public class SwingGUI implements ActionListener {
                 } else if (mouseX >= ((size.width * 3) >> 2)) {
                     this.isMouseEast = true;
                 }
-                final int mouseY = e.getY();
+                final int mouseY = evtLoc.y - thisLoc.y;
                 this.isMouseNorth = false;
                 this.isMouseSouth = false;
                 if (mouseY <= (size.height >> 2)) {
