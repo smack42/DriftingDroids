@@ -501,6 +501,7 @@ public class Board {
      * 
      * @param dump a String that represents the state of a Board object.
      * @return a new Board object.
+     * @see #getGameDump()
      */
     public static Board createBoardGameDump(final String dump) {
         final byte[] data = unb64unzip(dump.replaceAll("\\s", "")); //remove whitespace
@@ -532,6 +533,7 @@ public class Board {
                 board.walls[dir][pos] = (0 != data[didx++]);
             }
         }
+        board.addOuterWalls(); // the outer walls are required by the solver
         // 5. list of goals
         final int numGoals = getInteger(data, didx);            didx += 4;
         for (int i = 0;  numGoals > i;  ++i) {
@@ -564,6 +566,7 @@ public class Board {
      * text which is suitable for copy&paste into e-mails, internet forums etc.
      * 
      * @return a String that represents the state of this Board object.
+     * @see #createBoardGameDump(String)
      */
     public String getGameDump() {
         final List<Byte> data = new ArrayList<Byte>();
@@ -582,11 +585,15 @@ public class Board {
             data.add(Byte.valueOf((byte)quadrant));
         }
         // 4. walls
+        // we could exclude the outer walls to shorten the exported data (to be added by createBoardGameDump)
+        // however this would break backward compatibility with DriftingDroids 1.3.10 and earlier
+        //removeOuterWalls();
         for (int dir = 0;  dir < this.walls.length;  ++dir) {
             for (int pos = 0;  pos < this.walls[dir].length;  ++pos) {
                 data.add(Byte.valueOf(this.walls[dir][pos] ? (byte)1 : (byte)0));
             }
         }
+        //addOuterWalls(); // add them back because they are required
         // 5. list of goals
         putInteger(this.goals.size(), data);
         for (Goal goal : this.goals) {  //6 bytes
@@ -1149,7 +1156,9 @@ public class Board {
         return this.quadrants[qPos];
     }
     
+    /** add all outer walls (just to make sure, because the solver requires them) and return the array of walls. */
     public boolean[][] getWalls() {
+        addOuterWalls(); // the outer walls are required by the solver
         return this.walls;
     }
     
