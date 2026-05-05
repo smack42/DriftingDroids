@@ -8,10 +8,10 @@ LIBDIR=lib
 echo compile...
 rm -rf $DESTDIR
 mkdir $DESTDIR
-javac -sourcepath $SRCDIR -d $DESTDIR -cp $LIBDIR/designgridlayout-1.11.jar:$LIBDIR/flatlaf-3.7-no-natives.jar -source 1.8 -target 1.8 $SRCDIR/driftingdroids/ui/*.java $SRCDIR/driftingdroids/model/*.java
+javac -sourcepath $SRCDIR -d $DESTDIR -cp $LIBDIR/designgridlayout-1.11.jar:$LIBDIR/flatlaf-3.7.1-no-natives.jar -source 1.8 -target 1.8 $SRCDIR/driftingdroids/ui/*.java $SRCDIR/driftingdroids/model/*.java
 cp -rp $SRCDIR/META-INF $SRCDIR/resource $DESTDIR
 
 echo
 echo run...
-java -Xmx800M -cp $DESTDIR:$LIBDIR/designgridlayout-1.11.jar:$LIBDIR/flatlaf-3.7-no-natives.jar driftingdroids.ui.Starter
+java -Xmx800M -cp $DESTDIR:$LIBDIR/designgridlayout-1.11.jar:$LIBDIR/flatlaf-3.7.1-no-natives.jar driftingdroids.ui.Starter
 
